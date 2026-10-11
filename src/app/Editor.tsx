@@ -13,7 +13,7 @@ import { Link, useParams } from "react-router";
 import { loadWorkspace, updateIssue, type Issue } from "./store";
 import { cloneTemplatePages, saveCustomTemplate } from "./templates";
 import { rewriteWithAi } from "./ai";
-import { loadPreferences } from "./settingsStore";
+import { checkAiQuota, loadPreferences } from "./settingsStore";
 import BrandLogo from "./BrandLogo";
 import { useAuth } from "./AuthContext";
 import { useCollaboration } from "./collaboration/useCollaboration";
@@ -750,7 +750,7 @@ type EditorIconName =
   | "back" | "workflow" | "write" | "palette" | "pages" | "undo" | "redo"
   | "add" | "preview" | "edit" | "save" | "type" | "bold" | "italic"
   | "underline" | "list" | "ordered" | "left" | "center" | "link"
-  | "heading" | "clear";
+  | "heading" | "clear" | "close";
 
 function EditorIcon({ name }: { name: EditorIconName }) {
   const paths: Record<EditorIconName, ReactNode> = {
@@ -775,7 +775,8 @@ function EditorIcon({ name }: { name: EditorIconName }) {
     center: <path d="M4 6h16M7 10h10M4 14h16M7 18h10" />,
     link: <><path d="m9 15 6-6M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0" /></>,
     heading: <path d="M5 5v14M15 5v14M5 12h10M19 10v9M17 12l2-2 2 2" />,
-    clear: <path d="m6 6 12 12M18 6 6 18" />,
+    clear: <><path d="M4 7h16" /><path d="M10 11v6M14 11v6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></>,
+    close: <path d="m6 6 12 12M18 6 6 18" />,
   };
   return <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24">{paths[name]}</svg>;
 }
@@ -1818,7 +1819,7 @@ export default function App() {
       </header>
 
       {formatOpen && (
-        <div className="editor-only fixed right-4 top-[4.25rem] z-40 flex flex-wrap gap-1 rounded-xl border border-black/15 bg-[#f8f5ed] p-2 shadow-xl">
+        <div className="editor-only fixed right-4 top-[4.25rem] z-40 flex flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed] p-2 shadow-xl">
           {[
             ["bold", "bold"], ["italic", "italic"], ["underline", "underline"],
             ["insertUnorderedList", "list"], ["insertOrderedList", "ordered"],
@@ -1830,6 +1831,16 @@ export default function App() {
           <button aria-label="Add link" className="editor-icon-button" onMouseDown={(event) => { event.preventDefault(); addLink(); }} title="Add link" type="button"><EditorIcon name="link" /></button>
           <button aria-label="Heading" className="editor-icon-button" onMouseDown={(event) => { event.preventDefault(); formatText("formatBlock", "h2"); }} title="Heading" type="button"><EditorIcon name="heading" /></button>
           <button aria-label="Clear formatting" className="editor-icon-button" onMouseDown={(event) => { event.preventDefault(); formatText("removeFormat"); }} title="Clear formatting" type="button"><EditorIcon name="clear" /></button>
+          <span className="mx-1 h-8 w-px bg-black/10" />
+          <button
+            aria-label="Close text formatting"
+            className="editor-icon-button text-black/50 hover:bg-[#ef5a35] hover:text-white"
+            onClick={() => setFormatOpen(false)}
+            title="Close formatting bar"
+            type="button"
+          >
+            <EditorIcon name="close" />
+          </button>
         </div>
       )}
 
@@ -1843,7 +1854,20 @@ export default function App() {
         <div className="editor-only fixed inset-0 z-[60] grid place-items-center bg-black/45 p-4 backdrop-blur-sm" onMouseDown={() => !aiLoading && setAiOpen(false)}>
           <section className="w-full max-w-4xl overflow-hidden bg-[#f8f5ed] shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
             <header className="flex items-start justify-between border-b border-black/10 p-6 sm:p-8">
-              <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">AI editorial assistant</p><h2 className="mt-2 font-serif text-4xl">Rewrite with intention.</h2><p className="mt-2 text-[10px] text-black/40">{loadPreferences().provider === "openai" ? "OpenAI" : "Google Gemini"} · {loadPreferences().provider === "openai" ? loadPreferences().openaiModel : loadPreferences().geminiModel}</p></div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">AI editorial assistant</p>
+                <h2 className="mt-2 font-serif text-4xl">Rewrite with intention.</h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-black/50">
+                  <span className="font-semibold">{loadPreferences().provider === "openai" ? "OpenAI" : "Google Gemini"}</span>
+                  <span>·</span>
+                  <span className="font-mono">{loadPreferences().provider === "openai" ? loadPreferences().openaiModel : loadPreferences().geminiModel}</span>
+                  <span>·</span>
+                  <span className={`rounded-full px-2 py-0.5 font-bold ${checkAiQuota(loadPreferences().provider).remaining === 0 ? "bg-red-100 text-red-700" : "bg-[#dce9e1] text-[#315b4b]"}`}>
+                    {checkAiQuota(loadPreferences().provider).remaining} of {checkAiQuota(loadPreferences().provider).limit} requests left
+                  </span>
+                  <Link className="underline hover:text-[#ef5a35]" target="_blank" to="/settings">Adjust quota</Link>
+                </div>
+              </div>
               <button className="text-2xl text-black/35 hover:text-black" disabled={aiLoading} onClick={() => setAiOpen(false)} type="button">×</button>
             </header>
             {aiLoading ? (

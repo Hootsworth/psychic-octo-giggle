@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { loadPreferences, savePreferences, type AiProvider, type AppPreferences, type AppTheme } from "./settingsStore";
+import {
+  loadPreferences,
+  savePreferences,
+  loadAiUsage,
+  resetAiUsage,
+  type AiProvider,
+  type AppPreferences,
+  type AppTheme,
+  type AiUsage,
+} from "./settingsStore";
 import BackIcon from "./BackIcon";
 import BrandLogo from "./BrandLogo";
 
@@ -11,7 +20,18 @@ const providers = [
 
 export default function Settings() {
   const [preferences, setPreferences] = useState<AppPreferences>(loadPreferences);
+  const [usage, setUsage] = useState<AiUsage>(loadAiUsage);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const handleUsageChange = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail) setUsage(detail);
+      else setUsage(loadAiUsage());
+    };
+    window.addEventListener("iow-ai-usage-change", handleUsageChange);
+    return () => window.removeEventListener("iow-ai-usage-change", handleUsageChange);
+  }, []);
 
   const update = <K extends keyof AppPreferences>(key: K, value: AppPreferences[K]) => {
     const next = { ...preferences, [key]: value };
@@ -20,6 +40,22 @@ export default function Settings() {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1200);
   };
+
+  const handleResetUsage = (provider: AiProvider) => {
+    const providerName = provider === "openai" ? "OpenAI" : "Google Gemini";
+    if (window.confirm(`Reset current usage count for ${providerName} back to 0?`)) {
+      const next = resetAiUsage(provider);
+      setUsage(next);
+    }
+  };
+
+  // Usage percentages
+  const openaiLimit = preferences.openaiLimit || 20;
+  const geminiLimit = preferences.geminiLimit || 25;
+  const openaiUsed = usage.openai || 0;
+  const geminiUsed = usage.gemini || 0;
+  const openaiPct = Math.min(100, Math.round((openaiUsed / openaiLimit) * 100));
+  const geminiPct = Math.min(100, Math.round((geminiUsed / geminiLimit) * 100));
 
   return (
     <div className="app-shell settings-screen min-h-screen bg-[#eeece6] text-[#171714]">
@@ -68,6 +104,131 @@ export default function Settings() {
               <input className="w-full border border-black/15 bg-transparent px-4 py-3 text-sm outline-none focus:border-[#ef5a35]" onChange={(event) => update(preferences.provider === "openai" ? "openaiModel" : "geminiModel", event.target.value)} placeholder={preferences.provider === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash"} value={preferences.provider === "openai" ? preferences.openaiModel : preferences.geminiModel} />
               <span className="mt-2 block text-[9px] text-black/35">Enter any model currently supported by the selected provider.</span>
             </label>
+          </section>
+
+          {/* Individual AI Model Usage Limits */}
+          <section className="border border-black/10 bg-[#f8f5ed] p-6 sm:p-8">
+            <div className="mb-7">
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#ef5a35]">Quota Management</p>
+              <h2 className="mt-2 font-serif text-3xl">Individual AI usage limits</h2>
+              <p className="mt-2 text-xs leading-relaxed text-black/45">
+                Each model has an <strong>independent, individual request limit</strong> (not a combined limit). As people use the AI assistant in the editor, their usage counts update automatically below.
+              </p>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              {/* OpenAI Limit Card */}
+              <div className="flex flex-col justify-between rounded-xl border border-black/15 bg-white p-5 shadow-sm">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-serif text-xl font-bold">OpenAI Limit</span>
+                    <span className="rounded-full bg-black/5 px-2.5 py-1 font-mono text-[9px] text-black/60">
+                      {preferences.openaiModel}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between text-xs">
+                    <span className="text-black/60">Used:</span>
+                    <span className="font-semibold">
+                      {openaiUsed} / {openaiLimit} requests
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-black/10">
+                    <div
+                      className={`h-full transition-all duration-300 ${openaiPct >= 100 ? "bg-[#ef5a35]" : openaiPct >= 70 ? "bg-[#c19639]" : "bg-[#3e6a59]"}`}
+                      style={{ width: `${openaiPct}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-black/45">
+                    <span>{openaiPct}% of limit reached</span>
+                    <span className={openaiUsed >= openaiLimit ? "font-bold text-[#ef5a35]" : "text-[#3e6a59]"}>
+                      {Math.max(0, openaiLimit - openaiUsed)} remaining
+                    </span>
+                  </div>
+
+                  <label className="mt-5 block">
+                    <span className="settings-label">Custom Max Limit (Requests)</span>
+                    <input
+                      className="settings-input"
+                      min={1}
+                      onChange={(event) => update("openaiLimit", Math.max(1, parseInt(event.target.value) || 1))}
+                      type="number"
+                      value={openaiLimit}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between border-t border-black/10 pt-4">
+                  <span className="text-[10px] text-black/40">Separate counter</span>
+                  <button
+                    className="rounded-full border border-black/20 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60 hover:border-[#ef5a35] hover:text-[#ef5a35]"
+                    onClick={() => handleResetUsage("openai")}
+                    type="button"
+                  >
+                    Reset OpenAI count
+                  </button>
+                </div>
+              </div>
+
+              {/* Google Gemini Limit Card */}
+              <div className="flex flex-col justify-between rounded-xl border border-black/15 bg-white p-5 shadow-sm">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-serif text-xl font-bold">Google Gemini Limit</span>
+                    <span className="rounded-full bg-black/5 px-2.5 py-1 font-mono text-[9px] text-black/60">
+                      {preferences.geminiModel}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between text-xs">
+                    <span className="text-black/60">Used:</span>
+                    <span className="font-semibold">
+                      {geminiUsed} / {geminiLimit} requests
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-black/10">
+                    <div
+                      className={`h-full transition-all duration-300 ${geminiPct >= 100 ? "bg-[#ef5a35]" : geminiPct >= 70 ? "bg-[#c19639]" : "bg-[#3e6a59]"}`}
+                      style={{ width: `${geminiPct}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-black/45">
+                    <span>{geminiPct}% of limit reached</span>
+                    <span className={geminiUsed >= geminiLimit ? "font-bold text-[#ef5a35]" : "text-[#3e6a59]"}>
+                      {Math.max(0, geminiLimit - geminiUsed)} remaining
+                    </span>
+                  </div>
+
+                  <label className="mt-5 block">
+                    <span className="settings-label">Custom Max Limit (Requests)</span>
+                    <input
+                      className="settings-input"
+                      min={1}
+                      onChange={(event) => update("geminiLimit", Math.max(1, parseInt(event.target.value) || 1))}
+                      type="number"
+                      value={geminiLimit}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between border-t border-black/10 pt-4">
+                  <span className="text-[10px] text-black/40">Separate counter</span>
+                  <button
+                    className="rounded-full border border-black/20 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60 hover:border-[#ef5a35] hover:text-[#ef5a35]"
+                    onClick={() => handleResetUsage("gemini")}
+                    type="button"
+                  >
+                    Reset Gemini count
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section className="border border-black/10 bg-[#f8f5ed] p-6 sm:p-8">
