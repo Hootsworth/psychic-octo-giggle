@@ -9,7 +9,6 @@ interface CrosswordEditorModalProps {
   initialData?: CrosswordData;
 }
 
-// Built-in smart clue suggestions for common collegiate words
 const SMART_CLUES: Record<string, string> = {
   HEART: "Passionate spirit at the core of university life",
   ENTER: "Step into the 9 AM lecture hall",
@@ -41,7 +40,24 @@ export default function CrosswordEditorModal({
   onSave,
   initialData,
 }: CrosswordEditorModalProps) {
-  const [data, setData] = useState<CrosswordData>(() => initialData ?? DEFAULT_CAMPUS_MINI_CROSSWORD);
+  const base = initialData || DEFAULT_CAMPUS_MINI_CROSSWORD;
+  const [title, setTitle] = useState(base.title || "The Campus Mini");
+  const [author, setAuthor] = useState(base.author || "Editorial Puzzle Desk");
+  const [size, setSize] = useState(base.size || 5);
+  const [grid, setGrid] = useState<string[][]>(() => base.grid || DEFAULT_CAMPUS_MINI_CROSSWORD.grid);
+  const [clueTexts, setClueTexts] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    base.clues?.across?.forEach((c) => {
+      map[`across-${c.row}-${c.col}`] = c.clue;
+      map[`across-num-${c.number}`] = c.clue;
+    });
+    base.clues?.down?.forEach((c) => {
+      map[`down-${c.row}-${c.col}`] = c.clue;
+      map[`down-num-${c.number}`] = c.clue;
+    });
+    return map;
+  });
+
   const [selectedCell, setSelectedCell] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
   const [direction, setDirection] = useState<"across" | "down">("across");
   const [toolMode, setToolMode] = useState<"letters" | "blocks">("letters");
@@ -50,13 +66,28 @@ export default function CrosswordEditorModal({
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Re-sync whenever a new puzzle is loaded into initialData
   useEffect(() => {
-    if (initialData) setData(initialData);
+    if (initialData) {
+      setTitle(initialData.title || "The Campus Mini");
+      setAuthor(initialData.author || "Editorial Puzzle Desk");
+      setSize(initialData.size || 5);
+      setGrid(initialData.grid);
+      const map: Record<string, string> = {};
+      initialData.clues?.across?.forEach((c) => {
+        map[`across-${c.row}-${c.col}`] = c.clue;
+        map[`across-num-${c.number}`] = c.clue;
+      });
+      initialData.clues?.down?.forEach((c) => {
+        map[`down-${c.row}-${c.col}`] = c.clue;
+        map[`down-num-${c.number}`] = c.clue;
+      });
+      setClueTexts(map);
+      setSelectedCell({ r: 0, c: 0 });
+    }
   }, [initialData]);
 
-  const size = data.size;
-
-  // Real-time automatic extraction of clue numbers and words from grid
+  // Pure derived Across and Down clues (no setState in useMemo/useEffect!)
   const { acrossClues, downClues, cellNumbers } = useMemo(() => {
     let clueNum = 1;
     const newAcross: CrosswordClue[] = [];
@@ -65,17 +96,17 @@ export default function CrosswordEditorModal({
 
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
-        if (data.grid[r]?.[c] === "#") continue;
+        if (grid[r]?.[c] === "#") continue;
 
         const isStartOfAcross =
-          (c === 0 || data.grid[r][c - 1] === "#") &&
+          (c === 0 || grid[r]?.[c - 1] === "#") &&
           c + 1 < size &&
-          data.grid[r][c + 1] !== "#";
+          grid[r]?.[c + 1] !== "#";
 
         const isStartOfDown =
-          (r === 0 || data.grid[r - 1]?.[c] === "#") &&
+          (r === 0 || grid[r - 1]?.[c] === "#") &&
           r + 1 < size &&
-          data.grid[r + 1]?.[c] !== "#";
+          grid[r + 1]?.[c] !== "#";
 
         if (isStartOfAcross || isStartOfDown) {
           const num = clueNum++;
@@ -84,82 +115,72 @@ export default function CrosswordEditorModal({
           if (isStartOfAcross) {
             let answer = "";
             let ci = c;
-            while (ci < size && data.grid[r][ci] !== "#") {
-              answer += data.grid[r][ci] || "_";
+            while (ci < size && grid[r]?.[ci] !== "#") {
+              answer += grid[r]?.[ci] || "_";
               ci++;
             }
-            // Preserve existing author's clue
-            const existingClue =
-              data.clues.across.find((x) => x.row === r && x.col === c)?.clue ||
-              data.clues.across.find((x) => x.number === num)?.clue ||
+            const clue =
+              clueTexts[`across-${r}-${c}`] ??
+              clueTexts[`across-num-${num}`] ??
               "";
-            newAcross.push({ number: num, clue: existingClue, row: r, col: c, answer });
+            newAcross.push({ number: num, clue, row: r, col: c, answer });
           }
 
           if (isStartOfDown) {
             let answer = "";
             let ri = r;
-            while (ri < size && data.grid[ri]?.[c] !== "#") {
-              answer += data.grid[ri][c] || "_";
+            while (ri < size && grid[ri]?.[c] !== "#") {
+              answer += grid[ri]?.[c] || "_";
               ri++;
             }
-            // Preserve existing author's clue
-            const existingClue =
-              data.clues.down.find((x) => x.row === r && x.col === c)?.clue ||
-              data.clues.down.find((x) => x.number === num)?.clue ||
+            const clue =
+              clueTexts[`down-${r}-${c}`] ??
+              clueTexts[`down-num-${num}`] ??
               "";
-            newDown.push({ number: num, clue: existingClue, row: r, col: c, answer });
+            newDown.push({ number: num, clue, row: r, col: c, answer });
           }
         }
       }
     }
 
     return { acrossClues: newAcross, downClues: newDown, cellNumbers: numbers };
-  }, [data.grid, data.clues, size]);
-
-  // Keep clues in sync with data whenever grid changes
-  useEffect(() => {
-    setData((prev) => ({
-      ...prev,
-      clues: { across: acrossClues, down: downClues },
-    }));
-  }, [acrossClues, downClues]);
+  }, [grid, size, clueTexts]);
 
   // Identify active word cells based on selection
   const activeWordInfo = useMemo(() => {
     const { r, c } = selectedCell;
-    if (data.grid[r]?.[c] === "#") return null;
+    if (grid[r]?.[c] === "#") return null;
 
     if (direction === "across") {
       let startC = c;
-      while (startC > 0 && data.grid[r][startC - 1] !== "#") startC--;
+      while (startC > 0 && grid[r]?.[startC - 1] !== "#") startC--;
       let endC = c;
-      while (endC < size - 1 && data.grid[r][endC + 1] !== "#") endC++;
+      while (endC < size - 1 && grid[r]?.[endC + 1] !== "#") endC++;
 
       const cells = new Set<string>();
       let word = "";
       for (let ci = startC; ci <= endC; ci++) {
         cells.add(`${r}-${ci}`);
-        word += data.grid[r][ci] || "_";
+        word += grid[r]?.[ci] || "_";
       }
       const clue = acrossClues.find((x) => x.row === r && x.col === startC);
       return { dir: "across" as const, clue, cells, word, length: endC - startC + 1 };
     } else {
       let startR = r;
-      while (startR > 0 && data.grid[startR - 1]?.[c] !== "#") startR--;
+      while (startR > 0 && grid[startR - 1]?.[c] !== "#") startR--;
       let endR = r;
-      while (endR < size - 1 && data.grid[endR + 1]?.[c] !== "#") endR++;
+      while (endR < size - 1 && grid[endR + 1]?.[c] !== "#") endR++;
 
       const cells = new Set<string>();
       let word = "";
       for (let ri = startR; ri <= endR; ri++) {
         cells.add(`${ri}-${c}`);
-        word += data.grid[ri][c] || "_";
+        word += grid[ri]?.[c] || "_";
       }
       const clue = downClues.find((x) => x.row === startR && x.col === c);
       return { dir: "down" as const, clue, cells, word, length: endR - startR + 1 };
     }
-  }, [selectedCell, direction, data.grid, size, acrossClues, downClues]);
+  }, [selectedCell, direction, grid, size, acrossClues, downClues]);
 
   if (!isOpen) return null;
 
@@ -169,8 +190,7 @@ export default function CrosswordEditorModal({
       return;
     }
 
-    if (data.grid[r]?.[c] === "#") {
-      // If clicking a black cell in letters mode, select it but switch tool or clear
+    if (grid[r]?.[c] === "#") {
       setSelectedCell({ r, c });
       return;
     }
@@ -183,10 +203,10 @@ export default function CrosswordEditorModal({
   };
 
   const toggleBlockCell = (r: number, c: number) => {
-    const isCurrentlyBlack = data.grid[r]?.[c] === "#";
+    const isCurrentlyBlack = grid[r]?.[c] === "#";
     const nextVal = isCurrentlyBlack ? "" : "#";
 
-    const nextGrid = data.grid.map((row, ri) =>
+    const nextGrid = grid.map((row, ri) =>
       row.map((val, ci) => {
         if (ri === r && ci === c) return nextVal;
         if (symmetricalBlocks && ri === size - 1 - r && ci === size - 1 - c) {
@@ -196,7 +216,7 @@ export default function CrosswordEditorModal({
       })
     );
 
-    setData((prev) => ({ ...prev, grid: nextGrid }));
+    setGrid(nextGrid);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, r: number, c: number) => {
@@ -230,89 +250,113 @@ export default function CrosswordEditorModal({
   };
 
   const updateCellLetter = (r: number, c: number, char: string) => {
-    const nextGrid = data.grid.map((row, ri) =>
+    const nextGrid = grid.map((row, ri) =>
       row.map((val, ci) => (ri === r && ci === c ? char : val))
     );
-    setData((prev) => ({ ...prev, grid: nextGrid }));
+    setGrid(nextGrid);
   };
 
   const moveCursor = (r: number, c: number, delta: number) => {
     if (direction === "across") {
       const nextC = c + delta;
-      if (nextC >= 0 && nextC < size) {
-        setSelectedCell({ r, c: nextC });
-      }
+      if (nextC >= 0 && nextC < size) setSelectedCell({ r, c: nextC });
     } else {
       const nextR = r + delta;
-      if (nextR >= 0 && nextR < size) {
-        setSelectedCell({ r: nextR, c });
-      }
+      if (nextR >= 0 && nextR < size) setSelectedCell({ r: nextR, c });
     }
   };
 
-  const handleClueChange = (type: "across" | "down", number: number, clueText: string) => {
-    setData((prev) => {
-      const list = prev.clues[type].map((item) =>
-        item.number === number ? { ...item, clue: clueText } : item
-      );
-      return {
-        ...prev,
-        clues: { ...prev.clues, [type]: list },
-      };
-    });
+  const handleClueChange = (type: "across" | "down", number: number, row: number, col: number, clueText: string) => {
+    setClueTexts((prev) => ({
+      ...prev,
+      [`${type}-${row}-${col}`]: clueText,
+      [`${type}-num-${number}`]: clueText,
+    }));
   };
 
-  const applySmartClue = (type: "across" | "down", number: number, answerWord: string) => {
+  const applySmartClue = (type: "across" | "down", number: number, row: number, col: number, answerWord: string) => {
     const cleanWord = answerWord.replace(/[^A-Z]/g, "");
     const suggestion =
       SMART_CLUES[cleanWord] ||
       `Collegiate clue for "${cleanWord}" (${cleanWord.length} letters)`;
-    handleClueChange(type, number, suggestion);
+    handleClueChange(type, number, row, col, suggestion);
   };
 
   const resizeGrid = (newSize: number) => {
-    // Preserve overlapping cells
     const newGrid: string[][] = Array(newSize)
       .fill("")
       .map((_, ri) =>
         Array(newSize)
           .fill("")
-          .map((_, ci) => data.grid[ri]?.[ci] || "")
+          .map((_, ci) => grid[ri]?.[ci] || "")
       );
 
-    setData((prev) => ({
-      ...prev,
-      size: newSize,
-      grid: newGrid,
-    }));
+    setSize(newSize);
+    setGrid(newGrid);
     setSelectedCell({ r: 0, c: 0 });
   };
 
   const loadPreset = (presetName: string) => {
     if (presetName === "mini5") {
-      setData(DEFAULT_CAMPUS_MINI_CROSSWORD);
+      setSize(5);
+      setGrid(DEFAULT_CAMPUS_MINI_CROSSWORD.grid);
+      const map: Record<string, string> = {};
+      DEFAULT_CAMPUS_MINI_CROSSWORD.clues.across.forEach((c) => {
+        map[`across-${c.row}-${c.col}`] = c.clue;
+        map[`across-num-${c.number}`] = c.clue;
+      });
+      DEFAULT_CAMPUS_MINI_CROSSWORD.clues.down.forEach((c) => {
+        map[`down-${c.row}-${c.col}`] = c.clue;
+        map[`down-num-${c.number}`] = c.clue;
+      });
+      setClueTexts(map);
       setSelectedCell({ r: 0, c: 0 });
     } else if (presetName === "quad7") {
-      setData(CLASSIC_7X7_CROSSWORD);
+      setSize(7);
+      setGrid(CLASSIC_7X7_CROSSWORD.grid);
+      const map: Record<string, string> = {};
+      CLASSIC_7X7_CROSSWORD.clues.across.forEach((c) => {
+        map[`across-${c.row}-${c.col}`] = c.clue;
+        map[`across-num-${c.number}`] = c.clue;
+      });
+      CLASSIC_7X7_CROSSWORD.clues.down.forEach((c) => {
+        map[`down-${c.row}-${c.col}`] = c.clue;
+        map[`down-num-${c.number}`] = c.clue;
+      });
+      setClueTexts(map);
       setSelectedCell({ r: 0, c: 0 });
     } else if (presetName === "blank5") {
-      const g = Array(5).fill("").map(() => Array(5).fill(""));
-      setData({ ...data, size: 5, grid: g });
+      setSize(5);
+      setGrid(Array(5).fill("").map(() => Array(5).fill("")));
       setSelectedCell({ r: 0, c: 0 });
     } else if (presetName === "blank7") {
-      const g = Array(7).fill("").map(() => Array(7).fill(""));
-      setData({ ...data, size: 7, grid: g });
+      setSize(7);
+      setGrid(Array(7).fill("").map(() => Array(7).fill("")));
       setSelectedCell({ r: 0, c: 0 });
     } else if (presetName === "clearLetters") {
-      // Retain black blocks, wipe out letters
-      const g = data.grid.map((row) => row.map((cell) => (cell === "#" ? "#" : "")));
-      setData({ ...data, grid: g });
+      const g = grid.map((row) => row.map((cell) => (cell === "#" ? "#" : "")));
+      setGrid(g);
     }
   };
 
   const focusClueOnGrid = (clue: CrosswordClue, dir: "across" | "down") => {
     setSelectedCell({ r: clue.row, c: clue.col });
     setDirection(dir);
+  };
+
+  const handleSaveAndClose = () => {
+    const finalData: CrosswordData = {
+      title,
+      author,
+      size,
+      grid,
+      clues: {
+        across: acrossClues,
+        down: downClues,
+      },
+    };
+    onSave(finalData);
+    onClose();
   };
 
   return (
@@ -353,10 +397,7 @@ export default function CrosswordEditorModal({
             </button>
             <button
               className="rounded-full bg-[#ef5a35] px-5 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-white shadow hover:bg-[#d44826]"
-              onClick={() => {
-                onSave(data);
-                onClose();
-              }}
+              onClick={handleSaveAndClose}
               type="button"
             >
               Save & Apply Puzzle ✓
@@ -470,15 +511,15 @@ export default function CrosswordEditorModal({
             <div className="mb-4 grid grid-cols-2 gap-3">
               <input
                 className="rounded-lg border border-black/15 bg-white px-3.5 py-2 text-xs font-semibold outline-none focus:border-[#ef5a35] dark:border-white/15 dark:bg-[#22221f]"
-                onChange={(e) => setData({ ...data, title: e.target.value })}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Puzzle Title (e.g. The Campus Mini)"
-                value={data.title || ""}
+                value={title}
               />
               <input
                 className="rounded-lg border border-black/15 bg-white px-3.5 py-2 text-xs font-semibold outline-none focus:border-[#ef5a35] dark:border-white/15 dark:bg-[#22221f]"
-                onChange={(e) => setData({ ...data, author: e.target.value })}
+                onChange={(e) => setAuthor(e.target.value)}
                 placeholder="Author / Credit (e.g. The Editorial Desk)"
-                value={data.author || ""}
+                value={author}
               />
             </div>
 
@@ -491,7 +532,7 @@ export default function CrosswordEditorModal({
                   gap: "1px",
                 }}
               >
-                {data.grid.map((row, r) =>
+                {grid.map((row, r) =>
                   row.map((cell, c) => {
                     const isSelected = selectedCell.r === r && selectedCell.c === c;
                     const isBlack = cell === "#";
@@ -582,6 +623,8 @@ export default function CrosswordEditorModal({
                         applySmartClue(
                           activeWordInfo.dir,
                           activeWordInfo.clue!.number,
+                          activeWordInfo.clue!.row,
+                          activeWordInfo.clue!.col,
                           activeWordInfo.word
                         )
                       }
@@ -600,6 +643,8 @@ export default function CrosswordEditorModal({
                       handleClueChange(
                         activeWordInfo.dir,
                         activeWordInfo.clue!.number,
+                        activeWordInfo.clue!.row,
+                        activeWordInfo.clue!.col,
                         e.target.value
                       )
                     }
@@ -693,7 +738,7 @@ export default function CrosswordEditorModal({
                           <button
                             className="text-[9px] font-bold uppercase text-[#ef5a35] hover:underline"
                             onClick={() =>
-                              applySmartClue(activeTab, item.number, item.answer || "")
+                              applySmartClue(activeTab, item.number, item.row, item.col, item.answer || "")
                             }
                             type="button"
                           >
@@ -712,7 +757,7 @@ export default function CrosswordEditorModal({
                       <input
                         className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-1.5 text-xs outline-none focus:border-[#ef5a35] dark:border-white/10"
                         onChange={(e) =>
-                          handleClueChange(activeTab, item.number, e.target.value)
+                          handleClueChange(activeTab, item.number, item.row, item.col, e.target.value)
                         }
                         placeholder={`Clue for ${item.answer || "this word"}...`}
                         value={item.clue || ""}

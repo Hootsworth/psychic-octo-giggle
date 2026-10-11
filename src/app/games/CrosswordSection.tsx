@@ -26,10 +26,10 @@ export default function CrosswordSection({
   // Map cell numbers matching clues
   const cellNumbers = useMemo(() => {
     const map: Record<string, number> = {};
-    data.clues.across.forEach((item) => {
+    data.clues?.across?.forEach((item) => {
       map[`${item.row}-${item.col}`] = item.number;
     });
-    data.clues.down.forEach((item) => {
+    data.clues?.down?.forEach((item) => {
       map[`${item.row}-${item.col}`] = item.number;
     });
     return map;
@@ -37,7 +37,7 @@ export default function CrosswordSection({
 
   // Compute active word cells and active clue based on selection & direction
   const { activeClue, activeWordCells } = useMemo(() => {
-    if (!selectedCell || data.grid[selectedCell.r]?.[selectedCell.c] === "#") {
+    if (!selectedCell || !data.grid || data.grid[selectedCell.r]?.[selectedCell.c] === "#") {
       return { activeClue: null, activeWordCells: new Set<string>() };
     }
 
@@ -46,21 +46,21 @@ export default function CrosswordSection({
 
     if (direction === "across") {
       let startC = c;
-      while (startC > 0 && data.grid[r][startC - 1] !== "#") startC--;
+      while (startC > 0 && data.grid[r]?.[startC - 1] !== "#") startC--;
       let endC = c;
-      while (endC < data.size - 1 && data.grid[r][endC + 1] !== "#") endC++;
+      while (endC < (data.size || 5) - 1 && data.grid[r]?.[endC + 1] !== "#") endC++;
 
       for (let ci = startC; ci <= endC; ci++) cells.add(`${r}-${ci}`);
-      const clue = data.clues.across.find((x) => x.row === r && x.col === startC) || null;
+      const clue = data.clues?.across?.find((x) => x.row === r && x.col === startC) || null;
       return { activeClue: clue, activeWordCells: cells };
     } else {
       let startR = r;
-      while (startR > 0 && data.grid[startR - 1][c] !== "#") startR--;
+      while (startR > 0 && data.grid[startR - 1]?.[c] !== "#") startR--;
       let endR = r;
-      while (endR < data.size - 1 && data.grid[endR + 1][c] !== "#") endR++;
+      while (endR < (data.size || 5) - 1 && data.grid[endR + 1]?.[c] !== "#") endR++;
 
       for (let ri = startR; ri <= endR; ri++) cells.add(`${ri}-${c}`);
-      const clue = data.clues.down.find((x) => x.row === startR && x.col === c) || null;
+      const clue = data.clues?.down?.find((x) => x.row === startR && x.col === c) || null;
       return { activeClue: clue, activeWordCells: cells };
     }
   }, [selectedCell, direction, data]);
@@ -226,7 +226,7 @@ export default function CrosswordSection({
               {data.title || "The Campus Mini"}
             </h3>
             <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-black/50">
-              Edited by {data.author || "The Editorial Desk"} · {data.clues.across.length + data.clues.down.length} Clues
+              Edited by {data.author || "The Editorial Desk"} · {((data.clues?.across || []).length + (data.clues?.down || []).length)} Clues
             </p>
           </div>
         </div>
@@ -332,11 +332,11 @@ export default function CrosswordSection({
                 Across
               </h4>
               <span className="font-mono text-[9px] text-black/40">
-                {data.clues.across.length}
+                {(data.clues?.across || []).length}
               </span>
             </div>
             <div className="mt-2.5 space-y-1.5 text-[11px] leading-tight">
-              {data.clues.across.map((item) => {
+              {(data.clues?.across || []).map((item) => {
                 const isActive = activeClue?.number === item.number && direction === "across";
                 return (
                   <div
@@ -363,11 +363,11 @@ export default function CrosswordSection({
                 Down
               </h4>
               <span className="font-mono text-[9px] text-black/40">
-                {data.clues.down.length}
+                {(data.clues?.down || []).length}
               </span>
             </div>
             <div className="mt-2.5 space-y-1.5 text-[11px] leading-tight">
-              {data.clues.down.map((item) => {
+              {(data.clues?.down || []).map((item) => {
                 const isActive = activeClue?.number === item.number && direction === "down";
                 return (
                   <div

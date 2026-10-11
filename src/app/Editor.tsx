@@ -2403,17 +2403,19 @@ export default function App() {
       </main>
 
       {/* Crossword Builder Screen */}
-      <CrosswordEditorModal
-        initialData={
-          pages
-            .flat()
-            .find((s) => s.id === crosswordEditId)?.content?.crossword ||
-          DEFAULT_CAMPUS_MINI_CROSSWORD
-        }
-        isOpen={Boolean(crosswordEditId)}
-        onClose={() => setCrosswordEditId(null)}
-        onSave={handleSaveCrossword}
-      />
+      {crosswordEditId && (
+        <CrosswordEditorModal
+          initialData={
+            pages
+              .flat()
+              .find((s) => s.id === crosswordEditId)?.content?.crossword ||
+            DEFAULT_CAMPUS_MINI_CROSSWORD
+          }
+          isOpen={true}
+          onClose={() => setCrosswordEditId(null)}
+          onSave={handleSaveCrossword}
+        />
+      )}
 
       {/* Editorial Comments Drawer */}
       <CommentsPanel
