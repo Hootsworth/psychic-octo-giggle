@@ -42,14 +42,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build project
-        env:
-          GITHUB_PAGES: 'true'
-        run: pnpm run build --base=/psychic-octo-giggle/
+        run: pnpm run build
 
-      - name: Prepare SPA routing for GitHub Pages
+      - name: Prepare SPA routing and CNAME for GitHub Pages
         run: |
           touch dist/.nojekyll
           cp dist/index.html dist/404.html
+          echo "newsletter.singulr.tech" > dist/CNAME
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

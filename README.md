@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://hootsworth.github.io/psychic-octo-giggle/">🌐 View Live Demo on GitHub Pages</a></strong>
+  <strong><a href="https://newsletter.singulr.tech/">🌐 View Live on newsletter.singulr.tech</a></strong>
 </p>
 
 ---
