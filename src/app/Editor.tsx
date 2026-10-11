@@ -2472,10 +2472,6 @@ export default function App() {
                 <button className={`border-b-2 px-3 py-4 text-[8px] font-bold uppercase tracking-[0.12em] ${studioTab === tab ? "border-[#ef5a35] text-[#ef5a35]" : "border-transparent text-black/40 dark:text-white/40"}`} key={tab} onClick={() => { setStudioTab(tab); if (tab === "preflight") runPreflight(); }} type="button">{tab}</button>
               ))}
             </nav>
-              {(["pages", "preflight", "history", "templates", "media", "export"] as StudioTab[]).map((tab) => (
-                <button className={`border-b-2 px-3 py-4 text-[8px] font-bold uppercase tracking-[0.12em] ${studioTab === tab ? "border-[#ef5a35] text-[#ef5a35]" : "border-transparent text-black/40"}`} key={tab} onClick={() => { setStudioTab(tab); if (tab === "preflight") runPreflight(); }} type="button">{tab}</button>
-              ))}
-            </nav>
             <div className="flex-1 overflow-y-auto p-6">
               {studioTab === "pages" && (
                 <div>
