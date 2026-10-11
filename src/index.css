@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *, .dark, .dark *));
+
 :root {
   font-family: "DM Sans", sans-serif;
   color: #171714;
@@ -15,14 +17,58 @@ body {
   margin: 0;
 }
 
-html[data-theme="dark"] body {
+html[data-theme="dark"] body,
+html.dark body {
   background: #11110f;
+  color: #f3f0e8;
 }
 
-html[data-theme="dark"] .app-shell {
+html[data-theme="dark"] .app-shell,
+html.dark .app-shell {
   color: #f3f0e8;
   background-color: #151513;
   color-scheme: dark;
+}
+
+/* Explicit QR Modal Theme Adaptations */
+html[data-theme="dark"] .qr-modal-card,
+html.dark .qr-modal-card {
+  color: #f3f0e8 !important;
+  background-color: #1c1b18 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html[data-theme="dark"] .qr-modal-card h2,
+html[data-theme="dark"] .qr-modal-card h3,
+html.dark .qr-modal-card h2,
+html.dark .qr-modal-card h3 {
+  color: #f3f0e8 !important;
+}
+
+html[data-theme="dark"] .qr-modal-input,
+html.dark .qr-modal-input {
+  color: #f3f0e8 !important;
+  background-color: #262521 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+html[data-theme="dark"] .qr-modal-input::placeholder,
+html.dark .qr-modal-input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+html[data-theme="dark"] .qr-modal-stamp,
+html.dark .qr-modal-stamp {
+  background-color: #24231f !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f3f0e8 !important;
+}
+
+html[data-theme="dark"] .qr-modal-box,
+html.dark .qr-modal-box {
+  background-color: #22221e !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f3f0e8 !important;
 }
 
 html[data-theme="dark"] .app-shell .bg-\[\#eeece6\],

@@ -48,8 +48,31 @@ export function loadPreferences(): AppPreferences {
 }
 
 export function applyTheme(theme: AppTheme) {
-  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+    document.documentElement.classList.toggle("dark", isDark);
+    document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+  }
+}
+
+if (typeof window !== "undefined") {
+  try {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    mq.addEventListener("change", () => {
+      const current = loadPreferences();
+      if (current.theme === "system") {
+        applyTheme("system");
+      }
+    });
+  } catch {
+    // ignore
+  }
 }
 
 export function savePreferences(preferences: AppPreferences) {

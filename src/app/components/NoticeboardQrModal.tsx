@@ -157,7 +157,7 @@ export default function NoticeboardQrModal({
     >
       <div
         aria-modal="true"
-        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-black/15 bg-[#f8f5ed] p-6 shadow-2xl text-[#171714] dark:border-white/15 dark:bg-[#1a1a17] dark:text-[#f3f0e8] sm:p-8"
+        className="qr-modal-card relative w-full max-w-2xl overflow-hidden rounded-2xl border border-black/15 bg-[#f8f5ed] p-6 shadow-2xl text-[#171714] dark:border-white/15 dark:bg-[#1a1a17] dark:text-[#f3f0e8] sm:p-8"
         role="dialog"
       >
         {/* Subtle Newspaper Masthead Header */}
@@ -195,7 +195,7 @@ export default function NoticeboardQrModal({
           </span>
           {PRESETS.map((preset) => (
             <button
-              className="shrink-0 rounded-full border border-black/15 bg-white/60 px-3 py-1 font-semibold text-black/75 transition hover:border-[#ef5a35] hover:bg-white hover:text-[#ef5a35] dark:border-white/15 dark:bg-[#242420] dark:text-white/75 dark:hover:border-[#ef5a35] dark:hover:text-[#ef5a35]"
+              className="shrink-0 rounded-full border border-black/15 bg-white/60 px-3 py-1 font-semibold text-black/75 transition hover:border-[#ef5a35] hover:bg-white hover:text-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8]/80 dark:hover:border-[#ef5a35] dark:hover:text-[#ef5a35]"
               key={preset.name}
               onClick={() => applyPreset(preset)}
               type="button"
@@ -210,7 +210,7 @@ export default function NoticeboardQrModal({
           {/* Controls Column */}
           <div className="space-y-4 text-xs">
             {/* Display Switch styled as editorial toggle */}
-            <div className="flex items-center justify-between rounded-xl border border-black/10 bg-white/50 p-3 dark:border-white/10 dark:bg-[#22221e]">
+            <div className="qr-modal-box flex items-center justify-between rounded-xl border border-black/10 bg-white/50 p-3 dark:border-white/10 dark:bg-[#22221e]">
               <div>
                 <p className="text-xs font-semibold">Display in Noticeboard</p>
                 <p className="text-[10px] text-black/50 dark:text-white/50">
@@ -239,7 +239,7 @@ export default function NoticeboardQrModal({
                 Destination Link URL
               </label>
               <input
-                className="mt-1.5 w-full rounded-xl border border-black/15 bg-white/80 px-3.5 py-2 text-xs text-[#171714] placeholder:text-black/30 shadow-xs focus:border-[#ef5a35] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8] dark:placeholder:text-white/30"
+                className="qr-modal-input mt-1.5 w-full rounded-xl border border-black/15 bg-white/80 px-3.5 py-2 text-xs text-[#171714] placeholder:text-black/30 shadow-xs focus:border-[#ef5a35] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8] dark:placeholder:text-white/30"
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://forms.gle/... or https://university.edu/submit"
                 type="url"
@@ -256,7 +256,7 @@ export default function NoticeboardQrModal({
                 Notice Caption / Call-To-Action
               </label>
               <input
-                className="mt-1.5 w-full rounded-xl border border-black/15 bg-white/80 px-3.5 py-2 text-xs text-[#171714] shadow-xs focus:border-[#ef5a35] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8]"
+                className="qr-modal-input mt-1.5 w-full rounded-xl border border-black/15 bg-white/80 px-3.5 py-2 text-xs text-[#171714] shadow-xs focus:border-[#ef5a35] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8]"
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Scan to Submit Work"
                 type="text"
@@ -265,7 +265,7 @@ export default function NoticeboardQrModal({
             </div>
 
             {/* Automated Attribution & UTM Tracking */}
-            <div className="rounded-xl border border-black/10 bg-white/40 p-3.5 dark:border-white/10 dark:bg-[#22221e]">
+            <div className="qr-modal-box rounded-xl border border-black/10 bg-white/40 p-3.5 dark:border-white/10 dark:bg-[#22221e]">
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   checked={useTracking}
@@ -284,7 +284,7 @@ export default function NoticeboardQrModal({
                     Issue / Campaign Identifier:
                   </label>
                   <input
-                    className="mt-1 w-full rounded-lg border border-black/15 bg-white px-2.5 py-1.5 font-mono text-[11px] text-black/80 shadow-xs dark:border-white/15 dark:bg-[#1a1a17] dark:text-white/80"
+                    className="qr-modal-input mt-1 w-full rounded-lg border border-black/15 bg-white px-2.5 py-1.5 font-mono text-[11px] text-black/80 shadow-xs dark:border-white/15 dark:bg-[#1a1a17] dark:text-white/80"
                     onChange={(e) => setCampaign(e.target.value)}
                     placeholder="issue-submissions"
                     type="text"
@@ -299,7 +299,7 @@ export default function NoticeboardQrModal({
           </div>
 
           {/* Authentic Letterpress QR Stamp Preview */}
-          <div className="flex flex-col items-center justify-between rounded-2xl border border-black/15 bg-[#f4efe2] p-4 text-center shadow-xs dark:border-white/15 dark:bg-[#23221e]">
+          <div className="qr-modal-stamp flex flex-col items-center justify-between rounded-2xl border border-black/15 bg-[#f4efe2] p-4 text-center shadow-xs dark:border-white/15 dark:bg-[#23221e]">
             <div className="w-full">
               <div className="flex items-center justify-between border-b border-black/10 pb-2 dark:border-white/10">
                 <span className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
@@ -359,7 +359,7 @@ export default function NoticeboardQrModal({
         </div>
 
         {/* Dispatch Wire URL Bar */}
-        <div className="mt-5 rounded-xl border border-black/15 bg-white/70 p-3 shadow-xs dark:border-white/15 dark:bg-[#20201d]">
+        <div className="qr-modal-box mt-5 rounded-xl border border-black/15 bg-white/70 p-3 shadow-xs dark:border-white/15 dark:bg-[#20201d]">
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono text-[8.5px] font-bold uppercase tracking-widest text-black/50 dark:text-white/50">
               Dispatch Wire Destination
