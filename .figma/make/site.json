@@ -1,0 +1,16 @@
+{
+  "description": "Create and customize professional newsletters effortlessly with an editable HTML template designed for easy editorial design and user-friendly functionality.",
+  "robots": {
+    "index": false
+  },
+  "icons": {
+    "icon": "/logo.png"
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  },
+  "customScripts": {
+    "headEnd": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link href=\"https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&amp;display=swap\" rel=\"stylesheet\"><link href=\"/src/index.css\" rel=\"stylesheet\">"
+  }
+}
