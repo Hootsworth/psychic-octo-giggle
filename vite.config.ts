@@ -12,7 +12,9 @@ export default defineConfig(({ mode }) => {
   const emitSourcemaps = mode === 'development'
 
   return {
-    base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
+    base: process.env.FIGMA_PUBLIC_URL
+      ? `${process.env.FIGMA_PUBLIC_URL}/`
+      : (process.env.GITHUB_ACTIONS || process.env.GITHUB_PAGES ? '/psychic-octo-giggle/' : '/'),
     build: {
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,

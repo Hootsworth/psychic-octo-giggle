@@ -7,13 +7,16 @@ export default function BrandLogo({
   full?: boolean;
   priority?: boolean;
 }) {
+  const base = import.meta.env.BASE_URL ?? "/";
+  const logoSrc = `${base.endsWith("/") ? base : `${base}/`}logo.png`;
+
   return (
     <img
       alt="In Other Words"
       className={`block object-contain ${className}`}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
-      src="/logo.png"
+      src={logoSrc}
     />
   );
 }

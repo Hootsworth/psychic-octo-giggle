@@ -22,4 +22,6 @@ export const router = createBrowserRouter([
     ],
   },
   { path: "*", element: <Navigate replace to="/" /> },
-]);
+], {
+  basename: import.meta.env.BASE_URL,
+});
