@@ -1532,6 +1532,27 @@ export default function App() {
     setActivePage((current) => Math.max(0, Math.min(current, pages.length - 2)));
   };
 
+  const duplicatePage = (pageIndex: number) => {
+    if (pageIndex < 0 || pageIndex >= pages.length) return;
+    rememberLayout();
+    const originalPage = pages[pageIndex];
+    const clonedPage: Section[] = originalPage.map((sec) => ({
+      ...sec,
+      id: `${sec.type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      content: JSON.parse(JSON.stringify(sec.content || {})),
+    }));
+
+    setPages((current) => {
+      const next = [...current];
+      next.splice(pageIndex + 1, 0, clonedPage);
+      return next;
+    });
+    setActivePage(pageIndex + 1);
+    window.setTimeout(() => {
+      document.querySelector(`#page-${pageIndex + 2}`)?.scrollIntoView({ behavior: "smooth" });
+    }, 60);
+  };
+
   const updateSource = (value: string) => {
     setSourceText(value);
     rememberLayout();
@@ -1828,6 +1849,9 @@ export default function App() {
       return next;
     });
     setActivePage(to);
+    window.setTimeout(() => {
+      document.querySelector(`#page-${to + 1}`)?.scrollIntoView({ behavior: "smooth" });
+    }, 60);
   };
 
   const syncWritingFromCanvas = () => {
@@ -2262,11 +2286,71 @@ export default function App() {
                   <div className="mb-6 flex items-center justify-between border border-black/10 p-4"><div><p className="text-xs font-semibold">Smart page flow</p><p className="mt-1 text-[9px] text-black/40">Move overflowing sections forward after text edits.</p></div><button className={`h-6 w-11 rounded-full p-1 transition ${smartFlow ? "bg-[#ef5a35]" : "bg-black/15"}`} onClick={() => setSmartFlow(!smartFlow)} type="button"><span className={`block h-4 w-4 rounded-full bg-white transition-transform ${smartFlow ? "translate-x-5" : ""}`} /></button></div>
                   <div className="grid gap-3">
                     {pages.map((sections, index) => (
-                      <div className="flex items-center gap-4 border border-black/10 p-3" draggable key={index} onDragStart={() => { pageDragRef.current = index; }} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (pageDragRef.current !== null) movePage(pageDragRef.current, index); pageDragRef.current = null; }}>
-                        <div className="grid h-16 w-12 shrink-0 place-items-center border border-black/15 bg-white text-[10px] font-bold">{index + 1}</div>
-                        <div className="min-w-0 flex-1"><p className="text-xs font-semibold">Page {index + 1}</p><p className="mt-1 text-[9px] text-black/40">{sections.length} section{sections.length === 1 ? "" : "s"} · Drag to reorder</p></div>
-                        <button className="px-2 text-black/35" disabled={index === 0} onClick={() => movePage(index, index - 1)} title="Move page up" type="button">↑</button>
-                        <button className="px-2 text-black/35" disabled={index === pages.length - 1} onClick={() => movePage(index, index + 1)} title="Move page down" type="button">↓</button>
+                      <div
+                        className="flex items-center gap-3 border border-black/10 bg-white/70 p-3 transition hover:border-black/30 dark:border-white/10 dark:bg-[#20201d]"
+                        draggable
+                        key={index}
+                        onDragStart={() => {
+                          pageDragRef.current = index;
+                        }}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => {
+                          if (pageDragRef.current !== null && pageDragRef.current !== index) {
+                            movePage(pageDragRef.current, index);
+                            pageDragRef.current = null;
+                          }
+                        }}
+                      >
+                        <div
+                          className="grid h-14 w-11 shrink-0 cursor-grab place-items-center rounded border border-black/15 bg-white font-serif text-sm font-bold shadow-sm dark:border-white/15 dark:bg-[#171714]"
+                          title="Drag to reorder"
+                        >
+                          {index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold">Page {index + 1}</p>
+                          <p className="mt-0.5 text-[9px] text-black/45 dark:text-[#f3f0e8]/50">
+                            {sections.length} block{sections.length === 1 ? "" : "s"} · Drag to reorder
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            className="rounded p-1 text-xs text-black/40 hover:bg-black/10 hover:text-black disabled:opacity-20 dark:text-[#f3f0e8]/50 dark:hover:bg-white/10 dark:hover:text-white"
+                            disabled={index === 0}
+                            onClick={() => movePage(index, index - 1)}
+                            title="Move page up"
+                            type="button"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            className="rounded p-1 text-xs text-black/40 hover:bg-black/10 hover:text-black disabled:opacity-20 dark:text-[#f3f0e8]/50 dark:hover:bg-white/10 dark:hover:text-white"
+                            disabled={index === pages.length - 1}
+                            onClick={() => movePage(index, index + 1)}
+                            title="Move page down"
+                            type="button"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            className="rounded-full border border-[#ef5a35]/30 bg-[#ef5a35]/10 px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white transition"
+                            onClick={() => duplicatePage(index)}
+                            title="Duplicate this entire page"
+                            type="button"
+                          >
+                            ＋ Duplicate
+                          </button>
+                          {pages.length > 1 && (
+                            <button
+                              className="rounded p-1 text-xs text-black/35 hover:bg-red-600 hover:text-white transition dark:text-[#f3f0e8]/40"
+                              onClick={() => removePage(index)}
+                              title="Delete page"
+                              type="button"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2297,8 +2381,59 @@ export default function App() {
       )}
 
       <aside className="editor-only fixed left-3 top-20 z-20 hidden max-h-[calc(100vh-6rem)] w-16 flex-col gap-2 overflow-y-auto 2xl:flex">
-        {pages.map((sections, index) => <a className={`group relative grid h-20 place-items-center border bg-[#f8f5ed] text-[10px] font-bold shadow-sm ${activePage === index ? "border-[#ef5a35] text-[#ef5a35]" : "border-black/15 text-black/40"}`} draggable href={`#page-${index + 1}`} key={index} onClick={() => setActivePage(index)} onDragStart={() => { pageDragRef.current = index; }} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (pageDragRef.current !== null) movePage(pageDragRef.current, index); pageDragRef.current = null; }}><span>{index + 1}</span><span className="absolute bottom-1 text-[7px] font-normal">{sections.length} blocks</span></a>)}
-        <button className="grid h-10 place-items-center border border-dashed border-black/20 bg-[#f8f5ed] text-[#ef5a35]" onClick={() => setPageMenuOpen(true)} title="Add page" type="button"><EditorIcon name="add" /></button>
+        {pages.map((sections, index) => (
+          <div
+            className={`group relative grid h-20 place-items-center border bg-[#f8f5ed] text-[10px] font-bold shadow-sm transition ${
+              activePage === index
+                ? "border-[#ef5a35] text-[#ef5a35] ring-1 ring-[#ef5a35]"
+                : "border-black/15 text-black/40 hover:border-black/40"
+            }`}
+            draggable
+            key={index}
+            onDragOver={(event) => event.preventDefault()}
+            onDragStart={() => {
+              pageDragRef.current = index;
+            }}
+            onDrop={() => {
+              if (pageDragRef.current !== null && pageDragRef.current !== index) {
+                movePage(pageDragRef.current, index);
+                pageDragRef.current = null;
+              }
+            }}
+          >
+            <a
+              className="flex h-full w-full flex-col items-center justify-center"
+              href={`#page-${index + 1}`}
+              onClick={() => setActivePage(index)}
+            >
+              <span>{index + 1}</span>
+              <span className="text-[7px] font-normal">{sections.length} blocks</span>
+            </a>
+
+            {/* Quick Duplicate Page hover button */}
+            <div className="absolute -right-1 -top-1 hidden group-hover:flex">
+              <button
+                className="grid h-4 w-4 place-items-center rounded-full bg-[#ef5a35] text-[9px] font-bold text-white shadow hover:scale-110"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  duplicatePage(index);
+                }}
+                title="Duplicate this page"
+                type="button"
+              >
+                ＋
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          className="grid h-10 place-items-center border border-dashed border-black/20 bg-[#f8f5ed] text-[#ef5a35] hover:border-[#ef5a35]"
+          onClick={() => setPageMenuOpen(true)}
+          title="Add page"
+          type="button"
+        >
+          <EditorIcon name="add" />
+        </button>
       </aside>
 
       <main className={`mx-auto px-3 py-7 sm:px-6 md:py-12 ${sourceMode ? "max-w-[1680px]" : "max-w-[1040px]"}`}>
@@ -2362,13 +2497,83 @@ export default function App() {
           <MultiplayerCursors cursors={cursors} />
           {pages.map((sections, pageIndex) => (
             <article
-              className="page relative"
+              className="page relative transition-shadow"
               id={`page-${pageIndex + 1}`}
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => {
+                if (pageDragRef.current !== null && pageDragRef.current !== pageIndex) {
+                  movePage(pageDragRef.current, pageIndex);
+                  pageDragRef.current = null;
+                }
+              }}
             >
               <PageHeader page={pageIndex + 1} total={pages.length} />
-              <button className="editor-only absolute right-6 top-16 z-20 rounded-full border border-black/15 bg-[#f8f5ed] px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-black/45 hover:border-[#ef5a35] hover:text-[#ef5a35]" onClick={(event) => { event.stopPropagation(); removePage(pageIndex); }} type="button">Remove page</button>
+
+              {/* Floating Page Action Bar in Editor Mode */}
+              <div
+                className="editor-only absolute right-6 top-14 z-20 flex items-center gap-1 rounded-full border border-black/15 bg-[#f8f5ed]/95 p-1 shadow-md backdrop-blur-sm dark:border-white/15 dark:bg-[#20201d]/95"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drag Handle to reorder whole page */}
+                <div
+                  className="grid h-6 w-6 cursor-grab place-items-center rounded-full text-black/50 hover:bg-black/10 hover:text-black dark:text-[#f3f0e8]/50 dark:hover:bg-white/10 dark:hover:text-white"
+                  draggable
+                  onDragStart={() => {
+                    pageDragRef.current = pageIndex;
+                  }}
+                  title="Drag whole page to reorder"
+                >
+                  <span className="select-none text-xs">⠿</span>
+                </div>
+
+                {/* Move Up */}
+                <button
+                  className="grid h-6 w-6 place-items-center rounded-full text-xs font-bold text-black/60 hover:bg-black/10 hover:text-black disabled:pointer-events-none disabled:opacity-25 dark:text-[#f3f0e8]/70 dark:hover:bg-white/10 dark:hover:text-white"
+                  disabled={pageIndex === 0}
+                  onClick={() => movePage(pageIndex, pageIndex - 1)}
+                  title="Move page up (earlier in issue)"
+                  type="button"
+                >
+                  ↑
+                </button>
+
+                {/* Move Down */}
+                <button
+                  className="grid h-6 w-6 place-items-center rounded-full text-xs font-bold text-black/60 hover:bg-black/10 hover:text-black disabled:pointer-events-none disabled:opacity-25 dark:text-[#f3f0e8]/70 dark:hover:bg-white/10 dark:hover:text-white"
+                  disabled={pageIndex === pages.length - 1}
+                  onClick={() => movePage(pageIndex, pageIndex + 1)}
+                  title="Move page down (later in issue)"
+                  type="button"
+                >
+                  ↓
+                </button>
+
+                <div className="mx-0.5 h-3.5 w-px bg-black/15 dark:bg-white/15" />
+
+                {/* Duplicate Page Button */}
+                <button
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-[0.08em] text-[#ef5a35] transition hover:bg-[#ef5a35] hover:text-white"
+                  onClick={() => duplicatePage(pageIndex)}
+                  title="Duplicate entire page with all sections"
+                  type="button"
+                >
+                  <span>＋ Duplicate</span>
+                </button>
+
+                {/* Remove Page Button */}
+                {pages.length > 1 && (
+                  <button
+                    className="grid h-6 w-6 place-items-center rounded-full text-xs text-black/40 transition hover:bg-red-600 hover:text-white dark:text-[#f3f0e8]/40"
+                    onClick={() => removePage(pageIndex)}
+                    title="Remove page"
+                    type="button"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <div className="page-grid">
                 {sections.map((section) => (
                   <BuilderBlock
