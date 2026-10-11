@@ -42,8 +42,7 @@ Craft beautiful multi-page newsletters, refine text with AI-assisted tone and st
   - *Blank Slate* — Full creative freedom from scratch
 - 🤖 **AI-Powered Writing Assistant**: Integrated OpenAI and Google Gemini support to rewrite, adjust tone, expand/summarize articles, and translate text according to your publication's style guide.
 - 📄 **Print & PDF Export**: Export publication-grade vector-rendered PDFs and high-resolution snapshots powered by `jspdf` and `html2canvas-pro`.
-- 🗂️ **Editorial Workflow & Pipeline**: Track article status across drafting, review, scheduling, and publication stages.
-- 📚 **Public Issue Archive**: Showcase past published issues in a clean, accessible digital archive for readers.
+- 👥 **Multiplayer Real-Time Collaboration**: Edit newsletters collaboratively in real time. Features live moving cursors with distinctive aesthetic color accents, presence avatar stacks in the editor header, and instantaneous synchronization of layouts and text.
 - 🔐 **Authentication & Multi-Tenant Storage**: Secure authentication and persistent cloud storage backed by Supabase.
 
 ---

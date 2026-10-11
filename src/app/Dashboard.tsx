@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
   cloneIssueDocument,
+  initWorkspaceRealtimeSync,
   loadWorkspace,
   makeId,
   removeIssueDocument,
@@ -18,6 +19,18 @@ const colors = ["#ef5a35", "#3e6a59", "#7d5a87", "#c19639", "#315b75"];
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const [workspace, setWorkspace] = useState<Workspace>(loadWorkspace);
+
+  useEffect(() => {
+    const handleWorkspaceChange = () => {
+      setWorkspace(loadWorkspace());
+    };
+    window.addEventListener("iow-workspace-change", handleWorkspaceChange);
+    initWorkspaceRealtimeSync(setWorkspace);
+    return () => {
+      window.removeEventListener("iow-workspace-change", handleWorkspaceChange);
+    };
+  }, []);
+
   const [view, setView] = useState("all");
   const [folderName, setFolderName] = useState("");
   const [search, setSearch] = useState("");

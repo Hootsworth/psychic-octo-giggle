@@ -1,3 +1,5 @@
+import { supabase } from "./supabaseClient";
+
 export type IssueStatus = "draft" | "review" | "published";
 
 export type Folder = {
@@ -76,9 +78,42 @@ export function loadWorkspace(): Workspace {
   return seeded;
 }
 
+let workspaceChannel: any = null;
+
+export function initWorkspaceRealtimeSync(onSync?: (workspace: Workspace) => void) {
+  if (workspaceChannel) return workspaceChannel;
+
+  workspaceChannel = supabase.channel("global-workspace-sync", {
+    config: { broadcast: { ack: false, self: false } },
+  });
+
+  workspaceChannel
+    .on("broadcast", { event: "sync_workspace" }, ({ payload }: { payload: Workspace }) => {
+      if (payload && payload.issues) {
+        localStorage.setItem(WORKSPACE_KEY, JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("iow-workspace-change"));
+        if (onSync) onSync(payload);
+      }
+    })
+    .subscribe();
+
+  return workspaceChannel;
+}
+
+export function broadcastWorkspace(workspace: Workspace) {
+  if (workspaceChannel) {
+    workspaceChannel.send({
+      type: "broadcast",
+      event: "sync_workspace",
+      payload: workspace,
+    });
+  }
+}
+
 export function saveWorkspace(workspace: Workspace) {
   localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspace));
   window.dispatchEvent(new CustomEvent("iow-workspace-change"));
+  broadcastWorkspace(workspace);
 }
 
 export function updateIssue(issueId: string, patch: Partial<Issue>) {

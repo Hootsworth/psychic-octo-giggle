@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -14,6 +15,11 @@ import { cloneTemplatePages, saveCustomTemplate } from "./templates";
 import { rewriteWithAi } from "./ai";
 import { loadPreferences } from "./settingsStore";
 import BrandLogo from "./BrandLogo";
+import { useAuth } from "./AuthContext";
+import { useCollaboration } from "./collaboration/useCollaboration";
+import MultiplayerCursors from "./collaboration/MultiplayerCursors";
+import CollaboratorAvatars from "./collaboration/CollaboratorAvatars";
+import type { DocChangePayload } from "./collaboration/types";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -745,15 +751,130 @@ export default function App() {
   const palette = PALETTES.find((item) => item.id === paletteId) ?? PALETTES[0];
   const fontPair = FONT_PAIRS.find((item) => item.id === fontId) ?? FONT_PAIRS[0];
 
+  const { user } = useAuth();
+  const isRemoteUpdateRef = useRef(false);
+
+  const handleRemoteChange = useCallback((payload: DocChangePayload) => {
+    if (payload.type === "layout") {
+      isRemoteUpdateRef.current = true;
+      setPages(payload.data);
+      localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(payload.data));
+      requestAnimationFrame(() => {
+        isRemoteUpdateRef.current = false;
+      });
+    } else if (payload.type === "content") {
+      if (Array.isArray(payload.data)) {
+        document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
+          if (payload.data[index] !== undefined && element.innerHTML !== payload.data[index]) {
+            if (document.activeElement !== element) {
+              element.innerHTML = payload.data[index];
+            }
+          }
+        });
+        localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(payload.data));
+      }
+    } else if (payload.type === "palette") {
+      isRemoteUpdateRef.current = true;
+      setPaletteId(payload.data);
+      localStorage.setItem(`iow-palette-${issueId}`, payload.data);
+      requestAnimationFrame(() => {
+        isRemoteUpdateRef.current = false;
+      });
+    } else if (payload.type === "font") {
+      isRemoteUpdateRef.current = true;
+      setFontId(payload.data);
+      localStorage.setItem(`iow-font-${issueId}`, payload.data);
+      requestAnimationFrame(() => {
+        isRemoteUpdateRef.current = false;
+      });
+    } else if (payload.type === "full") {
+      isRemoteUpdateRef.current = true;
+      if (payload.data.pages) {
+        setPages(payload.data.pages);
+        localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(payload.data.pages));
+      }
+      if (payload.data.palette) {
+        setPaletteId(payload.data.palette);
+        localStorage.setItem(`iow-palette-${issueId}`, payload.data.palette);
+      }
+      if (payload.data.font) {
+        setFontId(payload.data.font);
+        localStorage.setItem(`iow-font-${issueId}`, payload.data.font);
+      }
+      if (Array.isArray(payload.data.content)) {
+        document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
+          if (payload.data.content[index] !== undefined) {
+            element.innerHTML = payload.data.content[index];
+          }
+        });
+        localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(payload.data.content));
+      }
+      requestAnimationFrame(() => {
+        isRemoteUpdateRef.current = false;
+      });
+    }
+  }, [issueId]);
+
+  const getCurrentDocState = useCallback(() => {
+    const content = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map(
+      (element) => element.innerHTML,
+    );
+    return {
+      pages,
+      palette: paletteId,
+      font: fontId,
+      content,
+    };
+  }, [pages, paletteId, fontId]);
+
+  const {
+    collaborators,
+    cursors,
+    broadcastCursor,
+    broadcastDocChange,
+    isConnected,
+    userColor,
+    myId,
+  } = useCollaboration({
+    issueId,
+    user,
+    onRemoteChange: handleRemoteChange,
+    onRequestState: getCurrentDocState,
+  });
+
+  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const pageEl = target.closest(".page") as HTMLElement | null;
+    if (!pageEl) return;
+
+    const rect = pageEl.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const xPercent = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+    const yPercent = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+
+    const pageId = pageEl.id;
+    const pageIdx = pageId.startsWith("page-") ? parseInt(pageId.replace("page-", ""), 10) - 1 : activePage;
+
+    broadcastCursor(xPercent, yPercent, pageIdx);
+  };
+
   useEffect(() => {
     localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(pages));
     updateIssue(issueId, {});
-  }, [pages, issueId]);
+    if (!isRemoteUpdateRef.current) {
+      broadcastDocChange("layout", pages);
+    }
+  }, [pages, issueId, broadcastDocChange]);
 
   useEffect(() => {
     localStorage.setItem(`iow-palette-${issueId}`, paletteId);
     localStorage.setItem(`iow-font-${issueId}`, fontId);
-  }, [fontId, issueId, paletteId]);
+    if (!isRemoteUpdateRef.current) {
+      broadcastDocChange("palette", paletteId);
+      broadcastDocChange("font", fontId);
+    }
+  }, [fontId, issueId, paletteId, broadcastDocChange]);
 
   useEffect(() => {
     localStorage.setItem(`iow-smart-flow-${issueId}`, String(smartFlow));
@@ -782,6 +903,9 @@ export default function App() {
     updateIssue(issueId, {});
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1200);
+    if (!isRemoteUpdateRef.current) {
+      broadcastDocChange("content", content);
+    }
   };
 
   const collectMedia = () => {
@@ -1332,7 +1456,14 @@ export default function App() {
           <button aria-label="Add page" className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#ef5a35] hover:bg-white" onClick={() => setPageMenuOpen(true)} title="Add page" type="button"><EditorIcon name="add" /></button>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <CollaboratorAvatars
+            collaborators={collaborators}
+            isConnected={isConnected}
+            myId={myId}
+            myColor={userColor}
+          />
+          <span className="mx-1 hidden h-5 w-px bg-black/10 sm:block" />
           <span aria-label="Saved" className={`mr-1 h-2 w-2 rounded-full bg-[#3e6a59] transition-opacity ${saved ? "opacity-100" : "opacity-0"}`} title="Saved" />
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
           <button aria-label="Document design" className="editor-icon-button hidden sm:grid" onClick={() => setDesignOpen(true)} title="Document design" type="button"><EditorIcon name="palette" /></button>
@@ -1618,6 +1749,8 @@ export default function App() {
               }
             }}
             onInput={scheduleContentSave}
+            onMouseLeave={() => broadcastCursor(-100, -100, -1)}
+            onMouseMove={handleCanvasMouseMove}
             onMouseUp={captureCanvasSelection}
           >
           {pages.map((sections, pageIndex) => (
@@ -1627,6 +1760,7 @@ export default function App() {
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
             >
+              <MultiplayerCursors cursors={cursors} pageIndex={pageIndex} />
               <PageHeader page={pageIndex + 1} total={pages.length} />
               <button className="editor-only absolute right-6 top-16 z-20 rounded-full border border-black/15 bg-[#f8f5ed] px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-black/45 hover:border-[#ef5a35] hover:text-[#ef5a35]" onClick={(event) => { event.stopPropagation(); removePage(pageIndex); }} type="button">Remove page</button>
               <div className="page-grid">
