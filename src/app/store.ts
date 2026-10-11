@@ -95,7 +95,20 @@ export function initWorkspaceRealtimeSync(onSync?: (workspace: Workspace) => voi
         if (onSync) onSync(payload);
       }
     })
-    .subscribe();
+    .on("broadcast", { event: "request_workspace" }, () => {
+      const current = loadWorkspace();
+      if (current?.issues?.length) {
+        broadcastWorkspace(current);
+      }
+    })
+    .subscribe((status: string) => {
+      if (status === "SUBSCRIBED") {
+        workspaceChannel?.send({
+          type: "broadcast",
+          event: "request_workspace",
+        });
+      }
+    });
 
   return workspaceChannel;
 }

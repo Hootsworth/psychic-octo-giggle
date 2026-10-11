@@ -308,6 +308,18 @@ function PhotoField({
   });
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const handlePhotoUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ storageKey: string; value?: string; meta?: { position: string; alt: string } }>).detail;
+      if (detail?.storageKey === storageKey) {
+        if (detail.value !== undefined) setImage(detail.value);
+        if (detail.meta !== undefined) setMeta(detail.meta);
+      }
+    };
+    window.addEventListener("iow-photo-update", handlePhotoUpdate);
+    return () => window.removeEventListener("iow-photo-update", handlePhotoUpdate);
+  }, [storageKey]);
+
   const onFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -317,6 +329,7 @@ function PhotoField({
       setImage(value);
       try {
         localStorage.setItem(storageKey, value);
+        window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, value, broadcast: true } }));
       } catch {
         window.alert("This image is too large for local storage. Try a smaller compressed image.");
       }
@@ -327,6 +340,7 @@ function PhotoField({
   const updateMeta = (next: { position: string; alt: string }) => {
     setMeta(next);
     localStorage.setItem(`${storageKey}-meta`, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, meta: next, broadcast: true } }));
   };
 
   return (
@@ -796,6 +810,17 @@ export default function App() {
         });
         localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(payload.data));
       }
+    } else if (payload.type === "media") {
+      const { storageKey, value, meta } = payload.data || {};
+      if (storageKey) {
+        isRemoteUpdateRef.current = true;
+        if (value !== undefined) localStorage.setItem(storageKey, value);
+        if (meta !== undefined) localStorage.setItem(`${storageKey}-meta`, JSON.stringify(meta));
+        window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, value, meta, broadcast: false } }));
+        requestAnimationFrame(() => {
+          isRemoteUpdateRef.current = false;
+        });
+      }
     } else if (payload.type === "palette") {
       isRemoteUpdateRef.current = true;
       setPaletteId(payload.data);
@@ -824,6 +849,14 @@ export default function App() {
         setFontId(payload.data.font);
         localStorage.setItem(`iow-font-${issueId}`, payload.data.font);
       }
+      if (payload.data.media && typeof payload.data.media === "object") {
+        Object.entries(payload.data.media).forEach(([key, val]) => {
+          if (typeof val === "string") {
+            localStorage.setItem(key, val);
+            window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey: key, value: val, broadcast: false } }));
+          }
+        });
+      }
       if (Array.isArray(payload.data.content)) {
         window.setTimeout(() => {
           document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
@@ -849,6 +882,7 @@ export default function App() {
       palette: paletteId,
       font: fontId,
       content,
+      media: collectMedia(),
     };
   }, [pages, paletteId, fontId]);
 
@@ -867,6 +901,18 @@ export default function App() {
     onRequestState: getCurrentDocState,
   });
 
+  // Broadcast photo uploads or focal point changes to all connected peers
+  useEffect(() => {
+    const handlePhotoBroadcast = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.broadcast && !isRemoteUpdateRef.current) {
+        broadcastDocChange("media", { storageKey: detail.storageKey, value: detail.value, meta: detail.meta });
+      }
+    };
+    window.addEventListener("iow-photo-update", handlePhotoBroadcast);
+    return () => window.removeEventListener("iow-photo-update", handlePhotoBroadcast);
+  }, [broadcastDocChange]);
+
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const docEl = document.getElementById("pdf-document");
     if (!docEl) return;
@@ -880,7 +926,12 @@ export default function App() {
     broadcastCursor(xPercent, yPercent);
   };
 
+  const isInitialLayoutMount = useRef(true);
   useEffect(() => {
+    if (isInitialLayoutMount.current) {
+      isInitialLayoutMount.current = false;
+      return;
+    }
     localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(pages));
     updateIssue(issueId, {});
     if (!isRemoteUpdateRef.current) {
@@ -933,7 +984,12 @@ export default function App() {
     };
   }, [broadcastDocChange]);
 
+  const isInitialDesignMount = useRef(true);
   useEffect(() => {
+    if (isInitialDesignMount.current) {
+      isInitialDesignMount.current = false;
+      return;
+    }
     localStorage.setItem(`iow-palette-${issueId}`, paletteId);
     localStorage.setItem(`iow-font-${issueId}`, fontId);
     if (!isRemoteUpdateRef.current) {
