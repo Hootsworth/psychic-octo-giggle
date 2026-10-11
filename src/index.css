@@ -49,9 +49,17 @@ html[data-theme="dark"] .app-shell .bg-white\/30 {
   background-color: #2b2b27;
 }
 
-html[data-theme="dark"] .app-shell .bg-black\/5,
-html[data-theme="dark"] .app-shell .bg-black\/10 {
+html[data-theme="dark"] .app-shell .bg-black\/5 {
   background-color: rgb(255 255 255 / 0.08);
+}
+
+html[data-theme="dark"] .app-shell .bg-black\/10 {
+  background-color: rgb(255 255 255 / 0.15);
+}
+
+html[data-theme="dark"] .app-shell .bg-black\/15,
+html[data-theme="dark"] .app-shell .bg-black\/20 {
+  background-color: rgb(255 255 255 / 0.22);
 }
 
 html[data-theme="dark"] .app-shell .text-\[\#171714\],
@@ -59,22 +67,35 @@ html[data-theme="dark"] .app-shell .text-black {
   color: #f3f0e8;
 }
 
+html[data-theme="dark"] .app-shell strong {
+  color: #f3f0e8;
+}
+
 html[data-theme="dark"] .app-shell .text-black\/20,
 html[data-theme="dark"] .app-shell .text-black\/25,
 html[data-theme="dark"] .app-shell .text-black\/30,
 html[data-theme="dark"] .app-shell .text-black\/35 {
-  color: rgb(243 240 232 / 0.4);
+  color: rgb(243 240 232 / 0.45);
 }
 
 html[data-theme="dark"] .app-shell .text-black\/40,
 html[data-theme="dark"] .app-shell .text-black\/45,
 html[data-theme="dark"] .app-shell .text-black\/50,
 html[data-theme="dark"] .app-shell .text-black\/55 {
-  color: rgb(243 240 232 / 0.58);
+  color: rgb(243 240 232 / 0.62);
 }
 
-html[data-theme="dark"] .app-shell .text-black\/65 {
-  color: rgb(243 240 232 / 0.72);
+html[data-theme="dark"] .app-shell .text-black\/60,
+html[data-theme="dark"] .app-shell .text-black\/65,
+html[data-theme="dark"] .app-shell .text-black\/70,
+html[data-theme="dark"] .app-shell .text-black\/75 {
+  color: rgb(243 240 232 / 0.78);
+}
+
+html[data-theme="dark"] .app-shell .text-black\/80,
+html[data-theme="dark"] .app-shell .text-black\/85,
+html[data-theme="dark"] .app-shell .text-black\/90 {
+  color: rgb(243 240 232 / 0.92);
 }
 
 html[data-theme="dark"] .app-shell .border-black,

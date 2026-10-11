@@ -80,9 +80,75 @@ export default function Settings() {
             <div className="mb-7"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#ef5a35]">Appearance</p><h2 className="mt-2 font-serif text-3xl">Interface theme</h2></div>
             <div className="grid gap-3 sm:grid-cols-3">
               {(["light", "dark", "system"] as AppTheme[]).map((theme) => (
-                <button className={`border p-5 text-left transition ${preferences.theme === theme ? "border-[#ef5a35] bg-white" : "border-black/10 hover:border-black/30"}`} key={theme} onClick={() => update("theme", theme)} type="button">
-                  <span className={`mb-4 block h-14 rounded border ${theme === "dark" ? "border-white/10 bg-[#171714]" : theme === "system" ? "bg-[linear-gradient(90deg,#f8f5ed_50%,#171714_50%)]" : "border-black/10 bg-[#f8f5ed]"}`} />
-                  <span className="text-xs font-semibold capitalize">{theme}</span>
+                <button
+                  className={`relative rounded border p-5 text-left transition ${
+                    preferences.theme === theme
+                      ? "border-[#ef5a35] bg-white ring-1 ring-[#ef5a35]"
+                      : "border-black/10 hover:border-black/30"
+                  }`}
+                  key={theme}
+                  onClick={() => update("theme", theme)}
+                  type="button"
+                >
+                  <div
+                    className="mb-4 block h-14 rounded border p-2.5 shadow-sm"
+                    style={
+                      theme === "light"
+                        ? {
+                            backgroundColor: "#f8f5ed",
+                            borderColor: "rgba(0, 0, 0, 0.12)",
+                          }
+                        : theme === "dark"
+                          ? {
+                              backgroundColor: "#171714",
+                              borderColor: "rgba(255, 255, 255, 0.15)",
+                            }
+                          : {
+                              background: "linear-gradient(90deg, #f8f5ed 50%, #171714 50%)",
+                              borderColor: "rgba(128, 128, 128, 0.25)",
+                            }
+                    }
+                  >
+                    <div className="flex h-full flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <div
+                          className="h-2 w-8 rounded-full"
+                          style={{
+                            backgroundColor: theme === "dark" ? "rgba(255,255,255,0.3)" : "#ef5a35",
+                          }}
+                        />
+                        <div
+                          className="h-1.5 w-3 rounded-full"
+                          style={{
+                            backgroundColor:
+                              theme === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.22)",
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div
+                          className="h-1.5 w-4/5 rounded-full"
+                          style={{
+                            backgroundColor:
+                              theme === "dark" ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)",
+                          }}
+                        />
+                        <div
+                          className="h-1.5 w-1/2 rounded-full"
+                          style={{
+                            backgroundColor:
+                              theme === "dark" ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold capitalize">{theme}</span>
+                    {preferences.theme === theme && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#ef5a35]">Active</span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -147,7 +213,7 @@ export default function Settings() {
               <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#ef5a35]">Quota Management</p>
               <h2 className="mt-2 font-serif text-3xl">Individual AI usage limits</h2>
               <p className="mt-2 text-xs leading-relaxed text-black/45">
-                Each model has an <strong>independent, individual request limit</strong> (not a combined limit). As people use the AI assistant in the editor, their usage counts update automatically below.
+                Each model has an <strong className="font-semibold text-black">independent, individual request limit</strong> (not a combined limit). As people use the AI assistant in the editor, their usage counts update automatically below.
               </p>
             </div>
 
