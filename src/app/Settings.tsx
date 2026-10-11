@@ -99,11 +99,46 @@ export default function Settings() {
                 </button>
               ))}
             </div>
-            <label className="mt-6 block">
-              <span className="mb-2 block text-[9px] font-bold uppercase tracking-[0.13em] text-black/40">Model identifier</span>
-              <input className="w-full border border-black/15 bg-transparent px-4 py-3 text-sm outline-none focus:border-[#ef5a35]" onChange={(event) => update(preferences.provider === "openai" ? "openaiModel" : "geminiModel", event.target.value)} placeholder={preferences.provider === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash"} value={preferences.provider === "openai" ? preferences.openaiModel : preferences.geminiModel} />
-              <span className="mt-2 block text-[9px] text-black/35">Enter any model currently supported by the selected provider.</span>
-            </label>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-[9px] font-bold uppercase tracking-[0.13em] text-black/40">
+                  Model identifier
+                </span>
+                <input
+                  className="w-full border border-black/15 bg-transparent px-4 py-3 text-sm outline-none focus:border-[#ef5a35]"
+                  onChange={(event) => update(preferences.provider === "openai" ? "openaiModel" : "geminiModel", event.target.value)}
+                  placeholder={preferences.provider === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash"}
+                  value={preferences.provider === "openai" ? preferences.openaiModel : preferences.geminiModel}
+                />
+                <span className="mt-1 block text-[9px] text-black/35">Default: {preferences.provider === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash"}</span>
+              </label>
+
+              <label className="block">
+                <div className="mb-2 flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.13em] text-black/40">
+                  <span>Direct API Key</span>
+                  {preferences.provider === "gemini" && (
+                    <a className="font-semibold text-[#ef5a35] underline" href="https://aistudio.google.com/app/apikey" rel="noreferrer" target="_blank">
+                      Get Free Gemini Key ↗
+                    </a>
+                  )}
+                  {preferences.provider === "openai" && (
+                    <a className="font-semibold text-[#ef5a35] underline" href="https://platform.openai.com/api-keys" rel="noreferrer" target="_blank">
+                      OpenAI Keys ↗
+                    </a>
+                  )}
+                </div>
+                <input
+                  className="w-full border border-black/15 bg-transparent px-4 py-3 font-mono text-sm outline-none focus:border-[#ef5a35]"
+                  onChange={(event) => update(preferences.provider === "openai" ? "openaiApiKey" : "geminiApiKey", event.target.value)}
+                  placeholder={preferences.provider === "openai" ? "sk-..." : "AIzaSy..."}
+                  type="password"
+                  value={preferences.provider === "openai" ? (preferences.openaiApiKey || "") : (preferences.geminiApiKey || "")}
+                />
+                <span className="mt-1 block text-[9px] text-black/35">
+                  Stored securely in your browser. Bypasses server configuration completely.
+                </span>
+              </label>
+            </div>
           </section>
 
           {/* Individual AI Model Usage Limits */}

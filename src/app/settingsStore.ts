@@ -6,6 +6,8 @@ export type AppPreferences = {
   provider: AiProvider;
   openaiModel: string;
   geminiModel: string;
+  openaiApiKey?: string;
+  geminiApiKey?: string;
   openaiLimit: number;
   geminiLimit: number;
   tone: string;
@@ -27,6 +29,8 @@ export const defaultPreferences: AppPreferences = {
   provider: "openai",
   openaiModel: "gpt-4o-mini",
   geminiModel: "gemini-2.0-flash",
+  openaiApiKey: "",
+  geminiApiKey: "",
   openaiLimit: 20,
   geminiLimit: 25,
   tone: "Clear and editorial",
