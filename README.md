@@ -72,7 +72,6 @@ Craft beautiful multi-page newsletters, refine text with AI-assisted tone and st
 │   │   ├── BrandLogo.tsx        # Reusable brand logo component
 │   │   ├── Editor.tsx           # Multi-page visual newsletter editor
 │   │   ├── Dashboard.tsx        # Overview & issue manager
-│   │   ├── Workflow.tsx         # Editorial workflow & status pipeline
 │   │   ├── Publishing.tsx       # Distribution and publishing options
 │   │   ├── Archive.tsx          # Public issue reader & archive
 │   │   ├── Settings.tsx         # Style, AI provider, and team settings

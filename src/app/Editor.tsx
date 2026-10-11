@@ -1312,7 +1312,6 @@ export default function App() {
       <header className="editor-bar sticky top-0 z-40 flex min-h-14 items-center justify-between gap-3 border-b border-black/15 bg-[#f4f1e9]/95 px-3 py-2 backdrop-blur-sm md:px-5">
         <div className="flex shrink-0 items-center gap-2">
           <Link aria-label="Back to dashboard" className="editor-icon-button" to="/" title="Back to dashboard"><EditorIcon name="back" /></Link>
-          <Link aria-label="Editorial workflow" className="editor-icon-button hidden sm:grid" to="/workflow" title="Editorial workflow"><EditorIcon name="workflow" /></Link>
           <BrandLogo className="h-10 w-20" />
           <div className="hidden xl:block">
             <p className="max-w-48 truncate text-[13px] font-semibold leading-none">{issue.title}</p>

@@ -207,9 +207,23 @@ export default function Dashboard() {
           <Link className="mb-2 block rounded-lg bg-white px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-black hover:bg-[#ef5a35] hover:text-white" to="/publishing">
             Publishing desk
           </Link>
-          <Link className="mb-2 block rounded-lg bg-[#ef5a35] px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white hover:bg-white hover:text-black" to="/workflow">
-            Editorial workflow
-          </Link>
+          <div className="mb-4 mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left">
+            <div className="mb-2.5 min-w-0">
+              <p className="truncate text-[11px] font-semibold text-white">
+                {user?.user_metadata?.full_name ?? "Editorial member"}
+              </p>
+              <p className="truncate text-[9px] text-white/50" title={user?.email}>
+                {user?.email}
+              </p>
+            </div>
+            <button
+              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#ef5a35] px-3 py-2 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-white hover:text-black"
+              onClick={() => void signOut()}
+              type="button"
+            >
+              Sign out <span>→</span>
+            </button>
+          </div>
           <p className="text-white/70">University Editorial Team</p>
           <p className="mt-1">Local workspace · Phase 1</p>
         </div>
@@ -229,8 +243,6 @@ export default function Dashboard() {
             />
           </label>
           <div className="flex items-center gap-2">
-            <div className="hidden text-right lg:block"><p className="max-w-52 truncate text-[10px] font-semibold">{user?.user_metadata?.full_name ?? "Editorial member"}</p><p className="max-w-52 truncate text-[8px] text-black/35">{user?.email}</p></div>
-            <button aria-label="Sign out" className="grid h-9 w-9 place-items-center rounded-full border border-black/15 text-[10px] font-bold uppercase hover:border-[#ef5a35] hover:text-[#ef5a35]" onClick={() => void signOut()} title="Sign out" type="button">↗</button>
             <button className="rounded-full bg-[#ef5a35] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#171714]" onClick={() => setTemplateOpen(true)} type="button">
               New newsletter
             </button>
