@@ -2823,7 +2823,7 @@ export default function App() {
               .flat()
               .find((s) => s.id === noticeQrModalSectionId)?.content?.useTrackingParams,
           }}
-          issueTitle={workspace.issues.find((i) => i.id === issueId)?.title}
+          issueTitle={issue?.title ?? "Campus Issue"}
           onClose={() => setNoticeQrModalSectionId(null)}
           onSave={handleSaveNoticeQr}
           sectionId={noticeQrModalSectionId}
