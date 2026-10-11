@@ -22,13 +22,13 @@ import CollaboratorAvatars from "./collaboration/CollaboratorAvatars";
 import CommentsPanel from "./collaboration/CommentsPanel";
 import NewsroomChat from "./collaboration/NewsroomChat";
 import type { DocChangePayload, EditorialComment, NewsroomMessage } from "./collaboration/types";
-import CrosswordSection from "./games/CrosswordSection";
-import CrosswordEditorModal from "./games/CrosswordEditorModal";
 import SudokuSection from "./games/SudokuSection";
 import WordSearchSection from "./games/WordSearchSection";
 import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
 import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
 import { dialog } from "./components/ModalDialog";
+import QRCodeSvg from "./components/QRCodeSvg";
+import NoticeboardQrModal, { type NoticeboardQrConfig } from "./components/NoticeboardQrModal";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -66,6 +66,12 @@ type Section = {
     title?: string;
     byline?: string;
     body?: string;
+    noticeDetails?: string;
+    qrUrl?: string;
+    qrEnabled?: boolean;
+    qrLabel?: string;
+    qrCampaign?: string;
+    useTrackingParams?: boolean;
     crossword?: CrosswordData;
     sudoku?: SudokuData;
     wordsearch?: WordSearchData;
@@ -104,7 +110,7 @@ const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[
   { type: "events", name: "Events list", description: "Weekly dates and activities" },
   { type: "gossip", name: "Gossip corner", description: "Clubs and campus whispers" },
   { type: "gallery", name: "Photo pair", description: "Two uploadable images" },
-  { type: "notice", name: "Noticeboard", description: "Submission or announcement" },
+  { type: "notice", name: "Noticeboard", description: "Submission call & announcement with trackable QR code" },
   { type: "divider", name: "Divider", description: "Labelled section break" },
   { type: "interview", name: "Interview", description: "Designed question and answer feature" },
   { type: "statistics", name: "By the numbers", description: "Large statistics and key figures" },
@@ -112,7 +118,7 @@ const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[
   { type: "recommendations", name: "Recommendations", description: "Curated books, films, links, or places" },
   { type: "audio", name: "Campus Audio", description: "Embedded playlist, podcast episode or campus radio track" },
   { type: "poll", name: "Student Poll", description: "Interactive community poll with live options" },
-  { type: "crossword", name: "Crossword Puzzle", description: "Interactive campus crossword with visual grid & clues editor" },
+  { type: "crossword", name: "Crossword (Coming Soon)", description: "Campus crossword puzzle — currently being redesigned" },
   { type: "sudoku", name: "Sudoku Puzzle", description: "Classic 9×9 newspaper number puzzle" },
   { type: "wordsearch", name: "Word Search", description: "Campus-themed word finding puzzle" },
 ];
@@ -423,11 +429,13 @@ function SectionContent({
   section,
   isCoverPhoto,
   mediaKey,
+  onConfigureNoticeQr,
   onEditCrossword,
 }: {
   section: Section;
   isCoverPhoto?: boolean;
   mediaKey: string;
+  onConfigureNoticeQr?: () => void;
   onEditCrossword?: () => void;
 }) {
   const { type, content } = section;
@@ -577,16 +585,96 @@ function SectionContent({
   }
 
   if (type === "notice") {
+    const qrEnabled = content?.qrEnabled !== false;
+    const rawUrl = content?.qrUrl || "https://newsletter.singulr.tech/submit";
+    const qrLabel = content?.qrLabel || "Scan to Submit Work";
+    const campaign = content?.qrCampaign || "issue-submissions";
+    const useTracking = content?.useTrackingParams !== false;
+
+    let finalTrackedUrl = rawUrl;
+    if (useTracking) {
+      try {
+        const parsed = new URL(rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`);
+        parsed.searchParams.set("utm_source", "newsletter_noticeboard");
+        parsed.searchParams.set("utm_medium", "qr_code");
+        if (campaign) parsed.searchParams.set("utm_campaign", campaign);
+        parsed.searchParams.set("ref", "noticeboard_qr");
+        finalTrackedUrl = parsed.toString();
+      } catch {
+        const sep = rawUrl.includes("?") ? "&" : "?";
+        finalTrackedUrl = `${rawUrl}${sep}utm_source=newsletter_noticeboard&utm_medium=qr_code&ref=noticeboard_qr`;
+      }
+    }
+
     return (
-      <div className="h-full border border-black bg-[#f8f5ed] p-7">
-        <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "Noticeboard"}</Editable>
-        <Editable as="h2" className="mt-6 font-serif text-3xl leading-tight">{content?.title ?? "Submit your work"}</Editable>
-        <Editable as="p" className="mt-5 whitespace-pre-line text-sm leading-relaxed">
-          {content?.body ?? "Poetry, short fiction, essays, photography, illustration, or fragments we don’t have a name for yet."}
-        </Editable>
-        <Editable as="p" className="mt-8 text-xs leading-relaxed text-black/50">
-          Send up to 1,500 words to words@university.edu by Friday at noon.
-        </Editable>
+      <div className="group/notice relative flex h-full flex-col justify-between border border-black bg-[#f8f5ed] p-6 sm:p-7">
+        <div>
+          <div className="flex items-center justify-between">
+            <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
+              {content?.eyebrow ?? "Noticeboard"}
+            </Editable>
+            {onConfigureNoticeQr && (
+              <button
+                className="editor-only flex items-center gap-1 rounded-full border border-black/15 bg-white/80 px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-black/70 hover:border-[#ef5a35] hover:bg-[#ef5a35] hover:text-white transition shadow-xs"
+                onClick={onConfigureNoticeQr}
+                title="Configure QR Code & Track Submissions"
+                type="button"
+              >
+                <span>⚙️ QR Tracker</span>
+              </button>
+            )}
+          </div>
+          <Editable as="h2" className="mt-4 font-serif text-3xl leading-tight">
+            {content?.title ?? "Submit your work"}
+          </Editable>
+          <Editable as="p" className="mt-4 whitespace-pre-line text-sm leading-relaxed">
+            {content?.body ?? "Poetry, short fiction, essays, photography, illustration, or fragments we don’t have a name for yet."}
+          </Editable>
+        </div>
+
+        <div className="mt-6 border-t border-black/15 pt-5">
+          <Editable as="p" className="text-xs leading-relaxed text-black/60">
+            {content?.noticeDetails ?? "Send up to 1,500 words to words@university.edu by Friday at noon."}
+          </Editable>
+
+          {qrEnabled && (
+            <div
+              className={`mt-4 flex items-center gap-3.5 rounded-xl border border-black/15 bg-white/85 p-3 shadow-xs transition ${
+                onConfigureNoticeQr ? "cursor-pointer hover:border-[#ef5a35] hover:shadow-md" : ""
+              }`}
+              onClick={onConfigureNoticeQr}
+              title={onConfigureNoticeQr ? "Click to configure QR link & tracking" : undefined}
+            >
+              <div className="shrink-0 rounded-lg border border-black/10 bg-white p-1.5 shadow-xs">
+                <QRCodeSvg
+                  fgColor="#171714"
+                  size={64}
+                  title={qrLabel}
+                  value={finalTrackedUrl}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#ef5a35] animate-pulse" />
+                  <span className="text-[8.5px] font-bold uppercase tracking-widest text-[#ef5a35]">
+                    Submissions Portal
+                  </span>
+                </div>
+                <p className="mt-0.5 font-serif text-sm font-semibold leading-tight text-[#171714] truncate">
+                  {qrLabel}
+                </p>
+                <p className="mt-1 text-[9px] text-black/50 truncate font-mono">
+                  {finalTrackedUrl.replace(/^https?:\/\//, "")}
+                </p>
+              </div>
+              {onConfigureNoticeQr && (
+                <span className="editor-only text-[10px] font-bold text-black/40 group-hover/notice:text-[#ef5a35]">
+                  Edit ✎
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -727,11 +815,14 @@ function SectionContent({
 
   if (type === "crossword") {
     return (
-      <CrosswordSection
-        data={content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD}
-        isEditor={true}
-        onEdit={onEditCrossword}
-      />
+      <div className="flex h-full min-h-[260px] flex-col items-center justify-center border border-dashed border-black/25 bg-[#f8f5ed] p-8 text-center">
+        <span className="text-3xl">🧩</span>
+        <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Newspaper Games</span>
+        <h3 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#171714]">Crossword Puzzle — Coming Soon</h3>
+        <p className="mt-2 max-w-sm text-xs leading-relaxed text-black/55">
+          The interactive crossword studio is currently undergoing a complete visual and grid redesign with automated symmetry and clue validation.
+        </p>
+      </div>
     );
   }
 
@@ -774,6 +865,7 @@ function BuilderBlock({
   onAction,
   issueId,
   onAi,
+  onConfigureNoticeQr,
   onEditCrossword,
 }: {
   section: Section;
@@ -789,6 +881,7 @@ function BuilderBlock({
   ) => void;
   issueId: string;
   onAi: (sectionId: string) => void;
+  onConfigureNoticeQr?: (sectionId: string) => void;
   onEditCrossword?: (sectionId: string) => void;
 }) {
   const widthLabels: Record<number, string> = {
@@ -828,15 +921,15 @@ function BuilderBlock({
       <div className="block-controls editor-only">
         <span className="drag-handle" title="Drag to reorder block">⠿</span>
 
-        {/* Dedicated Crossword Edit trigger */}
-        {section.type === "crossword" && onEditCrossword && (
+        {/* Noticeboard QR & Submission Tracking trigger */}
+        {section.type === "notice" && onConfigureNoticeQr && (
           <button
             className="inline-flex items-center gap-1 rounded bg-[#ef5a35] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-[#d44826]"
-            onClick={() => onEditCrossword(section.id)}
-            title="Open Crossword Studio Modal"
+            onClick={() => onConfigureNoticeQr(section.id)}
+            title="Configure Submission QR Code & Tracking"
             type="button"
           >
-            <span>✏️ Studio</span>
+            <span>⚙️ QR Tracker</span>
           </button>
         )}
 
@@ -952,6 +1045,7 @@ function BuilderBlock({
       <SectionContent
         isCoverPhoto={isCoverPhoto}
         mediaKey={`iow-media-${issueId}-${section.id}`}
+        onConfigureNoticeQr={() => onConfigureNoticeQr?.(section.id)}
         onEditCrossword={() => onEditCrossword?.(section.id)}
         section={section}
       />
@@ -1065,21 +1159,21 @@ export default function App() {
   const [preflight, setPreflight] = useState<{ tone: "pass" | "warn"; label: string; detail: string }[]>([]);
   const [aiReview, setAiReview] = useState("");
   const [aiReviewing, setAiReviewing] = useState(false);
-  const [crosswordEditId, setCrosswordEditId] = useState<string | null>(null);
+  const [noticeQrModalSectionId, setNoticeQrModalSectionId] = useState<string | null>(null);
 
-  const handleSaveCrossword = (newData: CrosswordData) => {
-    if (!crosswordEditId) return;
+  const handleSaveNoticeQr = (config: NoticeboardQrConfig) => {
+    if (!noticeQrModalSectionId) return;
     rememberLayout();
     setPages((prev) =>
       prev.map((sections) =>
         sections.map((sec) =>
-          sec.id === crosswordEditId
-            ? { ...sec, content: { ...sec.content, crossword: newData } }
+          sec.id === noticeQrModalSectionId
+            ? { ...sec, content: { ...sec.content, ...config } }
             : sec
         )
       ) as Pages
     );
-    setCrosswordEditId(null);
+    setNoticeQrModalSectionId(null);
   };
   const slashStartRef = useRef(0);
   const pageDragRef = useRef<number | null>(null);
@@ -1502,6 +1596,15 @@ export default function App() {
   };
 
   const addSection = (type: SectionType) => {
+    if (type === "crossword") {
+      dialog.alert({
+        title: "Crossword — Coming Soon",
+        message: "The interactive crossword studio is currently undergoing a complete visual and grid redesign. New symmetric grid layouts and clue assistance will be available soon!",
+        tone: "info",
+      });
+      return;
+    }
+
     const width =
       type === "notice" || type === "gossip"
         ? 4
@@ -1517,7 +1620,17 @@ export default function App() {
         : 12;
 
     const contentForType: Section["content"] = {};
-    if (type === "crossword") contentForType.crossword = DEFAULT_CAMPUS_MINI_CROSSWORD;
+    if (type === "notice") {
+      contentForType.eyebrow = "Noticeboard";
+      contentForType.title = "Submit your work";
+      contentForType.body = "Poetry, short fiction, essays, photography, illustration, or fragments we don’t have a name for yet.";
+      contentForType.noticeDetails = "Send up to 1,500 words to words@university.edu by Friday at noon.";
+      contentForType.qrUrl = "https://newsletter.singulr.tech/submit";
+      contentForType.qrEnabled = true;
+      contentForType.qrLabel = "Scan to Submit Work";
+      contentForType.qrCampaign = "issue-submissions";
+      contentForType.useTrackingParams = true;
+    }
     if (type === "sudoku") contentForType.sudoku = DEFAULT_SUDOKU;
     if (type === "wordsearch") contentForType.wordsearch = DEFAULT_WORD_SEARCH;
 
@@ -1527,7 +1640,7 @@ export default function App() {
         id: `${type}-${Date.now()}`,
         type,
         width,
-        height: type === "crossword" || type === "sudoku" ? "tall" : "regular",
+        height: type === "sudoku" ? "tall" : "regular",
         content: contentForType,
       },
     ]);
@@ -2641,11 +2754,11 @@ export default function App() {
                     key={section.id}
                     onAi={rewriteSection}
                     onAction={blockAction}
+                    onConfigureNoticeQr={(id) => setNoticeQrModalSectionId(id)}
                     onDragStart={(page, id) => {
                       dragged.current = { page, id };
                     }}
                     onDrop={dropBlock}
-                    onEditCrossword={(id) => setCrosswordEditId(id)}
                     pageIndex={pageIndex}
                     section={section}
                   />
@@ -2666,18 +2779,30 @@ export default function App() {
         </div>
       </main>
 
-      {/* Crossword Builder Screen */}
-      {crosswordEditId && (
-        <CrosswordEditorModal
-          initialData={
-            pages
+      {/* Noticeboard Submission QR Modal */}
+      {noticeQrModalSectionId && (
+        <NoticeboardQrModal
+          initialConfig={{
+            qrUrl: pages
               .flat()
-              .find((s) => s.id === crosswordEditId)?.content?.crossword ||
-            DEFAULT_CAMPUS_MINI_CROSSWORD
-          }
-          isOpen={true}
-          onClose={() => setCrosswordEditId(null)}
-          onSave={handleSaveCrossword}
+              .find((s) => s.id === noticeQrModalSectionId)?.content?.qrUrl,
+            qrEnabled: pages
+              .flat()
+              .find((s) => s.id === noticeQrModalSectionId)?.content?.qrEnabled,
+            qrLabel: pages
+              .flat()
+              .find((s) => s.id === noticeQrModalSectionId)?.content?.qrLabel,
+            qrCampaign: pages
+              .flat()
+              .find((s) => s.id === noticeQrModalSectionId)?.content?.qrCampaign,
+            useTrackingParams: pages
+              .flat()
+              .find((s) => s.id === noticeQrModalSectionId)?.content?.useTrackingParams,
+          }}
+          issueTitle={workspace.issues.find((i) => i.id === issueId)?.title}
+          onClose={() => setNoticeQrModalSectionId(null)}
+          onSave={handleSaveNoticeQr}
+          sectionId={noticeQrModalSectionId}
         />
       )}
 

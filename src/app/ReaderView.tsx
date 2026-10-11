@@ -3,11 +3,11 @@ import { Link, useParams } from "react-router";
 import { loadWorkspace, type Issue } from "./store";
 import BrandLogo from "./BrandLogo";
 import SubscribeForm from "./components/SubscribeForm";
-import CrosswordSection from "./games/CrosswordSection";
 import SudokuSection from "./games/SudokuSection";
 import WordSearchSection from "./games/WordSearchSection";
 import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
 import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
+import QRCodeSvg from "./components/QRCodeSvg";
 
 interface Section {
   id: string;
@@ -19,6 +19,12 @@ interface Section {
     title?: string;
     body?: string;
     byline?: string;
+    noticeDetails?: string;
+    qrUrl?: string;
+    qrEnabled?: boolean;
+    qrLabel?: string;
+    qrCampaign?: string;
+    useTrackingParams?: boolean;
     crossword?: CrosswordData;
     sudoku?: SudokuData;
     wordsearch?: WordSearchData;
@@ -554,16 +560,79 @@ function ReaderSectionContent({
   }
 
   if (type === "notice") {
+    const qrEnabled = content?.qrEnabled !== false;
+    const rawUrl = content?.qrUrl || "https://newsletter.singulr.tech/submit";
+    const qrLabel = content?.qrLabel || "Scan to Submit Work";
+    const campaign = content?.qrCampaign || "submissions";
+    const useTracking = content?.useTrackingParams !== false;
+
+    let finalTrackedUrl = rawUrl;
+    if (useTracking) {
+      try {
+        const parsed = new URL(rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`);
+        parsed.searchParams.set("utm_source", "newsletter_noticeboard");
+        parsed.searchParams.set("utm_medium", "qr_code");
+        if (campaign) parsed.searchParams.set("utm_campaign", campaign);
+        parsed.searchParams.set("ref", "noticeboard_qr");
+        finalTrackedUrl = parsed.toString();
+      } catch {
+        const sep = rawUrl.includes("?") ? "&" : "?";
+        finalTrackedUrl = `${rawUrl}${sep}utm_source=newsletter_noticeboard&utm_medium=qr_code&ref=noticeboard_qr`;
+      }
+    }
+
     return (
-      <div className="h-full border border-black bg-[#f8f5ed] p-7">
-        <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "Noticeboard"}</p>
-        <h2 className="reader-editable mt-6 font-serif text-3xl leading-tight">{content?.title ?? "Submit your work"}</h2>
-        <p className="reader-editable mt-5 whitespace-pre-line text-sm leading-relaxed">
-          {content?.body ?? "Poetry, short fiction, essays, photography, illustration, or fragments we don’t have a name for yet."}
-        </p>
-        <p className="reader-editable mt-8 text-xs leading-relaxed text-black/50">
-          Send up to 1,500 words to words@university.edu by Friday at noon.
-        </p>
+      <div className="flex h-full flex-col justify-between border border-black bg-[#f8f5ed] p-6 sm:p-7">
+        <div>
+          <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
+            {content?.eyebrow ?? "Noticeboard"}
+          </p>
+          <h2 className="reader-editable mt-4 font-serif text-3xl leading-tight">
+            {content?.title ?? "Submit your work"}
+          </h2>
+          <p className="reader-editable mt-4 whitespace-pre-line text-sm leading-relaxed">
+            {content?.body ?? "Poetry, short fiction, essays, photography, illustration, or fragments we don’t have a name for yet."}
+          </p>
+        </div>
+
+        <div className="mt-6 border-t border-black/15 pt-5">
+          <p className="reader-editable text-xs leading-relaxed text-black/60">
+            {content?.noticeDetails ?? "Send up to 1,500 words to words@university.edu by Friday at noon."}
+          </p>
+
+          {qrEnabled && (
+            <a
+              className="mt-4 flex items-center gap-3.5 rounded-xl border border-black/15 bg-white/85 p-3 shadow-xs hover:border-[#ef5a35] hover:shadow-sm transition group cursor-pointer text-[#171714] no-underline"
+              href={finalTrackedUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+              title="Click or scan with phone to submit"
+            >
+              <div className="shrink-0 rounded-lg border border-black/10 bg-white p-1.5 shadow-xs">
+                <QRCodeSvg
+                  fgColor="#171714"
+                  size={64}
+                  title={qrLabel}
+                  value={finalTrackedUrl}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#ef5a35]" />
+                  <span className="text-[8.5px] font-bold uppercase tracking-widest text-[#ef5a35]">
+                    Submissions Portal
+                  </span>
+                </div>
+                <p className="mt-0.5 font-serif text-sm font-semibold leading-tight text-[#171714] truncate group-hover:text-[#ef5a35]">
+                  {qrLabel} ↗
+                </p>
+                <p className="mt-1 text-[9px] text-black/50 truncate font-mono">
+                  {finalTrackedUrl.replace(/^https?:\/\//, "")}
+                </p>
+              </div>
+            </a>
+          )}
+        </div>
       </div>
     );
   }
@@ -635,10 +704,14 @@ function ReaderSectionContent({
 
   if (type === "crossword") {
     return (
-      <CrosswordSection
-        data={content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD}
-        isEditor={false}
-      />
+      <div className="flex h-full min-h-[260px] flex-col items-center justify-center border border-dashed border-black/25 bg-[#f8f5ed] p-8 text-center">
+        <span className="text-3xl">🧩</span>
+        <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Newspaper Games</span>
+        <h3 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#171714]">Crossword Puzzle — Coming Soon</h3>
+        <p className="mt-2 max-w-sm text-xs leading-relaxed text-black/55">
+          The interactive crossword puzzle is currently being redesigned with custom grid geometry and clue assistance. Stay tuned for the upcoming release!
+        </p>
+      </div>
     );
   }
 
