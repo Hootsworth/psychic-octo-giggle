@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   cloneIssueDocument,
   initWorkspaceRealtimeSync,
@@ -17,6 +17,7 @@ import BrandLogo from "./BrandLogo";
 const colors = ["#ef5a35", "#3e6a59", "#7d5a87", "#c19639", "#315b75"];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [workspace, setWorkspace] = useState<Workspace>(loadWorkspace);
 
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [folderName, setFolderName] = useState("");
   const [search, setSearch] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const availableTemplates = [...newsletterTemplates, ...loadCustomTemplates()];
 
   const commit = (next: Workspace) => {
@@ -56,7 +58,7 @@ export default function Dashboard() {
     localStorage.setItem(`iow-layout-${id}`, JSON.stringify(cloneTemplatePages(template.id)));
     commit({ ...workspace, issues: [issue, ...workspace.issues] });
     setTemplateOpen(false);
-    window.location.href = `/editor/${id}`;
+    navigate(`/editor/${id}`);
   };
 
   const createFolder = () => {
@@ -161,91 +163,148 @@ export default function Dashboard() {
             ? "Published"
             : workspace.folders.find((folder) => folder.id === view.slice(7))?.name ?? "Folder";
 
+  const renderSidebarContent = (onClose?: () => void) => (
+    <>
+      <nav className="flex-1 overflow-y-auto p-4">
+        <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">Workspace</p>
+        {[
+          ["all", "All newsletters", workspace.issues.length],
+          ["drafts", "Drafts", workspace.issues.filter((issue) => issue.status === "draft").length],
+          ["review", "In review", workspace.issues.filter((issue) => issue.status === "review").length],
+          ["published", "Published", workspace.issues.filter((issue) => issue.status === "published").length],
+        ].map(([id, label, count]) => (
+          <button
+            className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs ${view === id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
+            key={id}
+            onClick={() => {
+              setView(String(id));
+              onClose?.();
+            }}
+            type="button"
+          >
+            <span>{label}</span><span className="text-[9px]">{count}</span>
+          </button>
+        ))}
+        <div className="mb-2 mt-8 flex items-center justify-between px-3">
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">Folders</p>
+        </div>
+        {workspace.folders.map((folder) => (
+          <div className="group flex items-center" key={folder.id}>
+            <button
+              className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs ${view === `folder:${folder.id}` ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
+              onClick={() => {
+                setView(`folder:${folder.id}`);
+                onClose?.();
+              }}
+              type="button"
+            >
+              <span className="h-2 w-2 rounded-full" style={{ background: folder.color }} />
+              <span className="truncate">{folder.name}</span>
+            </button>
+            <button className="hidden px-1 text-white/35 group-hover:block" onClick={() => renameFolder(folder.id)} title="Rename" type="button">···</button>
+            <button className="hidden px-1 text-white/35 hover:text-[#ef5a35] group-hover:block" onClick={() => deleteFolder(folder.id)} title="Delete" type="button">×</button>
+          </div>
+        ))}
+        <div className="mt-3 flex gap-2 px-3">
+          <input
+            className="min-w-0 flex-1 border-b border-white/20 bg-transparent py-2 text-xs text-white outline-none placeholder:text-white/25"
+            onChange={(event) => setFolderName(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && createFolder()}
+            placeholder="New folder"
+            value={folderName}
+          />
+          <button className="text-lg text-[#ef5a35]" onClick={createFolder} type="button">+</button>
+        </div>
+      </nav>
+      <div className="border-t border-white/10 p-5 text-[10px] text-white/40">
+        <Link
+          className="mb-2 block rounded-lg border border-white/10 px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white/60 hover:bg-white/5 hover:text-white"
+          onClick={onClose}
+          to="/settings"
+        >
+          Settings
+        </Link>
+        <Link
+          className="mb-2 block rounded-lg bg-white px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-black hover:bg-[#ef5a35] hover:text-white"
+          onClick={onClose}
+          to="/publishing"
+        >
+          Publishing desk
+        </Link>
+        <div className="mb-4 mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left">
+          <div className="mb-2.5 min-w-0">
+            <p className="truncate text-[11px] font-semibold text-white">
+              {user?.user_metadata?.full_name ?? "Editorial member"}
+            </p>
+            <p className="truncate text-[9px] text-white/50" title={user?.email}>
+              {user?.email}
+            </p>
+          </div>
+          <button
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#ef5a35] px-3 py-2 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-white hover:text-black"
+            onClick={() => void signOut()}
+            type="button"
+          >
+            Sign out <span>→</span>
+          </button>
+        </div>
+        <p className="text-white/70">University Editorial Team</p>
+        <p className="mt-1">Cloud workspace · Phase 1</p>
+      </div>
+    </>
+  );
+
   return (
     <div className="app-shell min-h-screen bg-[#eeece6] text-[#171714]">
+      {/* Desktop Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-black/10 bg-[#171714] text-white md:flex">
         <div className="border-b border-white/10 p-6">
           <BrandLogo className="h-24 w-full object-left" priority />
           <p className="mt-1 text-[8px] uppercase tracking-[0.18em] text-white/40">Editorial workspace</p>
         </div>
-        <nav className="flex-1 overflow-y-auto p-4">
-          <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">Workspace</p>
-          {[
-            ["all", "All newsletters", workspace.issues.length],
-            ["drafts", "Drafts", workspace.issues.filter((issue) => issue.status === "draft").length],
-            ["review", "In review", workspace.issues.filter((issue) => issue.status === "review").length],
-            ["published", "Published", workspace.issues.filter((issue) => issue.status === "published").length],
-          ].map(([id, label, count]) => (
-            <button
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs ${view === id ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
-              key={id}
-              onClick={() => setView(String(id))}
-              type="button"
-            >
-              <span>{label}</span><span className="text-[9px]">{count}</span>
-            </button>
-          ))}
-          <div className="mb-2 mt-8 flex items-center justify-between px-3">
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">Folders</p>
-          </div>
-          {workspace.folders.map((folder) => (
-            <div className="group flex items-center" key={folder.id}>
+        {renderSidebarContent()}
+      </aside>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div aria-modal="true" className="fixed inset-0 z-50 flex md:hidden" role="dialog">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <aside className="relative flex w-72 max-w-[85vw] flex-col border-r border-white/10 bg-[#171714] text-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 p-5">
+              <BrandLogo className="h-16 w-32 object-left" priority />
               <button
-                className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs ${view === `folder:${folder.id}` ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
-                onClick={() => setView(`folder:${folder.id}`)}
+                aria-label="Close menu"
+                className="grid h-8 w-8 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
                 type="button"
               >
-                <span className="h-2 w-2 rounded-full" style={{ background: folder.color }} />
-                <span className="truncate">{folder.name}</span>
+                ✕
               </button>
-              <button className="hidden px-1 text-white/35 group-hover:block" onClick={() => renameFolder(folder.id)} title="Rename" type="button">···</button>
-              <button className="hidden px-1 text-white/35 hover:text-[#ef5a35] group-hover:block" onClick={() => deleteFolder(folder.id)} title="Delete" type="button">×</button>
             </div>
-          ))}
-          <div className="mt-3 flex gap-2 px-3">
-            <input
-              className="min-w-0 flex-1 border-b border-white/20 bg-transparent py-2 text-xs text-white outline-none placeholder:text-white/25"
-              onChange={(event) => setFolderName(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && createFolder()}
-              placeholder="New folder"
-              value={folderName}
-            />
-            <button className="text-lg text-[#ef5a35]" onClick={createFolder} type="button">+</button>
-          </div>
-        </nav>
-        <div className="border-t border-white/10 p-5 text-[10px] text-white/40">
-          <Link className="mb-2 block rounded-lg border border-white/10 px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white/60 hover:bg-white/5 hover:text-white" to="/settings">
-            Settings
-          </Link>
-          <Link className="mb-2 block rounded-lg bg-white px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-black hover:bg-[#ef5a35] hover:text-white" to="/publishing">
-            Publishing desk
-          </Link>
-          <div className="mb-4 mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left">
-            <div className="mb-2.5 min-w-0">
-              <p className="truncate text-[11px] font-semibold text-white">
-                {user?.user_metadata?.full_name ?? "Editorial member"}
-              </p>
-              <p className="truncate text-[9px] text-white/50" title={user?.email}>
-                {user?.email}
-              </p>
-            </div>
-            <button
-              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#ef5a35] px-3 py-2 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-white hover:text-black"
-              onClick={() => void signOut()}
-              type="button"
-            >
-              Sign out <span>→</span>
-            </button>
-          </div>
-          <p className="text-white/70">University Editorial Team</p>
-          <p className="mt-1">Local workspace · Phase 1</p>
+            {renderSidebarContent(() => setMobileMenuOpen(false))}
+          </aside>
         </div>
-      </aside>
+      )}
 
       <main className="min-h-screen md:ml-64">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-[#eeece6]/95 px-5 py-4 backdrop-blur-md sm:px-8">
-          <div className="md:hidden">
-            <BrandLogo className="h-12 w-24 object-left" />
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              aria-label="Open navigation menu"
+              className="grid h-9 w-9 place-items-center rounded-lg border border-black/15 bg-white text-black hover:bg-black hover:text-white"
+              onClick={() => setMobileMenuOpen(true)}
+              type="button"
+            >
+              <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="18">
+                <line x1="3" x2="21" y1="12" y2="12" />
+                <line x1="3" x2="21" y1="6" y2="6" />
+                <line x1="3" x2="21" y1="18" y2="18" />
+              </svg>
+            </button>
+            <BrandLogo className="h-10 w-24 object-left" />
           </div>
           <label className="hidden w-full max-w-sm md:block">
             <input

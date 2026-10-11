@@ -43,7 +43,7 @@ export default function Auth() {
           password,
           options: {
             data: { full_name: name.trim() },
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           },
         });
         if (authError) throw authError;
@@ -51,7 +51,7 @@ export default function Auth() {
         else setView("confirmation");
       } else if (view === "forgot") {
         const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?mode=reset`,
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}auth?mode=reset`,
         });
         if (authError) throw authError;
         setMessage("Check your inbox for a secure password-reset link.");

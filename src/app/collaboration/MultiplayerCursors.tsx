@@ -14,7 +14,7 @@ export default function MultiplayerCursors({ cursors }: MultiplayerCursorsProps)
   if (!activeCursors.length) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-50 overflow-visible">
+    <div className="pointer-events-none absolute inset-0 z-50 overflow-visible editor-only">
       {activeCursors.map((cursor) => (
         <div
           className="pointer-events-none absolute transition-[left,top] duration-75 ease-out will-change-[left,top]"
