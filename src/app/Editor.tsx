@@ -19,7 +19,9 @@ import { useAuth } from "./AuthContext";
 import { useCollaboration } from "./collaboration/useCollaboration";
 import MultiplayerCursors from "./collaboration/MultiplayerCursors";
 import CollaboratorAvatars from "./collaboration/CollaboratorAvatars";
-import type { DocChangePayload } from "./collaboration/types";
+import CommentsPanel from "./collaboration/CommentsPanel";
+import NewsroomChat from "./collaboration/NewsroomChat";
+import type { DocChangePayload, EditorialComment, NewsroomMessage } from "./collaboration/types";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -40,7 +42,9 @@ type SectionType =
   | "interview"
   | "statistics"
   | "timeline"
-  | "recommendations";
+  | "recommendations"
+  | "audio"
+  | "poll";
 
 type Section = {
   id: string;
@@ -93,6 +97,8 @@ const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[
   { type: "statistics", name: "By the numbers", description: "Large statistics and key figures" },
   { type: "timeline", name: "Timeline", description: "Chronological milestones or schedule" },
   { type: "recommendations", name: "Recommendations", description: "Curated books, films, links, or places" },
+  { type: "audio", name: "Campus Audio", description: "Embedded playlist, podcast episode or campus radio track" },
+  { type: "poll", name: "Student Poll", description: "Interactive community poll with live options" },
 ];
 
 const DEFAULT_PAGES = cloneTemplatePages("campus-weekly") as Pages;
@@ -610,6 +616,76 @@ function SectionContent({
     );
   }
 
+  if (type === "audio") {
+    return (
+      <div className="flex h-full flex-col justify-between border-y border-black/15 bg-[#171714] p-7 text-white sm:p-9">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Campus Audio · Playlist</span>
+            <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.14em] text-white/50">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ef5a35]" /> Live Audio
+            </span>
+          </div>
+          <Editable as="h3" className="mt-3 font-serif text-3xl sm:text-4xl">
+            {content?.title ?? "Tracks from the Library Basement"}
+          </Editable>
+          <Editable as="p" className="mt-2 text-xs leading-relaxed text-white/60">
+            {content?.body ?? "Curated by the Campus Radio Society. Songs playing across study halls, rehearsal rooms, and dorm kitchens this week."}
+          </Editable>
+        </div>
+        <div className="mt-6 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-[#ef5a35] text-white">
+              ▶
+            </div>
+            <div>
+              <Editable as="p" className="text-xs font-semibold text-white">
+                Track 01 · Late Autumn Reverie
+              </Editable>
+              <Editable as="p" className="text-[10px] text-white/45">
+                The Student Quartet · 3:42
+              </Editable>
+            </div>
+          </div>
+          <span className="rounded-full border border-white/20 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/60">
+            Spotify / Apple Music
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "poll") {
+    return (
+      <div className="h-full p-7 sm:p-9">
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Campus Pulse</span>
+        <Editable as="h3" className="mt-2 font-serif text-3xl sm:text-4xl">
+          {content?.title ?? "The Big Debate: Late Nights vs Early Mornings?"}
+        </Editable>
+        <Editable as="p" className="mt-2 text-xs text-black/55">
+          {content?.body ?? "Cast your vote below or respond with next week's poll topic."}
+        </Editable>
+        <div className="mt-6 space-y-3">
+          {[
+            { label: "Option A: 24/7 Library all-nighter with espresso", pct: "64%" },
+            { label: "Option B: 6:00 AM coffee run and sunrise study", pct: "36%" },
+          ].map((opt, i) => (
+            <div className="relative overflow-hidden rounded-xl border border-black/15 bg-white p-4" key={i}>
+              <div
+                className="absolute inset-y-0 left-0 bg-[#ef5a35]/15 transition-all"
+                style={{ width: opt.pct }}
+              />
+              <div className="relative flex items-center justify-between text-xs font-semibold">
+                <Editable as="span">{opt.label}</Editable>
+                <span className="font-bold text-[#ef5a35]">{opt.pct}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col justify-between bg-[#171714] p-8 text-[#f8f5ed] sm:p-12">
       <Editable as="h2" className="max-w-xl font-serif text-5xl leading-[0.92] tracking-[-0.045em]">
@@ -756,6 +832,22 @@ export default function App() {
       return [];
     }
   });
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<EditorialComment[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`iow-comments-${issueId}`) ?? "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<NewsroomMessage[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`iow-chat-${issueId}`) ?? "[]");
+    } catch {
+      return [];
+    }
+  });
   const [preflight, setPreflight] = useState<{ tone: "pass" | "warn"; label: string; detail: string }[]>([]);
   const [aiReview, setAiReview] = useState("");
   const [aiReviewing, setAiReviewing] = useState(false);
@@ -883,23 +975,83 @@ export default function App() {
       font: fontId,
       content,
       media: collectMedia(),
+      comments,
     };
-  }, [pages, paletteId, fontId]);
+  }, [pages, paletteId, fontId, comments]);
+
+  const handleRemoteComments = useCallback((newComments: EditorialComment[]) => {
+    setComments(newComments);
+    localStorage.setItem(`iow-comments-${issueId}`, JSON.stringify(newComments));
+  }, [issueId]);
+
+  const handleRemoteChat = useCallback((newMsg: NewsroomMessage) => {
+    setChatMessages((prev) => {
+      const next = [...prev, newMsg];
+      localStorage.setItem(`iow-chat-${issueId}`, JSON.stringify(next));
+      return next;
+    });
+  }, [issueId]);
 
   const {
     collaborators,
     cursors,
     broadcastCursor,
     broadcastDocChange,
+    broadcastComments,
+    sendChatMessage,
     isConnected,
     userColor,
+    userName,
     myId,
   } = useCollaboration({
     issueId,
     user,
     onRemoteChange: handleRemoteChange,
     onRequestState: getCurrentDocState,
+    onCommentChange: handleRemoteComments,
+    onChatMessage: handleRemoteChat,
   });
+
+  const addComment = (text: string) => {
+    const newComment: EditorialComment = {
+      id: `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      authorName: user?.user_metadata?.full_name ?? (user?.email ? user.email.split("@")[0] : "Editor"),
+      authorEmail: user?.email ?? "",
+      authorColor: userColor,
+      createdAt: Date.now(),
+      resolved: false,
+    };
+    const next = [newComment, ...comments];
+    setComments(next);
+    localStorage.setItem(`iow-comments-${issueId}`, JSON.stringify(next));
+    broadcastComments(next);
+  };
+
+  const toggleResolveComment = (id: string) => {
+    const next = comments.map((c) => (c.id === id ? { ...c, resolved: !c.resolved } : c));
+    setComments(next);
+    localStorage.setItem(`iow-comments-${issueId}`, JSON.stringify(next));
+    broadcastComments(next);
+  };
+
+  const deleteComment = (id: string) => {
+    const next = comments.filter((c) => c.id !== id);
+    setComments(next);
+    localStorage.setItem(`iow-comments-${issueId}`, JSON.stringify(next));
+    broadcastComments(next);
+  };
+
+  const postChatMessage = (text: string) => {
+    const sent = sendChatMessage(text);
+    if (sent) {
+      setChatMessages((prev) => {
+        const next = [...prev, sent];
+        localStorage.setItem(`iow-chat-${issueId}`, JSON.stringify(next));
+        return next;
+      });
+    }
+  };
 
   // Broadcast photo uploads or focal point changes to all connected peers
   useEffect(() => {
@@ -1586,6 +1738,62 @@ export default function App() {
             myColor={userColor}
           />
           <span className="mx-1 hidden h-5 w-px bg-black/10 sm:block" />
+
+          {/* Editorial Notes / Comments button */}
+          <button
+            aria-label="Editorial notes"
+            className={`editor-icon-button relative ${commentsOpen ? "bg-white text-[#ef5a35]" : ""}`}
+            onClick={() => {
+              setCommentsOpen(!commentsOpen);
+              if (chatOpen) setChatOpen(false);
+            }}
+            title="Editorial notes & annotations"
+            type="button"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            {comments.filter((c) => !c.resolved).length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ef5a35] px-1 text-[9px] font-bold text-white shadow-sm">
+                {comments.filter((c) => !c.resolved).length}
+              </span>
+            )}
+          </button>
+
+          {/* Newsroom Live Chat button */}
+          <button
+            aria-label="Newsroom chat"
+            className={`editor-icon-button relative ${chatOpen ? "bg-white text-[#ef5a35]" : ""}`}
+            onClick={() => {
+              setChatOpen(!chatOpen);
+              if (commentsOpen) setCommentsOpen(false);
+            }}
+            title="Newsroom live chat"
+            type="button"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            {chatMessages.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3e6a59] px-1 text-[9px] font-bold text-white shadow-sm">
+                {chatMessages.length}
+              </span>
+            )}
+          </button>
+
+          {/* Reader View button */}
+          <Link
+            aria-label="Open Reader View"
+            className="editor-icon-button hidden sm:grid"
+            target="_blank"
+            to={`/read/${issueId}`}
+            title="Open Reader View (Public Edition)"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </Link>
+
           <span aria-label="Saved" className={`mr-1 h-2 w-2 rounded-full bg-[#3e6a59] transition-opacity ${saved ? "opacity-100" : "opacity-0"}`} title="Saved" />
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
           <button aria-label="Document design" className="editor-icon-button hidden sm:grid" onClick={() => setDesignOpen(true)} title="Document design" type="button"><EditorIcon name="palette" /></button>
@@ -1920,6 +2128,27 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* Editorial Comments Drawer */}
+      <CommentsPanel
+        comments={comments}
+        isOpen={commentsOpen}
+        onAddComment={addComment}
+        onClose={() => setCommentsOpen(false)}
+        onDeleteComment={deleteComment}
+        onToggleResolve={toggleResolveComment}
+      />
+
+      {/* Newsroom Live Chat Drawer */}
+      <NewsroomChat
+        currentUserColor={userColor}
+        currentUserId={myId}
+        currentUserName={userName}
+        isOpen={chatOpen}
+        messages={chatMessages}
+        onClose={() => setChatOpen(false)}
+        onSendMessage={postChatMessage}
+      />
     </div>
   );
 }

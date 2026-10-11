@@ -24,6 +24,26 @@ export type DocChangePayload = {
   timestamp: number;
 };
 
+export type EditorialComment = {
+  id: string;
+  sectionId?: string;
+  text: string;
+  authorName: string;
+  authorEmail: string;
+  authorColor: string;
+  createdAt: number;
+  resolved: boolean;
+};
+
+export type NewsroomMessage = {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderColor: string;
+  text: string;
+  timestamp: number;
+};
+
 export const AESTHETIC_COLLAB_PALETTE = [
   "#ef5a35", // Editorial Coral
   "#7c3aed", // Rich Iris

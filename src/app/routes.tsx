@@ -5,11 +5,14 @@ import Editor from "./Editor";
 import Publishing from "./Publishing";
 import Settings from "./Settings";
 import Auth from "./Auth";
+import ReaderView from "./ReaderView";
 import { ProtectedLayout, PublicOnly } from "./AuthContext";
 
 export const router = createBrowserRouter([
   { path: "/auth", element: <PublicOnly><Auth /></PublicOnly> },
   { path: "/archive", Component: Archive },
+  { path: "/read/:issueId", Component: ReaderView },
+  { path: "/view/:issueId", Component: ReaderView },
   {
     Component: ProtectedLayout,
     children: [

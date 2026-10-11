@@ -5,6 +5,8 @@ import {
   type Collaborator,
   type CursorPosition,
   type DocChangePayload,
+  type EditorialComment,
+  type NewsroomMessage,
   getAestheticColor,
 } from "./types";
 
@@ -13,6 +15,8 @@ interface UseCollaborationOptions {
   user: { id?: string; email?: string; user_metadata?: { full_name?: string } } | null;
   onRemoteChange?: (payload: DocChangePayload) => void;
   onRequestState?: () => any; // Return current document state to supply to new peers
+  onCommentChange?: (comments: EditorialComment[]) => void;
+  onChatMessage?: (message: NewsroomMessage) => void;
 }
 
 export function useCollaboration({
@@ -41,6 +45,12 @@ export function useCollaboration({
 
   const onRemoteChangeRef = useRef(onRemoteChange);
   onRemoteChangeRef.current = onRemoteChange;
+
+  const onCommentChangeRef = useRef(onCommentChange);
+  onCommentChangeRef.current = onCommentChange;
+
+  const onChatMessageRef = useRef(onChatMessage);
+  onChatMessageRef.current = onChatMessage;
 
   // Initialize Supabase Realtime channel
   useEffect(() => {
@@ -101,7 +111,23 @@ export function useCollaboration({
       }
     });
 
-    // 4. Peer state handshake: new peer asks for latest state
+    // 4. Broadcast listener for editorial comments
+    channel.on("broadcast", { event: "comments_sync" }, ({ payload }) => {
+      if (!payload || payload.senderId === sessionClientId.current) return;
+      if (onCommentChangeRef.current && Array.isArray(payload.comments)) {
+        onCommentChangeRef.current(payload.comments);
+      }
+    });
+
+    // 5. Broadcast listener for newsroom chat messages
+    channel.on("broadcast", { event: "chat_message" }, ({ payload }) => {
+      if (!payload || payload.senderId === sessionClientId.current) return;
+      if (onChatMessageRef.current) {
+        onChatMessageRef.current(payload as NewsroomMessage);
+      }
+    });
+
+    // 6. Peer state handshake: new peer asks for latest state
     channel.on("broadcast", { event: "request_state" }, ({ payload }) => {
       if (payload?.requesterId === sessionClientId.current) return;
       if (onRequestStateRef.current) {
@@ -120,7 +146,7 @@ export function useCollaboration({
       }
     });
 
-    // 5. Peer state handshake response
+    // 7. Peer state handshake response
     channel.on("broadcast", { event: "response_state" }, ({ payload }) => {
       if (payload?.targetId !== sessionClientId.current) return;
       if (payload.state && onRemoteChangeRef.current) {
@@ -131,6 +157,9 @@ export function useCollaboration({
           senderName: "Peer",
           timestamp: Date.now(),
         });
+      }
+      if (payload.state?.comments && onCommentChangeRef.current && Array.isArray(payload.state.comments)) {
+        onCommentChangeRef.current(payload.state.comments);
       }
     });
 
@@ -226,13 +255,55 @@ export function useCollaboration({
     [isConnected, userName],
   );
 
+  // Broadcast updated comment threads
+  const broadcastComments = useCallback(
+    (comments: EditorialComment[]) => {
+      if (!channelRef.current || !isConnected) return;
+      channelRef.current.send({
+        type: "broadcast",
+        event: "comments_sync",
+        payload: {
+          comments,
+          senderId: sessionClientId.current,
+        },
+      });
+    },
+    [isConnected],
+  );
+
+  // Send newsroom chat message to peers
+  const sendChatMessage = useCallback(
+    (text: string): NewsroomMessage | null => {
+      if (!text.trim() || !channelRef.current || !isConnected) return null;
+      const message: NewsroomMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        senderId: sessionClientId.current,
+        senderName: userName,
+        senderColor: userColor,
+        text: text.trim(),
+        timestamp: Date.now(),
+      };
+      channelRef.current.send({
+        type: "broadcast",
+        event: "chat_message",
+        payload: message,
+      });
+      return message;
+    },
+    [isConnected, userName, userColor],
+  );
+
   return {
     collaborators,
     cursors,
     broadcastCursor,
     broadcastDocChange,
+    broadcastComments,
+    sendChatMessage,
     isConnected,
     userColor,
+    userName,
+    userEmail,
     myId: sessionClientId.current,
   };
 }

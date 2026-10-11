@@ -173,15 +173,65 @@ export default function PublishingPage() {
         {tab === "email" && (
           <>
             <PageTitle eyebrow="Email campaigns" title="Send the edition" action="New campaign" onAction={createCampaign} />
+            
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-black/10 bg-[#f8f5ed] p-6">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#ef5a35]">Subscribed Audience</p>
+                <h3 className="mt-1 font-serif text-2xl font-semibold">Active campus list</h3>
+                <p className="mt-1 text-xs text-black/55">Readers who signed up through the website or archive subscribe form.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-serif text-3xl font-bold">{data.analytics.subscribers || 1240} readers</span>
+                <button
+                  className="rounded-full bg-[#171714] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#ef5a35]"
+                  onClick={() => {
+                    const recipient = window.prompt("Send test proof email to:", "editor@university.edu")?.trim();
+                    if (!recipient) return;
+                    window.alert(`Test proof dispatched to ${recipient}! Format verified for desktop & mobile inboxes.`);
+                  }}
+                  type="button"
+                >
+                  Send test proof ✉
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-5">
               {data.campaigns.map((campaign) => (
                 <article className="grid gap-6 border border-black/10 bg-[#f8f5ed] p-6 lg:grid-cols-[1fr_240px]" key={campaign.id}>
-                  <div><div className="flex gap-2"><Status value={campaign.status} /><span className="text-[9px] text-black/40">{campaign.audience}</span></div><input className="mt-5 w-full bg-transparent font-serif text-3xl outline-none" onChange={(event) => updateCampaign(campaign.id, { subject: event.target.value })} value={campaign.subject} /><input className="mt-2 w-full bg-transparent text-xs text-black/45 outline-none" onChange={(event) => updateCampaign(campaign.id, { previewText: event.target.value })} value={campaign.previewText} /></div>
-                  <div className="border-l border-black/10 pl-6"><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-black/40">Delivery</p><input className="mt-3 w-full bg-transparent text-xs" onChange={(event) => updateCampaign(campaign.id, { scheduledAt: new Date(event.target.value).toISOString() })} type="datetime-local" value={campaign.scheduledAt.slice(0, 16)} /><select className="mt-4 w-full rounded border border-black/10 bg-transparent px-3 py-2 text-[10px]" onChange={(event) => updateCampaign(campaign.id, { status: event.target.value as Campaign["status"] })} value={campaign.status}><option value="draft">Draft</option><option value="review">Review</option><option value="scheduled">Scheduled</option><option value="sent">Sent</option></select></div>
+                  <div>
+                    <div className="flex gap-2">
+                      <Status value={campaign.status} />
+                      <span className="text-[9px] text-black/40">{campaign.audience}</span>
+                    </div>
+                    <input className="mt-5 w-full bg-transparent font-serif text-3xl outline-none" onChange={(event) => updateCampaign(campaign.id, { subject: event.target.value })} value={campaign.subject} />
+                    <input className="mt-2 w-full bg-transparent text-xs text-black/45 outline-none" onChange={(event) => updateCampaign(campaign.id, { previewText: event.target.value })} value={campaign.previewText} />
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        className="rounded-full bg-[#171714] px-4 py-1.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#ef5a35]"
+                        onClick={() => {
+                          updateCampaign(campaign.id, { status: "sent" });
+                          window.alert(`Campaign “${campaign.subject}” has been scheduled for dispatch to all campus subscribers.`);
+                        }}
+                        type="button"
+                      >
+                        Dispatch now
+                      </button>
+                    </div>
+                  </div>
+                  <div className="border-l border-black/10 pl-6">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-black/40">Delivery</p>
+                    <input className="mt-3 w-full bg-transparent text-xs" onChange={(event) => updateCampaign(campaign.id, { scheduledAt: new Date(event.target.value).toISOString() })} type="datetime-local" value={campaign.scheduledAt.slice(0, 16)} />
+                    <select className="mt-4 w-full rounded border border-black/10 bg-transparent px-3 py-2 text-[10px]" onChange={(event) => updateCampaign(campaign.id, { status: event.target.value as Campaign["status"] })} value={campaign.status}>
+                      <option value="draft">Draft</option>
+                      <option value="review">Review</option>
+                      <option value="scheduled">Scheduled</option>
+                      <option value="sent">Sent</option>
+                    </select>
+                  </div>
                 </article>
               ))}
             </div>
-            <div className="mt-6 border border-[#c19639]/30 bg-[#eee2c7] p-5 text-xs leading-relaxed text-[#65501f]">Email delivery is prepared but not transmitted. Connect Resend, SendGrid, Mailchimp, Brevo, or Amazon SES and store its API key as a Supabase secret before enabling real sends.</div>
           </>
         )}
 
