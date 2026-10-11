@@ -11,9 +11,8 @@ export type CursorPosition = {
   name: string;
   email: string;
   color: string;
-  xPercent: number; // 0 to 100% relative to the page width
-  yPercent: number; // 0 to 100% relative to the page height
-  pageIndex: number;
+  xPercent: number; // 0 to 100% relative to #pdf-document
+  yPercent: number; // 0 to 100% relative to #pdf-document
   lastMoved: number;
 };
 

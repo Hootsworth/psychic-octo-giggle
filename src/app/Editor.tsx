@@ -843,20 +843,16 @@ export default function App() {
   });
 
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement;
-    const pageEl = target.closest(".page") as HTMLElement | null;
-    if (!pageEl) return;
+    const docEl = document.getElementById("pdf-document");
+    if (!docEl) return;
 
-    const rect = pageEl.getBoundingClientRect();
+    const rect = docEl.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
     const xPercent = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
     const yPercent = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
 
-    const pageId = pageEl.id;
-    const pageIdx = pageId.startsWith("page-") ? parseInt(pageId.replace("page-", ""), 10) - 1 : activePage;
-
-    broadcastCursor(xPercent, yPercent, pageIdx);
+    broadcastCursor(xPercent, yPercent);
   };
 
   useEffect(() => {
@@ -1740,6 +1736,7 @@ export default function App() {
             </aside>
           )}
           <div
+            className="relative"
             id="pdf-document"
             onBlurCapture={() => { editSessionRef.current = false; }}
             onFocusCapture={(event) => {
@@ -1749,10 +1746,11 @@ export default function App() {
               }
             }}
             onInput={scheduleContentSave}
-            onMouseLeave={() => broadcastCursor(-100, -100, -1)}
+            onMouseLeave={() => broadcastCursor(-100, -100)}
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={captureCanvasSelection}
           >
+          <MultiplayerCursors cursors={cursors} />
           {pages.map((sections, pageIndex) => (
             <article
               className="page relative"
@@ -1760,7 +1758,6 @@ export default function App() {
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
             >
-              <MultiplayerCursors cursors={cursors} pageIndex={pageIndex} />
               <PageHeader page={pageIndex + 1} total={pages.length} />
               <button className="editor-only absolute right-6 top-16 z-20 rounded-full border border-black/15 bg-[#f8f5ed] px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-black/45 hover:border-[#ef5a35] hover:text-[#ef5a35]" onClick={(event) => { event.stopPropagation(); removePage(pageIndex); }} type="button">Remove page</button>
               <div className="page-grid">

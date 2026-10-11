@@ -85,11 +85,9 @@ export function useCollaboration({
         [payload.id]: {
           id: payload.id,
           name: payload.name,
-          email: payload.email,
           color: payload.color,
           xPercent: payload.xPercent,
           yPercent: payload.yPercent,
-          pageIndex: payload.pageIndex,
           lastMoved: Date.now(),
         },
       }));
@@ -186,7 +184,7 @@ export function useCollaboration({
 
   // Broadcast mouse position across the canvas (throttled to ~35ms)
   const broadcastCursor = useCallback(
-    (xPercent: number, yPercent: number, pageIndex: number) => {
+    (xPercent: number, yPercent: number) => {
       const now = Date.now();
       if (now - lastCursorBroadcastRef.current < 35) return;
       lastCursorBroadcastRef.current = now;
@@ -203,7 +201,6 @@ export function useCollaboration({
           color: userColor,
           xPercent,
           yPercent,
-          pageIndex,
         },
       });
     },
