@@ -809,12 +809,12 @@ function BuilderBlock({
         {/* Dedicated Crossword Edit trigger */}
         {section.type === "crossword" && onEditCrossword && (
           <button
-            className="w-auto px-2.5 font-bold text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white"
+            className="inline-flex items-center gap-1 rounded bg-[#ef5a35] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-[#d44826]"
             onClick={() => onEditCrossword(section.id)}
-            title="Open Crossword Builder"
+            title="Open Crossword Studio Modal"
             type="button"
           >
-            Edit Grid ✎
+            <span>✏️ Studio</span>
           </button>
         )}
 
