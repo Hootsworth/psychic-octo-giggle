@@ -17,6 +17,33 @@ interface NoticeboardQrModalProps {
   onClose: () => void;
 }
 
+const PRESETS = [
+  {
+    name: "Submissions Form",
+    url: "https://newsletter.singulr.tech/submit",
+    label: "Scan to Submit Writing & Art",
+    campaign: "submissions",
+  },
+  {
+    name: "Pitch a Story",
+    url: "https://newsletter.singulr.tech/pitches",
+    label: "Pitch an Article or Story",
+    campaign: "pitches",
+  },
+  {
+    name: "Letters to Editor",
+    url: "https://newsletter.singulr.tech/letters",
+    label: "Send a Letter to the Editor",
+    campaign: "letters",
+  },
+  {
+    name: "Staff Application",
+    url: "https://newsletter.singulr.tech/join",
+    label: "Join the Editorial Staff",
+    campaign: "recruitment",
+  },
+];
+
 export default function NoticeboardQrModal({
   initialConfig,
   sectionId,
@@ -71,7 +98,6 @@ export default function NoticeboardQrModal({
       parsed.searchParams.set("ref", "noticeboard_qr");
       return parsed.toString();
     } catch {
-      // If relative or non-standard
       const sep = raw.includes("?") ? "&" : "?";
       return `${raw}${sep}utm_source=newsletter_noticeboard&utm_medium=qr_code&utm_campaign=${encodeURIComponent(
         campaign.trim() || "issue"
@@ -82,7 +108,7 @@ export default function NoticeboardQrModal({
   const handleCopy = () => {
     navigator.clipboard.writeText(finalTrackedUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleTestLink = () => {
@@ -116,30 +142,45 @@ export default function NoticeboardQrModal({
     onClose();
   };
 
+  const applyPreset = (preset: (typeof PRESETS)[0]) => {
+    setUrl(preset.url);
+    setLabel(preset.label);
+    setCampaign(preset.campaign);
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-black/15 bg-[#fbf9f4] p-6 shadow-2xl text-[#171714] dark:border-white/15 dark:bg-[#1f1e1b] dark:text-[#f3f0e8] sm:p-8">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-black/10 pb-4 dark:border-white/10">
+      <div
+        aria-modal="true"
+        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-black/15 bg-[#f8f5ed] p-6 shadow-2xl text-[#171714] dark:border-white/15 dark:bg-[#1a1a17] dark:text-[#f3f0e8] sm:p-8"
+        role="dialog"
+      >
+        {/* Subtle Newspaper Masthead Header */}
+        <div className="flex items-start justify-between border-b border-black/15 pb-5 dark:border-white/15">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
-              Noticeboard Tracking
-            </span>
-            <h2 className="mt-1 font-serif text-2xl sm:text-3xl font-bold tracking-tight">
-              Submission QR Code Studio
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#ef5a35]">
+                Noticeboard // Circulation Desk
+              </span>
+              <span className="hidden sm:inline-block text-[9px] font-mono text-black/30 dark:text-white/30">
+                · REF // {sectionId}
+              </span>
+            </div>
+            <h2 className="mt-1 font-serif text-3xl sm:text-4xl font-bold tracking-tight text-black dark:text-[#f3f0e8]">
+              Submission QR Studio
             </h2>
-            <p className="mt-1 text-xs text-black/60 dark:text-[#f3f0e8]/60">
-              Generate tracked QR codes for student submissions, pitches, and letters to the editor.
+            <p className="mt-1.5 text-xs leading-relaxed text-black/60 dark:text-[#f3f0e8]/65 font-sans">
+              Print a verified scannable route for student submissions, pitches, and tracked correspondence.
             </p>
           </div>
           <button
             aria-label="Close"
-            className="grid h-8 w-8 place-items-center rounded-full text-lg text-black/40 hover:bg-black/10 hover:text-black dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
+            className="grid h-7 w-7 place-items-center rounded-full border border-black/15 text-sm text-black/40 hover:border-[#ef5a35] hover:text-[#ef5a35] dark:border-white/15 dark:text-white/40 dark:hover:border-[#ef5a35] dark:hover:text-[#ef5a35] transition"
             onClick={onClose}
             type="button"
           >
@@ -147,45 +188,75 @@ export default function NoticeboardQrModal({
           </button>
         </div>
 
-        {/* Content Body */}
-        <div className="mt-6 grid gap-6 sm:grid-cols-[1fr_170px]">
-          {/* Controls */}
-          <div className="space-y-4 text-xs">
-            {/* Enable switch */}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                checked={enabled}
-                className="h-4 w-4 rounded border-black/20 text-[#ef5a35] focus:ring-[#ef5a35]"
-                onChange={(e) => setEnabled(e.target.checked)}
-                type="checkbox"
-              />
-              <span className="font-semibold">Display QR Code in Noticeboard</span>
-            </label>
+        {/* Editorial Presets Bar */}
+        <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-1 text-[9px]">
+          <span className="shrink-0 font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
+            Presets:
+          </span>
+          {PRESETS.map((preset) => (
+            <button
+              className="shrink-0 rounded-full border border-black/15 bg-white/60 px-3 py-1 font-semibold text-black/75 transition hover:border-[#ef5a35] hover:bg-white hover:text-[#ef5a35] dark:border-white/15 dark:bg-[#242420] dark:text-white/75 dark:hover:border-[#ef5a35] dark:hover:text-[#ef5a35]"
+              key={preset.name}
+              onClick={() => applyPreset(preset)}
+              type="button"
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
 
-            {/* Target URL */}
+        {/* Content Body: Left Controls & Right Stamp Preview */}
+        <div className="mt-6 grid gap-6 sm:grid-cols-[1fr_210px]">
+          {/* Controls Column */}
+          <div className="space-y-4 text-xs">
+            {/* Display Switch styled as editorial toggle */}
+            <div className="flex items-center justify-between rounded-xl border border-black/10 bg-white/50 p-3 dark:border-white/10 dark:bg-[#22221e]">
+              <div>
+                <p className="text-xs font-semibold">Display in Noticeboard</p>
+                <p className="text-[10px] text-black/50 dark:text-white/50">
+                  Render scannable barcode stamp in this section
+                </p>
+              </div>
+              <button
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  enabled ? "bg-[#ef5a35]" : "bg-black/20 dark:bg-white/20"
+                }`}
+                onClick={() => setEnabled(!enabled)}
+                role="switch"
+                type="button"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    enabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Destination URL */}
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-black/60 dark:text-white/60">
+              <label className="block text-[9px] font-bold uppercase tracking-[0.16em] text-black/60 dark:text-white/60">
                 Destination Link URL
               </label>
               <input
-                className="mt-1.5 w-full rounded-lg border border-black/20 bg-white px-3 py-2 text-xs text-[#171714] shadow-sm focus:border-[#ef5a35] focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/20 dark:bg-black/30 dark:text-[#f3f0e8]"
+                className="mt-1.5 w-full rounded-xl border border-black/15 bg-white/80 px-3.5 py-2 text-xs text-[#171714] placeholder:text-black/30 shadow-xs focus:border-[#ef5a35] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8] dark:placeholder:text-white/30"
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://forms.gle/... or https://university.edu/submit"
                 type="url"
                 value={url}
               />
-              <p className="mt-1 text-[10px] text-black/45 dark:text-white/45">
-                Paste your Google Form, Typeform, Airtable, or submission page link.
+              <p className="mt-1 text-[9.5px] text-black/45 dark:text-white/45">
+                Paste your submission form, Typeform, Airtable, or drive link.
               </p>
             </div>
 
-            {/* QR Label */}
+            {/* Call-to-action Caption */}
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-black/60 dark:text-white/60">
-                Call-To-Action Caption
+              <label className="block text-[9px] font-bold uppercase tracking-[0.16em] text-black/60 dark:text-white/60">
+                Notice Caption / Call-To-Action
               </label>
               <input
-                className="mt-1.5 w-full rounded-lg border border-black/20 bg-white px-3 py-2 text-xs text-[#171714] shadow-sm focus:border-[#ef5a35] focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/20 dark:bg-black/30 dark:text-[#f3f0e8]"
+                className="mt-1.5 w-full rounded-xl border border-black/15 bg-white/80 px-3.5 py-2 text-xs text-[#171714] shadow-xs focus:border-[#ef5a35] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#ef5a35] dark:border-white/15 dark:bg-[#252520] dark:text-[#f3f0e8]"
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Scan to Submit Work"
                 type="text"
@@ -193,79 +264,91 @@ export default function NoticeboardQrModal({
               />
             </div>
 
-            {/* Tracking Settings */}
-            <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.02]">
+            {/* Automated Attribution & UTM Tracking */}
+            <div className="rounded-xl border border-black/10 bg-white/40 p-3.5 dark:border-white/10 dark:bg-[#22221e]">
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   checked={useTracking}
-                  className="h-3.5 w-3.5 rounded text-[#ef5a35] focus:ring-[#ef5a35]"
+                  className="h-3.5 w-3.5 rounded border-black/25 text-[#ef5a35] focus:ring-[#ef5a35] dark:border-white/25"
                   onChange={(e) => setUseTracking(e.target.checked)}
                   type="checkbox"
                 />
-                <span className="font-semibold text-[11px]">
-                  Append Automated UTM Tracking
+                <span className="text-[10px] font-bold uppercase tracking-wider text-black/80 dark:text-white/80">
+                  Append Editorial UTM Attribution
                 </span>
               </label>
 
               {useTracking && (
-                <div className="mt-2.5 pl-6">
-                  <label className="block text-[10px] font-medium text-black/60 dark:text-white/60">
-                    Campaign / Issue Identifier:
+                <div className="mt-3 pl-6">
+                  <label className="block text-[9px] font-medium text-black/55 dark:text-white/55 uppercase tracking-wider">
+                    Issue / Campaign Identifier:
                   </label>
                   <input
-                    className="mt-1 w-full rounded border border-black/15 bg-white px-2 py-1 text-[11px] dark:border-white/15 dark:bg-black/40"
+                    className="mt-1 w-full rounded-lg border border-black/15 bg-white px-2.5 py-1.5 font-mono text-[11px] text-black/80 shadow-xs dark:border-white/15 dark:bg-[#1a1a17] dark:text-white/80"
                     onChange={(e) => setCampaign(e.target.value)}
-                    placeholder="issue-08"
+                    placeholder="issue-submissions"
                     type="text"
                     value={campaign}
                   />
-                  <span className="mt-1 block text-[9px] text-black/40 dark:text-white/40">
-                    Tracks incoming visits as <code>utm_source=newsletter_noticeboard</code>
+                  <span className="mt-1 block text-[9px] text-black/40 dark:text-white/40 font-mono">
+                    Tagged as utm_source=newsletter_noticeboard
                   </span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* QR Preview Column */}
-          <div className="flex flex-col items-center justify-between rounded-xl border border-black/10 bg-white p-4 text-center dark:border-white/10 dark:bg-black/20">
+          {/* Authentic Letterpress QR Stamp Preview */}
+          <div className="flex flex-col items-center justify-between rounded-2xl border border-black/15 bg-[#f4efe2] p-4 text-center shadow-xs dark:border-white/15 dark:bg-[#23221e]">
             <div className="w-full">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
-                Live QR Preview
-              </span>
-              <div className="mt-2 grid place-items-center rounded-lg border border-black/10 bg-[#f8f5ed] p-2 dark:border-white/10 dark:bg-white">
+              <div className="flex items-center justify-between border-b border-black/10 pb-2 dark:border-white/10">
+                <span className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
+                  Stamp // QR-01
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-[#ef5a35]" />
+              </div>
+
+              {/* QR Image Frame */}
+              <div className="mt-3 grid place-items-center rounded-xl border border-black/15 bg-white p-2.5 shadow-sm">
                 <QRCodeSvg
+                  bgColor="#ffffff"
                   fgColor="#171714"
-                  size={120}
+                  size={128}
                   title="Noticeboard Submission QR"
                   value={finalTrackedUrl}
                 />
               </div>
-              <p className="mt-2 font-serif text-[11px] font-medium text-black/75 dark:text-white/80 truncate">
-                {label}
+
+              <p className="mt-3 font-serif text-xs font-semibold text-black/85 dark:text-white/90 line-clamp-2">
+                "{label || "Scan to Submit"}"
+              </p>
+              <p className="mt-0.5 font-mono text-[8.5px] text-black/45 dark:text-white/45 truncate">
+                {finalTrackedUrl.replace(/^https?:\/\//, "")}
               </p>
             </div>
 
-            {/* Scan Count Meter */}
-            <div className="mt-3 w-full border-t border-black/10 pt-2 text-center dark:border-white/10">
-              <span className="text-[9px] font-bold uppercase text-black/50 dark:text-white/50">
-                Logged Scans
+            {/* Circulation Counter */}
+            <div className="mt-4 w-full border-t border-black/10 pt-3 dark:border-white/10">
+              <span className="block font-mono text-[8px] font-bold uppercase tracking-widest text-black/50 dark:text-white/50">
+                Reader Scan Tally
               </span>
-              <p className="font-serif text-lg font-bold text-[#ef5a35]">
+              <p className="font-serif text-3xl font-bold text-[#ef5a35] tracking-tight">
                 {scanCount}
               </p>
-              <div className="mt-1 flex items-center justify-center gap-2 text-[9px]">
+              <div className="mt-1.5 flex items-center justify-center gap-2 text-[9px]">
                 <button
-                  className="text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white underline"
+                  className="font-semibold text-black/60 hover:text-[#ef5a35] dark:text-white/60 dark:hover:text-[#ef5a35] transition"
                   onClick={handleTestLink}
+                  title="Simulate scan and open link in new tab"
                   type="button"
                 >
                   Test Link ↗
                 </button>
-                <span>·</span>
+                <span className="text-black/30 dark:text-white/30">·</span>
                 <button
-                  className="text-black/40 hover:text-red-500 dark:text-white/40"
+                  className="text-black/40 hover:text-red-600 dark:text-white/40 dark:hover:text-red-400 transition"
                   onClick={handleResetScans}
+                  title="Reset recorded scan count"
                   type="button"
                 >
                   Reset
@@ -275,36 +358,36 @@ export default function NoticeboardQrModal({
           </div>
         </div>
 
-        {/* Computed Tracking URL pill */}
-        <div className="mt-5 rounded-xl border border-black/10 bg-black/5 p-3 dark:border-white/10 dark:bg-white/5">
+        {/* Dispatch Wire URL Bar */}
+        <div className="mt-5 rounded-xl border border-black/15 bg-white/70 p-3 shadow-xs dark:border-white/15 dark:bg-[#20201d]">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">
-              Full Tracked URL
+            <span className="font-mono text-[8.5px] font-bold uppercase tracking-widest text-black/50 dark:text-white/50">
+              Dispatch Wire Destination
             </span>
             <button
-              className="text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:underline"
+              className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white transition shadow-2xs dark:border-white/10 dark:bg-black/30"
               onClick={handleCopy}
               type="button"
             >
-              {copied ? "✓ Copied!" : "Copy Link"}
+              <span>{copied ? "✓ Copied" : "Copy Slug"}</span>
             </button>
           </div>
-          <p className="mt-1 font-mono text-[10px] text-black/70 dark:text-white/70 break-all select-all">
+          <p className="mt-1 font-mono text-[10px] text-black/80 dark:text-white/80 break-all select-all leading-normal">
             {finalTrackedUrl}
           </p>
         </div>
 
         {/* Action Footer */}
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-black/10 pt-4 dark:border-white/10">
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-black/15 pt-5 dark:border-white/15">
           <button
-            className="rounded-full border border-black/20 px-5 py-2 text-xs font-semibold text-black/70 hover:bg-black/5 dark:border-white/20 dark:text-white/70 dark:hover:bg-white/5 transition"
+            className="rounded-full border border-black/15 px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.14em] text-black/60 hover:border-black hover:text-black dark:border-white/15 dark:text-white/60 dark:hover:border-white dark:hover:text-white transition"
             onClick={onClose}
             type="button"
           >
             Cancel
           </button>
           <button
-            className="rounded-full bg-[#171714] px-6 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#ef5a35] dark:bg-white dark:text-[#171714] dark:hover:bg-[#ef5a35] dark:hover:text-white shadow-md transition"
+            className="rounded-full bg-[#171714] px-6 py-2.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white hover:bg-[#ef5a35] dark:bg-white dark:text-[#171714] dark:hover:bg-[#ef5a35] dark:hover:text-white shadow-md transition"
             onClick={handleSave}
             type="button"
           >
