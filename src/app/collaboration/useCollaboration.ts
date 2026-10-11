@@ -24,6 +24,8 @@ export function useCollaboration({
   user,
   onRemoteChange,
   onRequestState,
+  onCommentChange,
+  onChatMessage,
 }: UseCollaborationOptions) {
   // Generate unique client ID per tab/device so multi-window / multi-device sessions never self-filter
   const sessionClientId = useRef(
