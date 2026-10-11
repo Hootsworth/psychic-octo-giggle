@@ -22,6 +22,12 @@ import CollaboratorAvatars from "./collaboration/CollaboratorAvatars";
 import CommentsPanel from "./collaboration/CommentsPanel";
 import NewsroomChat from "./collaboration/NewsroomChat";
 import type { DocChangePayload, EditorialComment, NewsroomMessage } from "./collaboration/types";
+import CrosswordSection from "./games/CrosswordSection";
+import CrosswordEditorModal from "./games/CrosswordEditorModal";
+import SudokuSection from "./games/SudokuSection";
+import WordSearchSection from "./games/WordSearchSection";
+import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
+import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -44,7 +50,10 @@ type SectionType =
   | "timeline"
   | "recommendations"
   | "audio"
-  | "poll";
+  | "poll"
+  | "crossword"
+  | "sudoku"
+  | "wordsearch";
 
 type Section = {
   id: string;
@@ -56,6 +65,9 @@ type Section = {
     title?: string;
     byline?: string;
     body?: string;
+    crossword?: CrosswordData;
+    sudoku?: SudokuData;
+    wordsearch?: WordSearchData;
   };
 };
 
@@ -99,6 +111,9 @@ const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[
   { type: "recommendations", name: "Recommendations", description: "Curated books, films, links, or places" },
   { type: "audio", name: "Campus Audio", description: "Embedded playlist, podcast episode or campus radio track" },
   { type: "poll", name: "Student Poll", description: "Interactive community poll with live options" },
+  { type: "crossword", name: "Crossword Puzzle", description: "Interactive campus crossword with visual grid & clues editor" },
+  { type: "sudoku", name: "Sudoku Puzzle", description: "Classic 9×9 newspaper number puzzle" },
+  { type: "wordsearch", name: "Word Search", description: "Campus-themed word finding puzzle" },
 ];
 
 const DEFAULT_PAGES = cloneTemplatePages("campus-weekly") as Pages;
@@ -386,10 +401,12 @@ function SectionContent({
   section,
   isCoverPhoto,
   mediaKey,
+  onEditCrossword,
 }: {
   section: Section;
   isCoverPhoto?: boolean;
   mediaKey: string;
+  onEditCrossword?: () => void;
 }) {
   const { type, content } = section;
   if (type === "cover") {
@@ -686,6 +703,33 @@ function SectionContent({
     );
   }
 
+  if (type === "crossword") {
+    return (
+      <CrosswordSection
+        data={content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD}
+        isEditor={true}
+        onEdit={onEditCrossword}
+      />
+    );
+  }
+
+  if (type === "sudoku") {
+    return (
+      <SudokuSection
+        data={content?.sudoku || DEFAULT_SUDOKU}
+        isEditor={true}
+      />
+    );
+  }
+
+  if (type === "wordsearch") {
+    return (
+      <WordSearchSection
+        data={content?.wordsearch || DEFAULT_WORD_SEARCH}
+      />
+    );
+  }
+
   return (
     <div className="flex h-full flex-col justify-between bg-[#171714] p-8 text-[#f8f5ed] sm:p-12">
       <Editable as="h2" className="max-w-xl font-serif text-5xl leading-[0.92] tracking-[-0.045em]">
@@ -708,19 +752,39 @@ function BuilderBlock({
   onAction,
   issueId,
   onAi,
+  onEditCrossword,
 }: {
   section: Section;
   pageIndex: number;
   isCoverPhoto?: boolean;
   onDragStart: (page: number, id: string) => void;
   onDrop: (page: number, id: string) => void;
-  onAction: (action: "up" | "down" | "width" | "height" | "duplicate" | "delete", page: number, id: string) => void;
+  onAction: (
+    action: "up" | "down" | "width" | "height" | "duplicate" | "delete" | "setWidth" | "setHeight" | "widthStep" | "heightStep",
+    page: number,
+    id: string,
+    extraValue?: any,
+  ) => void;
   issueId: string;
   onAi: (sectionId: string) => void;
+  onEditCrossword?: (sectionId: string) => void;
 }) {
+  const widthLabels: Record<number, string> = {
+    4: "1/3 width (4 cols)",
+    6: "1/2 width (6 cols)",
+    8: "2/3 width (8 cols)",
+    12: "Full width (12 cols)",
+  };
+
+  const heightLabels: Record<string, string> = {
+    compact: "Compact",
+    regular: "Regular",
+    tall: "Tall",
+  };
+
   return (
     <section
-      className={`builder-block height-${section.height}`}
+      className={`builder-block group relative height-${section.height}`}
       data-section-id={section.id}
       draggable
       onDragOver={(event) => event.preventDefault()}
@@ -731,17 +795,144 @@ function BuilderBlock({
       }}
       style={{ gridColumn: `span ${section.width}` }}
     >
+      {/* Top Left: Size & Dimension Pill Badge */}
+      <div className="editor-only pointer-events-none absolute left-3 top-2.5 z-20 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="rounded-full border border-black/15 bg-[#f8f5ed]/95 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60 shadow-sm backdrop-blur-sm">
+          {widthLabels[section.width] || `${section.width} cols`} · {heightLabels[section.height] || section.height}
+        </span>
+      </div>
+
+      {/* Top Right: Full Floating Control Bar with intuitive Width & Height pickers */}
       <div className="block-controls editor-only">
-        <span className="drag-handle" title="Drag to move">⠿</span>
-        <button aria-label="Rewrite section with AI" onClick={() => onAi(section.id)} title="Rewrite section with AI"><EditorIcon name="write" /></button>
+        <span className="drag-handle" title="Drag to reorder block">⠿</span>
+
+        {/* Dedicated Crossword Edit trigger */}
+        {section.type === "crossword" && onEditCrossword && (
+          <button
+            className="w-auto px-2.5 font-bold text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white"
+            onClick={() => onEditCrossword(section.id)}
+            title="Open Crossword Builder"
+            type="button"
+          >
+            Edit Grid ✎
+          </button>
+        )}
+
+        {/* AI Rewrite */}
+        <button aria-label="Rewrite section with AI" onClick={() => onAi(section.id)} title="Rewrite section with AI">
+          <EditorIcon name="write" />
+        </button>
+
+        {/* Order controls */}
         <button onClick={() => onAction("up", pageIndex, section.id)} title="Move up">↑</button>
         <button onClick={() => onAction("down", pageIndex, section.id)} title="Move down">↓</button>
-        <button onClick={() => onAction("width", pageIndex, section.id)} title="Change width">↔</button>
-        <button onClick={() => onAction("height", pageIndex, section.id)} title="Change height">↕</button>
-        <button onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate">＋</button>
-        <button onClick={() => onAction("delete", pageIndex, section.id)} title="Delete">×</button>
+
+        {/* Intuitive Width Pills */}
+        <div className="flex items-center gap-0.5 border-l border-black/10 px-1" title="Select Column Width">
+          <span className="px-1 text-[8px] font-bold uppercase text-black/40">W:</span>
+          {([4, 6, 8, 12] as const).map((w) => {
+            const label = w === 4 ? "1/3" : w === 6 ? "1/2" : w === 8 ? "2/3" : "Full";
+            const isActive = section.width === w;
+            return (
+              <button
+                className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
+                  isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10"
+                }`}
+                key={w}
+                onClick={() => onAction("setWidth", pageIndex, section.id, w)}
+                title={`Set width to ${label} (${w} cols)`}
+                type="button"
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Intuitive Height Pills */}
+        <div className="flex items-center gap-0.5 border-l border-black/10 px-1" title="Select Row Height">
+          <span className="px-1 text-[8px] font-bold uppercase text-black/40">H:</span>
+          {(["compact", "regular", "tall"] as const).map((h) => {
+            const label = h === "compact" ? "S" : h === "regular" ? "M" : "L";
+            const isActive = section.height === h;
+            return (
+              <button
+                className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
+                  isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10"
+                }`}
+                key={h}
+                onClick={() => onAction("setHeight", pageIndex, section.id, h)}
+                title={`Set height to ${h}`}
+                type="button"
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <button onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block">＋</button>
+        <button className="text-black/50 hover:bg-red-600 hover:text-white" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block">×</button>
       </div>
-      <SectionContent isCoverPhoto={isCoverPhoto} mediaKey={`iow-media-${issueId}-${section.id}`} section={section} />
+
+      {/* Right Edge Interactive Width Resizer Handle */}
+      <div className="editor-only absolute -right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex items-center rounded-full border border-black/20 bg-white/95 p-0.5 shadow-md backdrop-blur-sm">
+          <button
+            className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
+            disabled={section.width <= 4}
+            onClick={() => onAction("widthStep", pageIndex, section.id, "shrink")}
+            title="Narrow block (reduce columns)"
+            type="button"
+          >
+            ◀
+          </button>
+          <span className="px-1 text-[8px] font-bold text-black/50">
+            {section.width === 4 ? "1/3" : section.width === 6 ? "1/2" : section.width === 8 ? "2/3" : "Full"}
+          </span>
+          <button
+            className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
+            disabled={section.width >= 12}
+            onClick={() => onAction("widthStep", pageIndex, section.id, "expand")}
+            title="Widen block (increase columns)"
+            type="button"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom Edge Interactive Height Resizer Handle */}
+      <div className="editor-only absolute -bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-md backdrop-blur-sm transition-opacity group-hover:opacity-100">
+        <button
+          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
+          disabled={section.height === "compact"}
+          onClick={() => onAction("heightStep", pageIndex, section.id, "shorter")}
+          title="Make block shorter"
+          type="button"
+        >
+          ▲
+        </button>
+        <span className="px-1.5 text-[8px] font-bold uppercase text-black/50">
+          {section.height === "compact" ? "S" : section.height === "regular" ? "M" : "L"}
+        </span>
+        <button
+          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
+          disabled={section.height === "tall"}
+          onClick={() => onAction("heightStep", pageIndex, section.id, "taller")}
+          title="Make block taller"
+          type="button"
+        >
+          ▼
+        </button>
+      </div>
+
+      <SectionContent
+        isCoverPhoto={isCoverPhoto}
+        mediaKey={`iow-media-${issueId}-${section.id}`}
+        onEditCrossword={() => onEditCrossword?.(section.id)}
+        section={section}
+      />
     </section>
   );
 }
@@ -852,6 +1043,22 @@ export default function App() {
   const [preflight, setPreflight] = useState<{ tone: "pass" | "warn"; label: string; detail: string }[]>([]);
   const [aiReview, setAiReview] = useState("");
   const [aiReviewing, setAiReviewing] = useState(false);
+  const [crosswordEditId, setCrosswordEditId] = useState<string | null>(null);
+
+  const handleSaveCrossword = (newData: CrosswordData) => {
+    if (!crosswordEditId) return;
+    rememberLayout();
+    setPages((prev) =>
+      prev.map((sections) =>
+        sections.map((sec) =>
+          sec.id === crosswordEditId
+            ? { ...sec, content: { ...sec.content, crossword: newData } }
+            : sec
+        )
+      ) as Pages
+    );
+    setCrosswordEditId(null);
+  };
   const slashStartRef = useRef(0);
   const pageDragRef = useRef<number | null>(null);
   const editSessionRef = useRef(false);
@@ -1273,10 +1480,34 @@ export default function App() {
   };
 
   const addSection = (type: SectionType) => {
-    const width = type === "notice" || type === "gossip" ? 4 : type === "poem" || type === "events" || type === "timeline" || type === "recommendations" || type === "statistics" ? 6 : 12;
+    const width =
+      type === "notice" || type === "gossip"
+        ? 4
+        : type === "poem" ||
+          type === "events" ||
+          type === "timeline" ||
+          type === "recommendations" ||
+          type === "statistics" ||
+          type === "crossword" ||
+          type === "sudoku" ||
+          type === "wordsearch"
+        ? 6
+        : 12;
+
+    const contentForType: Section["content"] = {};
+    if (type === "crossword") contentForType.crossword = DEFAULT_CAMPUS_MINI_CROSSWORD;
+    if (type === "sudoku") contentForType.sudoku = DEFAULT_SUDOKU;
+    if (type === "wordsearch") contentForType.wordsearch = DEFAULT_WORD_SEARCH;
+
     updatePage(activePage, (items) => [
       ...items,
-      { id: `${type}-${Date.now()}`, type, width, height: "regular" },
+      {
+        id: `${type}-${Date.now()}`,
+        type,
+        width,
+        height: type === "crossword" || type === "sudoku" ? "tall" : "regular",
+        content: contentForType,
+      },
     ]);
     setLibraryOpen(false);
     window.setTimeout(() => document.querySelector(`#page-${activePage + 1}`)?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
@@ -1309,9 +1540,10 @@ export default function App() {
   };
 
   const blockAction = (
-    action: "up" | "down" | "width" | "height" | "duplicate" | "delete",
+    action: "up" | "down" | "width" | "height" | "duplicate" | "delete" | "setWidth" | "setHeight" | "widthStep" | "heightStep",
     page: number,
     id: string,
+    extraValue?: any,
   ) => {
     updatePage(page, (items) => {
       const index = items.findIndex((item) => item.id === id);
@@ -1328,13 +1560,29 @@ export default function App() {
         [next[index], next[target]] = [next[target], next[index]];
         return next;
       }
+      if (action === "setWidth") {
+        return items.map((item) => (item.id === id ? { ...item, width: extraValue as Section["width"] } : item));
+      }
+      if (action === "setHeight") {
+        return items.map((item) => (item.id === id ? { ...item, height: extraValue as Section["height"] } : item));
+      }
+      const widths: Section["width"][] = [4, 6, 8, 12];
+      if (action === "widthStep") {
+        const currentIdx = widths.indexOf(items[index].width);
+        const nextIdx = extraValue === "expand" ? Math.min(widths.length - 1, currentIdx + 1) : Math.max(0, currentIdx - 1);
+        return items.map((item) => (item.id === id ? { ...item, width: widths[nextIdx] } : item));
+      }
       if (action === "width") {
-        const widths: Section["width"][] = [4, 6, 8, 12];
         return items.map((item) =>
           item.id === id ? { ...item, width: widths[(widths.indexOf(item.width) + 1) % widths.length] } : item,
         );
       }
       const heights: Section["height"][] = ["compact", "regular", "tall"];
+      if (action === "heightStep") {
+        const currentIdx = heights.indexOf(items[index].height);
+        const nextIdx = extraValue === "taller" ? Math.min(heights.length - 1, currentIdx + 1) : Math.max(0, currentIdx - 1);
+        return items.map((item) => (item.id === id ? { ...item, height: heights[nextIdx] } : item));
+      }
       return items.map((item) =>
         item.id === id ? { ...item, height: heights[(heights.indexOf(item.height) + 1) % heights.length] } : item,
       );
@@ -2133,6 +2381,7 @@ export default function App() {
                       dragged.current = { page, id };
                     }}
                     onDrop={dropBlock}
+                    onEditCrossword={(id) => setCrosswordEditId(id)}
                     pageIndex={pageIndex}
                     section={section}
                   />
@@ -2152,6 +2401,19 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* Crossword Builder Screen */}
+      <CrosswordEditorModal
+        initialData={
+          pages
+            .flat()
+            .find((s) => s.id === crosswordEditId)?.content?.crossword ||
+          DEFAULT_CAMPUS_MINI_CROSSWORD
+        }
+        isOpen={Boolean(crosswordEditId)}
+        onClose={() => setCrosswordEditId(null)}
+        onSave={handleSaveCrossword}
+      />
 
       {/* Editorial Comments Drawer */}
       <CommentsPanel

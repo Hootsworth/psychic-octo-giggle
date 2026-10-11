@@ -344,7 +344,7 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   opacity: 1;
 }
 
-.block-controls button,
+.block-controls button:not(.h-5):not(.w-auto),
 .drag-handle {
   display: grid;
   width: 29px;
@@ -360,7 +360,7 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   cursor: grab;
 }
 
-.block-controls button:hover {
+.block-controls button:not(.h-5):not(.w-auto):hover {
   color: white;
   background: #ef5a35;
 }

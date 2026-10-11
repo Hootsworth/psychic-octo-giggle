@@ -3,6 +3,11 @@ import { Link, useParams } from "react-router";
 import { loadWorkspace, type Issue } from "./store";
 import BrandLogo from "./BrandLogo";
 import SubscribeForm from "./components/SubscribeForm";
+import CrosswordSection from "./games/CrosswordSection";
+import SudokuSection from "./games/SudokuSection";
+import WordSearchSection from "./games/WordSearchSection";
+import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
+import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
 
 interface Section {
   id: string;
@@ -14,6 +19,9 @@ interface Section {
     title?: string;
     body?: string;
     byline?: string;
+    crossword?: CrosswordData;
+    sudoku?: SudokuData;
+    wordsearch?: WordSearchData;
   };
 }
 
@@ -622,6 +630,32 @@ function ReaderSectionContent({
           Published weekly by the University Editorial Guild · Distributed across campus
         </p>
       </div>
+    );
+  }
+
+  if (type === "crossword") {
+    return (
+      <CrosswordSection
+        data={content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD}
+        isEditor={false}
+      />
+    );
+  }
+
+  if (type === "sudoku") {
+    return (
+      <SudokuSection
+        data={content?.sudoku || DEFAULT_SUDOKU}
+        isEditor={false}
+      />
+    );
+  }
+
+  if (type === "wordsearch") {
+    return (
+      <WordSearchSection
+        data={content?.wordsearch || DEFAULT_WORD_SEARCH}
+      />
     );
   }
 
