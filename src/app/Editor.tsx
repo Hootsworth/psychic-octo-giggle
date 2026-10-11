@@ -387,12 +387,12 @@ function PhotoField({
         </div>
       )}
       <input accept="image/*" className="hidden" onChange={onFile} ref={inputRef} type="file" />
-      <div className="editor-only absolute bottom-4 left-4 flex flex-wrap gap-1">
-        <button className="rounded-full bg-[#f8f5ed] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] shadow-md hover:bg-[#ef5a35] hover:text-white" onClick={() => inputRef.current?.click()} type="button">{image ? "Replace" : label}</button>
-        {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white" onClick={() => { const positions = ["center", "center top", "center bottom"]; updateMeta({ ...meta, position: positions[(positions.indexOf(meta.position) + 1) % positions.length] }); }} title="Cycle image focal point" type="button">Focus</button>}
+      <div className="editor-only absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] flex-wrap gap-1">
+        <button className="rounded-full bg-[#f8f5ed] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => inputRef.current?.click()} type="button">{image ? "Replace" : label}</button>
+        {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => { const positions = ["center", "center top", "center bottom"]; updateMeta({ ...meta, position: positions[(positions.indexOf(meta.position) + 1) % positions.length] }); }} title="Cycle image focal point" type="button">Focus</button>}
         {image && (
           <button
-            className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white"
+            className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white"
             onClick={async () => {
               const alt = await dialog.prompt({
                 title: "Image Accessibility",
@@ -415,7 +415,7 @@ function PhotoField({
 
 function PageHeader({ page, total }: { page: number; total: number }) {
   return (
-    <div className="mx-6 flex items-end justify-between border-b border-black pb-3 pt-7 sm:mx-10 md:mx-14">
+    <div className="mx-6 flex items-end justify-between border-b border-black pb-3 pt-7 sm:mx-10 md:mx-14 dark:border-white/20">
       <BrandLogo className="h-14 w-28 object-left" />
       <div className="flex items-center gap-5 text-[9px] font-semibold uppercase tracking-[0.18em]">
         <Editable as="span">The University Edition</Editable>
@@ -911,25 +911,25 @@ function BuilderBlock({
       style={{ gridColumn: `span ${section.width}` }}
     >
       {/* Top Left: Size & Dimension Pill Badge */}
-      <div className="editor-only pointer-events-none absolute left-3 top-2.5 z-20 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <span className="rounded-full border border-black/15 bg-[#f8f5ed]/95 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60 shadow-sm backdrop-blur-sm">
+      <div className={`editor-only pointer-events-none absolute left-3 top-2.5 z-20 items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 ${section.width <= 4 ? "hidden" : "hidden sm:flex"}`}>
+        <span className="rounded-full border border-black/15 bg-[#f8f5ed]/95 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60 shadow-sm backdrop-blur-sm dark:border-white/15 dark:bg-[#20201d]/95 dark:text-white/60">
           {widthLabels[section.width] || `${section.width} cols`} · {heightLabels[section.height] || section.height}
         </span>
       </div>
 
-      {/* Top Right: Full Floating Control Bar with intuitive Width & Height pickers */}
+      {/* Top Right: Floating Control Bar contained within block bounds */}
       <div className="block-controls editor-only">
         <span className="drag-handle" title="Drag to reorder block">⠿</span>
 
         {/* Noticeboard QR & Submission Tracking trigger */}
         {section.type === "notice" && onConfigureNoticeQr && (
           <button
-            className="inline-flex items-center gap-1 rounded bg-[#ef5a35] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-[#d44826]"
+            className="inline-flex items-center gap-1 rounded bg-[#ef5a35] px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-[#d44826]"
             onClick={() => onConfigureNoticeQr(section.id)}
             title="Configure Submission QR Code & Tracking"
             type="button"
           >
-            <span>⚙️ QR Tracker</span>
+            <span>⚙️ QR</span>
           </button>
         )}
 
@@ -942,85 +942,105 @@ function BuilderBlock({
         <button onClick={() => onAction("up", pageIndex, section.id)} title="Move up">↑</button>
         <button onClick={() => onAction("down", pageIndex, section.id)} title="Move down">↓</button>
 
-        {/* Intuitive Width Pills */}
-        <div className="flex items-center gap-0.5 border-l border-black/10 px-1" title="Select Column Width">
-          <span className="px-1 text-[8px] font-bold uppercase text-black/40">W:</span>
-          {([4, 6, 8, 12] as const).map((w) => {
-            const label = w === 4 ? "1/3" : w === 6 ? "1/2" : w === 8 ? "2/3" : "Full";
-            const isActive = section.width === w;
-            return (
-              <button
-                className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
-                  isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10"
-                }`}
-                key={w}
-                onClick={() => onAction("setWidth", pageIndex, section.id, w)}
-                title={`Set width to ${label} (${w} cols)`}
-                type="button"
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Responsive Width Controls */}
+        {section.width <= 4 ? (
+          <button
+            className="h-5 rounded px-1.5 text-[8px] font-bold uppercase tracking-wider text-black/70 hover:bg-black/10 dark:text-white/70 dark:hover:bg-white/10"
+            onClick={() => onAction("width", pageIndex, section.id)}
+            title="Cycle column width (1/3 → 1/2 → 2/3 → Full)"
+            type="button"
+          >
+            W: 1/3 ▾
+          </button>
+        ) : (
+          <div className="flex items-center gap-0.5 border-l border-black/10 px-1 dark:border-white/10" title="Select Column Width">
+            <span className="px-1 text-[8px] font-bold uppercase text-black/40 dark:text-white/40">W:</span>
+            {([4, 6, 8, 12] as const).map((w) => {
+              const label = w === 4 ? "1/3" : w === 6 ? "1/2" : w === 8 ? "2/3" : "Full";
+              const isActive = section.width === w;
+              return (
+                <button
+                  className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
+                    isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10 dark:text-white/60 dark:hover:bg-white/10"
+                  }`}
+                  key={w}
+                  onClick={() => onAction("setWidth", pageIndex, section.id, w)}
+                  title={`Set width to ${label} (${w} cols)`}
+                  type="button"
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Intuitive Height Pills */}
-        <div className="flex items-center gap-0.5 border-l border-black/10 px-1" title="Select Row Height">
-          <span className="px-1 text-[8px] font-bold uppercase text-black/40">H:</span>
-          {(["compact", "regular", "tall"] as const).map((h) => {
-            const label = h === "compact" ? "S" : h === "regular" ? "M" : "L";
-            const isActive = section.height === h;
-            return (
-              <button
-                className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
-                  isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10"
-                }`}
-                key={h}
-                onClick={() => onAction("setHeight", pageIndex, section.id, h)}
-                title={`Set height to ${h}`}
-                type="button"
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Responsive Height Controls */}
+        {section.width <= 4 ? (
+          <button
+            className="h-5 rounded px-1.5 text-[8px] font-bold uppercase tracking-wider text-black/70 hover:bg-black/10 dark:text-white/70 dark:hover:bg-white/10"
+            onClick={() => onAction("height", pageIndex, section.id)}
+            title="Cycle row height (Compact → Regular → Tall)"
+            type="button"
+          >
+            H: {section.height === "compact" ? "S" : section.height === "regular" ? "M" : "L"} ▾
+          </button>
+        ) : (
+          <div className="flex items-center gap-0.5 border-l border-black/10 px-1 dark:border-white/10" title="Select Row Height">
+            <span className="px-1 text-[8px] font-bold uppercase text-black/40 dark:text-white/40">H:</span>
+            {(["compact", "regular", "tall"] as const).map((h) => {
+              const label = h === "compact" ? "S" : h === "regular" ? "M" : "L";
+              const isActive = section.height === h;
+              return (
+                <button
+                  className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
+                    isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10 dark:text-white/60 dark:hover:bg-white/10"
+                  }`}
+                  key={h}
+                  onClick={() => onAction("setHeight", pageIndex, section.id, h)}
+                  title={`Set height to ${h}`}
+                  type="button"
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <button onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block">＋</button>
-        <button className="text-black/50 hover:bg-red-600 hover:text-white" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block">×</button>
+        <button className="text-black/50 hover:bg-red-600 hover:text-white dark:text-white/50" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block">×</button>
       </div>
 
-      {/* Right Edge Interactive Width Resizer Handle */}
-      <div className="editor-only absolute -right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="flex items-center rounded-full border border-black/20 bg-white/95 p-0.5 shadow-md backdrop-blur-sm">
-          <button
-            className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
-            disabled={section.width <= 4}
-            onClick={() => onAction("widthStep", pageIndex, section.id, "shrink")}
-            title="Narrow block (reduce columns)"
-            type="button"
-          >
-            ◀
-          </button>
-          <span className="px-1 text-[8px] font-bold text-black/50">
-            {section.width === 4 ? "1/3" : section.width === 6 ? "1/2" : section.width === 8 ? "2/3" : "Full"}
-          </span>
-          <button
-            className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
-            disabled={section.width >= 12}
-            onClick={() => onAction("widthStep", pageIndex, section.id, "expand")}
-            title="Widen block (increase columns)"
-            type="button"
-          >
-            ▶
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom Edge Interactive Height Resizer Handle */}
-      <div className="editor-only absolute -bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-md backdrop-blur-sm transition-opacity group-hover:opacity-100">
+      {/* Right Edge Interactive Width Resizer Handle (Safely inside block bounds) */}
+      <div className="editor-only pointer-events-auto absolute right-2 top-1/2 z-30 flex -translate-y-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 dark:border-white/20 dark:bg-[#1f1e1b]/95">
         <button
-          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
+          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/70 hover:bg-[#ef5a35] hover:text-white disabled:pointer-events-none disabled:opacity-20 dark:text-white/70"
+          disabled={section.width <= 4}
+          onClick={() => onAction("widthStep", pageIndex, section.id, "shrink")}
+          title="Narrow block (reduce columns)"
+          type="button"
+        >
+          ◀
+        </button>
+        <span className="px-1 text-[8px] font-bold text-black/60 select-none dark:text-white/60">
+          {section.width === 4 ? "1/3" : section.width === 6 ? "1/2" : section.width === 8 ? "2/3" : "Full"}
+        </span>
+        <button
+          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/70 hover:bg-[#ef5a35] hover:text-white disabled:pointer-events-none disabled:opacity-20 dark:text-white/70"
+          disabled={section.width >= 12}
+          onClick={() => onAction("widthStep", pageIndex, section.id, "expand")}
+          title="Widen block (increase columns)"
+          type="button"
+        >
+          ▶
+        </button>
+      </div>
+
+      {/* Bottom Edge Interactive Height Resizer Handle (Safely inside block bounds) */}
+      <div className="editor-only pointer-events-auto absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 dark:border-white/20 dark:bg-[#1f1e1b]/95">
+        <button
+          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/70 hover:bg-[#ef5a35] hover:text-white disabled:pointer-events-none disabled:opacity-20 dark:text-white/70"
           disabled={section.height === "compact"}
           onClick={() => onAction("heightStep", pageIndex, section.id, "shorter")}
           title="Make block shorter"
@@ -1028,11 +1048,11 @@ function BuilderBlock({
         >
           ▲
         </button>
-        <span className="px-1.5 text-[8px] font-bold uppercase text-black/50">
+        <span className="px-1.5 text-[8px] font-bold uppercase text-black/60 select-none dark:text-white/60">
           {section.height === "compact" ? "S" : section.height === "regular" ? "M" : "L"}
         </span>
         <button
-          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/60 hover:bg-[#ef5a35] hover:text-white disabled:opacity-30"
+          className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/70 hover:bg-[#ef5a35] hover:text-white disabled:pointer-events-none disabled:opacity-20 dark:text-white/70"
           disabled={section.height === "tall"}
           onClick={() => onAction("heightStep", pageIndex, section.id, "taller")}
           title="Make block taller"
@@ -2263,7 +2283,7 @@ export default function App() {
       </header>
 
       {formatOpen && (
-        <div className="editor-only fixed right-4 top-[4.25rem] z-40 flex flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed] p-2 shadow-xl">
+        <div className="editor-only fixed right-4 top-[4.25rem] z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed]/95 p-2 shadow-xl backdrop-blur-md dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-[#f3f0e8]">
           {[
             ["bold", "bold"], ["italic", "italic"], ["underline", "underline"],
             ["insertUnorderedList", "list"], ["insertOrderedList", "ordered"],
@@ -2271,14 +2291,14 @@ export default function App() {
           ].map(([command, icon]) => (
             <button aria-label={command} className="editor-icon-button" key={command} onMouseDown={(event) => { event.preventDefault(); formatText(command); }} title={command} type="button"><EditorIcon name={icon as EditorIconName} /></button>
           ))}
-          <span className="mx-1 h-8 w-px bg-black/10" />
+          <span className="mx-1 h-8 w-px bg-black/10 dark:bg-white/10" />
           <button aria-label="Add link" className="editor-icon-button" onMouseDown={(event) => { event.preventDefault(); addLink(); }} title="Add link" type="button"><EditorIcon name="link" /></button>
           <button aria-label="Heading" className="editor-icon-button" onMouseDown={(event) => { event.preventDefault(); formatText("formatBlock", "h2"); }} title="Heading" type="button"><EditorIcon name="heading" /></button>
           <button aria-label="Clear formatting" className="editor-icon-button" onMouseDown={(event) => { event.preventDefault(); formatText("removeFormat"); }} title="Clear formatting" type="button"><EditorIcon name="clear" /></button>
-          <span className="mx-1 h-8 w-px bg-black/10" />
+          <span className="mx-1 h-8 w-px bg-black/10 dark:bg-white/10" />
           <button
             aria-label="Close text formatting"
-            className="editor-icon-button text-black/50 hover:bg-[#ef5a35] hover:text-white"
+            className="editor-icon-button text-black/50 hover:bg-[#ef5a35] hover:text-white dark:text-white/60 dark:hover:bg-[#ef5a35] dark:hover:text-white"
             onClick={() => setFormatOpen(false)}
             title="Close formatting bar"
             type="button"
@@ -2352,24 +2372,24 @@ export default function App() {
       </button>
 
       {libraryOpen && (
-        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/30" onMouseDown={() => setLibraryOpen(false)}>
-          <aside className="h-full w-full max-w-md overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => setLibraryOpen(false)}>
+          <aside className="h-full w-full max-w-md overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl dark:border-l dark:border-white/10 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
             <div className="mb-7 flex items-start justify-between">
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Page {activePage + 1}</p>
                 <h2 className="mt-2 font-serif text-4xl tracking-[-0.04em]">Add a section</h2>
               </div>
-              <button className="text-2xl" onClick={() => setLibraryOpen(false)} type="button">×</button>
+              <button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => setLibraryOpen(false)} type="button">×</button>
             </div>
-            <p className="mb-6 text-xs leading-relaxed text-black/55">
+            <p className="mb-6 text-xs leading-relaxed text-black/55 dark:text-[#f3f0e8]/60">
               Pick a ready-made block. Once added, use its controls to move, resize, duplicate, or remove it.
             </p>
             <div className="grid gap-2">
               {SECTION_OPTIONS.map((option) => (
-                <button className="group flex items-center justify-between border border-black/15 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white" key={option.type} onClick={() => addSection(option.type)} type="button">
+                <button className="group flex items-center justify-between border border-black/15 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={option.type} onClick={() => addSection(option.type)} type="button">
                   <span>
                     <span className="block font-serif text-xl">{option.name}</span>
-                    <span className="mt-1 block text-[10px] text-black/45">{option.description}</span>
+                    <span className="mt-1 block text-[10px] text-black/45 dark:text-[#f3f0e8]/50">{option.description}</span>
                   </span>
                   <span className="text-xl text-[#ef5a35] transition-transform group-hover:translate-x-1">+</span>
                 </button>
@@ -2380,44 +2400,44 @@ export default function App() {
       )}
 
       {pageMenuOpen && (
-        <div className="editor-only fixed inset-0 z-50 grid place-items-center bg-black/35 p-4" onMouseDown={() => setPageMenuOpen(false)}>
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl sm:p-8" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="editor-only fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-xs" onMouseDown={() => setPageMenuOpen(false)}>
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-black/10 bg-[#f8f5ed] p-6 shadow-2xl sm:p-8 dark:border-white/15 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
             <div className="mb-7 flex items-start justify-between">
               <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">Document pages</p><h2 className="mt-2 font-serif text-4xl">Add a page</h2></div>
-              <button className="text-2xl" onClick={() => setPageMenuOpen(false)} type="button">×</button>
+              <button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => setPageMenuOpen(false)} type="button">×</button>
             </div>
-            <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40">Title page styles</p>
+            <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40 dark:text-white/40">Title page styles</p>
             <div className="grid gap-3 sm:grid-cols-3">
               {[
                 ["title-editorial", "Editorial cover", "A bold masthead, issue headline, introduction, and hero photograph.", "01"],
                 ["title-minimal", "Quiet minimal", "Generous white space, a restrained title, divider, and opening thought.", "Aa"],
                 ["title-split", "Split statement", "Asymmetric headline and quotation columns followed by a photograph.", "½"],
               ].map(([id, name, description, mark]) => (
-                <button className="group border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white" key={id} onClick={() => addPage(id as PagePresetKind)} type="button">
-                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-3xl transition group-hover:bg-[#ef5a35] group-hover:text-white">{mark}</span>
+                <button className="group border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={id} onClick={() => addPage(id as PagePresetKind)} type="button">
+                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-3xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724]">{mark}</span>
                   <span className="font-serif text-2xl">{name}</span>
-                  <span className="mt-2 block text-[10px] leading-relaxed text-black/45">{description}</span>
+                  <span className="mt-2 block text-[10px] leading-relaxed text-black/45 dark:text-[#f3f0e8]/50">{description}</span>
                 </button>
               ))}
             </div>
-            <p className="mb-3 mt-8 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40">Contents page styles</p>
+            <p className="mb-3 mt-8 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40 dark:text-white/40">Contents page styles</p>
             <div className="grid gap-3 sm:grid-cols-3">
               {[
                 ["contents-classic", "Classic index", "A traditional numbered contents list with a large editorial heading.", "1—6"],
                 ["contents-grid", "Feature grid", "A modular feature directory paired with a compact weekly index.", "4×"],
                 ["contents-numeric", "Numeric guide", "Issue statistics and a chronological reading route.", "123"],
               ].map(([id, name, description, mark]) => (
-                <button className="group border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white" key={id} onClick={() => addPage(id as PagePresetKind)} type="button">
-                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-2xl transition group-hover:bg-[#ef5a35] group-hover:text-white">{mark}</span>
+                <button className="group border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={id} onClick={() => addPage(id as PagePresetKind)} type="button">
+                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-2xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724]">{mark}</span>
                   <span className="font-serif text-2xl">{name}</span>
-                  <span className="mt-2 block text-[10px] leading-relaxed text-black/45">{description}</span>
+                  <span className="mt-2 block text-[10px] leading-relaxed text-black/45 dark:text-[#f3f0e8]/50">{description}</span>
                 </button>
               ))}
             </div>
-            <p className="mb-3 mt-8 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40">Utility pages</p>
+            <p className="mb-3 mt-8 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40 dark:text-white/40">Utility pages</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {[["blank", "Blank page", "An empty canvas ready for sections from the library."], ["final", "Final page", "Closing statement, quotation, and publication footer."]].map(([id, name, description]) => (
-                <button className="border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white" key={id} onClick={() => addPage(id as PagePresetKind)} type="button"><span className="font-serif text-2xl">{name}</span><span className="mt-2 block text-[10px] leading-relaxed text-black/45">{description}</span></button>
+                <button className="border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={id} onClick={() => addPage(id as PagePresetKind)} type="button"><span className="font-serif text-2xl">{name}</span><span className="mt-2 block text-[10px] leading-relaxed text-black/45 dark:text-[#f3f0e8]/50">{description}</span></button>
               ))}
             </div>
           </div>
@@ -2425,29 +2445,33 @@ export default function App() {
       )}
 
       {designOpen && (
-        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/35" onMouseDown={() => setDesignOpen(false)}>
-          <aside className="h-full w-full max-w-sm overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="flex items-start justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">Document design</p><h2 className="mt-2 font-serif text-4xl">Style the issue</h2></div><button className="text-2xl" onClick={() => setDesignOpen(false)} type="button">×</button></div>
-            <p className="mb-4 mt-9 text-[9px] font-bold uppercase tracking-[0.14em] text-black/40">Color palette</p>
+        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => setDesignOpen(false)}>
+          <aside className="h-full w-full max-w-sm overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl dark:border-l dark:border-white/10 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">Document design</p><h2 className="mt-2 font-serif text-4xl">Style the issue</h2></div><button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => setDesignOpen(false)} type="button">×</button></div>
+            <p className="mb-4 mt-9 text-[9px] font-bold uppercase tracking-[0.14em] text-black/40 dark:text-white/40">Color palette</p>
             <div className="grid gap-2">
-              {PALETTES.map((item) => <button className={`flex items-center gap-4 border p-3 text-left ${paletteId === item.id ? "border-black" : "border-black/10"}`} key={item.id} onClick={() => setPaletteId(item.id)} type="button"><span className="flex overflow-hidden rounded-full border border-black/10"><span className="h-7 w-7" style={{ background: item.accent }} /><span className="h-7 w-7" style={{ background: item.paper }} /><span className="h-7 w-7" style={{ background: item.ink }} /></span><span className="text-xs font-semibold">{item.name}</span></button>)}
+              {PALETTES.map((item) => <button className={`flex items-center gap-4 border p-3 text-left transition ${paletteId === item.id ? "border-black bg-white dark:border-white dark:bg-[#242421]" : "border-black/10 hover:bg-white/60 dark:border-white/10 dark:hover:bg-[#20201d]"}`} key={item.id} onClick={() => setPaletteId(item.id)} type="button"><span className="flex overflow-hidden rounded-full border border-black/10"><span className="h-7 w-7" style={{ background: item.accent }} /><span className="h-7 w-7" style={{ background: item.paper }} /><span className="h-7 w-7" style={{ background: item.ink }} /></span><span className="text-xs font-semibold">{item.name}</span></button>)}
             </div>
-            <p className="mb-4 mt-9 text-[9px] font-bold uppercase tracking-[0.14em] text-black/40">Typography</p>
+            <p className="mb-4 mt-9 text-[9px] font-bold uppercase tracking-[0.14em] text-black/40 dark:text-white/40">Typography</p>
             <div className="grid gap-2">
-              {FONT_PAIRS.map((item) => <button className={`border p-4 text-left ${fontId === item.id ? "border-black" : "border-black/10"}`} key={item.id} onClick={() => setFontId(item.id)} type="button"><span className="block text-2xl" style={{ fontFamily: item.serif }}>Editorial Aa</span><span className="mt-2 block text-[9px] uppercase tracking-[0.12em] text-black/40" style={{ fontFamily: item.sans }}>{item.name}</span></button>)}
+              {FONT_PAIRS.map((item) => <button className={`border p-4 text-left transition ${fontId === item.id ? "border-black bg-white dark:border-white dark:bg-[#242421]" : "border-black/10 hover:bg-white/60 dark:border-white/10 dark:hover:bg-[#20201d]"}`} key={item.id} onClick={() => setFontId(item.id)} type="button"><span className="block text-2xl" style={{ fontFamily: item.serif }}>Editorial Aa</span><span className="mt-2 block text-[9px] uppercase tracking-[0.12em] text-black/40 dark:text-white/40" style={{ fontFamily: item.sans }}>{item.name}</span></button>)}
             </div>
           </aside>
         </div>
       )}
 
       {studioOpen && (
-        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/35" onMouseDown={() => setStudioOpen(false)}>
-          <aside className="flex h-full w-full max-w-xl flex-col bg-[#f8f5ed] shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
-            <header className="flex items-start justify-between border-b border-black/10 p-6">
+        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => setStudioOpen(false)}>
+          <aside className="flex h-full w-full max-w-xl flex-col bg-[#f8f5ed] shadow-2xl dark:border-l dark:border-white/10 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="flex items-start justify-between border-b border-black/10 p-6 dark:border-white/10">
               <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">Production studio</p><h2 className="mt-2 font-serif text-4xl">Finish with confidence.</h2></div>
-              <button className="text-2xl text-black/35" onClick={() => setStudioOpen(false)} type="button">×</button>
+              <button className="text-2xl text-black/35 hover:text-black dark:text-white/35 dark:hover:text-white" onClick={() => setStudioOpen(false)} type="button">×</button>
             </header>
-            <nav className="flex overflow-x-auto border-b border-black/10 px-3">
+            <nav className="flex overflow-x-auto border-b border-black/10 px-3 dark:border-white/10">
+              {(["pages", "preflight", "history", "templates", "media", "export"] as StudioTab[]).map((tab) => (
+                <button className={`border-b-2 px-3 py-4 text-[8px] font-bold uppercase tracking-[0.12em] ${studioTab === tab ? "border-[#ef5a35] text-[#ef5a35]" : "border-transparent text-black/40 dark:text-white/40"}`} key={tab} onClick={() => { setStudioTab(tab); if (tab === "preflight") runPreflight(); }} type="button">{tab}</button>
+              ))}
+            </nav>
               {(["pages", "preflight", "history", "templates", "media", "export"] as StudioTab[]).map((tab) => (
                 <button className={`border-b-2 px-3 py-4 text-[8px] font-bold uppercase tracking-[0.12em] ${studioTab === tab ? "border-[#ef5a35] text-[#ef5a35]" : "border-transparent text-black/40"}`} key={tab} onClick={() => { setStudioTab(tab); if (tab === "preflight") runPreflight(); }} type="button">{tab}</button>
               ))}
@@ -2555,10 +2579,10 @@ export default function App() {
       <aside className="editor-only fixed left-3 top-20 z-20 hidden max-h-[calc(100vh-6rem)] w-16 flex-col gap-2 overflow-y-auto 2xl:flex">
         {pages.map((sections, index) => (
           <div
-            className={`group relative grid h-20 place-items-center border bg-[#f8f5ed] text-[10px] font-bold shadow-sm transition ${
+            className={`group relative grid h-20 place-items-center border bg-[#f8f5ed] text-[10px] font-bold shadow-sm transition dark:bg-[#1a1916] ${
               activePage === index
                 ? "border-[#ef5a35] text-[#ef5a35] ring-1 ring-[#ef5a35]"
-                : "border-black/15 text-black/40 hover:border-black/40"
+                : "border-black/15 text-black/40 hover:border-black/40 dark:border-white/15 dark:text-white/40 dark:hover:border-white/40"
             }`}
             draggable
             key={index}
@@ -2599,7 +2623,7 @@ export default function App() {
           </div>
         ))}
         <button
-          className="grid h-10 place-items-center border border-dashed border-black/20 bg-[#f8f5ed] text-[#ef5a35] hover:border-[#ef5a35]"
+          className="grid h-10 place-items-center border border-dashed border-black/20 bg-[#f8f5ed] text-[#ef5a35] hover:border-[#ef5a35] dark:border-white/20 dark:bg-[#1a1916]"
           onClick={() => setPageMenuOpen(true)}
           title="Add page"
           type="button"
@@ -2685,7 +2709,7 @@ export default function App() {
 
               {/* Floating Page Action Bar in Editor Mode */}
               <div
-                className="editor-only absolute right-6 top-14 z-20 flex items-center gap-1 rounded-full border border-black/15 bg-[#f8f5ed]/95 p-1 shadow-md backdrop-blur-sm dark:border-white/15 dark:bg-[#20201d]/95"
+                className="editor-only absolute right-6 top-2.5 z-20 flex items-center gap-1 rounded-full border border-black/15 bg-[#f8f5ed]/95 p-1 shadow-md backdrop-blur-sm sm:right-10 md:right-14 dark:border-white/15 dark:bg-[#20201d]/95"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Drag Handle to reorder whole page */}

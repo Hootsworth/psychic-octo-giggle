@@ -345,9 +345,10 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
 
 .block-controls {
   position: absolute;
-  z-index: 20;
+  z-index: 25;
   top: 8px;
   right: 8px;
+  max-width: calc(100% - 16px);
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -356,8 +357,16 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   opacity: 0;
   color: #171714;
   background: #f8f5ed;
-  box-shadow: 0 4px 15px rgb(0 0 0 / 0.13);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 0.15);
+  backdrop-filter: blur(8px);
   transition: opacity 150ms ease;
+}
+
+html[data-theme="dark"] .block-controls {
+  color: #f3f0e8;
+  background: #20201d;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
 }
 
 .builder-block:hover .block-controls,
@@ -374,6 +383,12 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   border-left: 1px solid rgb(0 0 0 / 0.1);
   font-size: 12px;
   cursor: pointer;
+}
+
+html[data-theme="dark"] .block-controls button:not(.h-5):not(.w-auto),
+html[data-theme="dark"] .drag-handle {
+  border-left-color: rgba(255, 255, 255, 0.1);
+  color: #f3f0e8;
 }
 
 .drag-handle {
@@ -429,6 +444,17 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   opacity: 0.25;
 }
 
+html[data-theme="dark"] .editor-icon-button {
+  color: rgb(243 240 232 / 0.75);
+  border-color: rgb(255 255 255 / 0.16);
+}
+
+html[data-theme="dark"] .editor-icon-button:hover {
+  background-color: rgb(255 255 255 / 0.1);
+  border-color: var(--editor-accent, #ef5a35);
+  color: var(--editor-accent, #ef5a35);
+}
+
 .studio-action {
   border: 1px solid rgb(0 0 0 / 0.15);
   border-radius: 999px;
@@ -442,6 +468,17 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
 .studio-action:hover {
   border-color: var(--editor-accent, #ef5a35);
   color: var(--editor-accent, #ef5a35);
+}
+
+html[data-theme="dark"] .studio-action {
+  color: #f3f0e8;
+  border-color: rgb(255 255 255 / 0.18);
+}
+
+html[data-theme="dark"] .studio-action:hover {
+  border-color: var(--editor-accent, #ef5a35);
+  color: var(--editor-accent, #ef5a35);
+  background-color: rgb(255 255 255 / 0.08);
 }
 
 .studio-action:disabled {
