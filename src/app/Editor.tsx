@@ -755,10 +755,33 @@ export default function App() {
   const isRemoteUpdateRef = useRef(false);
 
   const handleRemoteChange = useCallback((payload: DocChangePayload) => {
-    if (payload.type === "layout") {
+    if (payload.type === "field_edit") {
+      const { index, html } = payload.data || {};
+      if (typeof index === "number" && typeof html === "string") {
+        const editables = document.querySelectorAll<HTMLElement>("#pdf-document .editable");
+        const target = editables[index];
+        if (target && document.activeElement !== target) {
+          if (target.innerHTML !== html) {
+            target.innerHTML = html;
+          }
+        }
+      }
+    } else if (payload.type === "layout") {
       isRemoteUpdateRef.current = true;
-      setPages(payload.data);
-      localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(payload.data));
+      const nextPages = payload.data?.pages ?? payload.data;
+      const nextContent = payload.data?.content;
+      setPages(nextPages);
+      localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(nextPages));
+      if (Array.isArray(nextContent)) {
+        window.setTimeout(() => {
+          document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
+            if (nextContent[index] !== undefined && document.activeElement !== element) {
+              element.innerHTML = nextContent[index];
+            }
+          });
+          localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(nextContent));
+        }, 30);
+      }
       requestAnimationFrame(() => {
         isRemoteUpdateRef.current = false;
       });
@@ -802,12 +825,14 @@ export default function App() {
         localStorage.setItem(`iow-font-${issueId}`, payload.data.font);
       }
       if (Array.isArray(payload.data.content)) {
-        document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
-          if (payload.data.content[index] !== undefined) {
-            element.innerHTML = payload.data.content[index];
-          }
-        });
-        localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(payload.data.content));
+        window.setTimeout(() => {
+          document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
+            if (payload.data.content[index] !== undefined && document.activeElement !== element) {
+              element.innerHTML = payload.data.content[index];
+            }
+          });
+          localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(payload.data.content));
+        }, 30);
       }
       requestAnimationFrame(() => {
         isRemoteUpdateRef.current = false;
@@ -859,9 +884,54 @@ export default function App() {
     localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(pages));
     updateIssue(issueId, {});
     if (!isRemoteUpdateRef.current) {
-      broadcastDocChange("layout", pages);
+      const content = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map(
+        (element) => element.innerHTML,
+      );
+      broadcastDocChange("layout", { pages, content });
     }
   }, [pages, issueId, broadcastDocChange]);
+
+  // Stream live typing keystrokes instantaneously across peers via native input capture
+  useEffect(() => {
+    const docEl = document.getElementById("pdf-document");
+    if (!docEl) return;
+
+    let throttleTimer: number | null = null;
+    let pendingEdit: { index: number; html: string } | null = null;
+
+    const flushFieldEdit = () => {
+      if (pendingEdit) {
+        broadcastDocChange("field_edit", pendingEdit);
+        pendingEdit = null;
+      }
+    };
+
+    const handleNativeInput = (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (!target || !target.classList.contains("editable")) return;
+
+      const editables = Array.from(docEl.querySelectorAll<HTMLElement>(".editable"));
+      const index = editables.indexOf(target);
+      if (index === -1) return;
+
+      pendingEdit = { index, html: target.innerHTML };
+
+      if (!throttleTimer) {
+        throttleTimer = window.setTimeout(() => {
+          throttleTimer = null;
+          flushFieldEdit();
+        }, 40);
+      }
+
+      scheduleContentSave();
+    };
+
+    docEl.addEventListener("input", handleNativeInput, true);
+    return () => {
+      docEl.removeEventListener("input", handleNativeInput, true);
+      if (throttleTimer) window.clearTimeout(throttleTimer);
+    };
+  }, [broadcastDocChange]);
 
   useEffect(() => {
     localStorage.setItem(`iow-palette-${issueId}`, paletteId);
@@ -1738,7 +1808,10 @@ export default function App() {
           <div
             className="relative"
             id="pdf-document"
-            onBlurCapture={() => { editSessionRef.current = false; }}
+            onBlurCapture={() => {
+              editSessionRef.current = false;
+              saveContent();
+            }}
             onFocusCapture={(event) => {
               if (!editSessionRef.current && (event.target as HTMLElement).classList.contains("editable")) {
                 editSessionRef.current = true;

@@ -17,7 +17,7 @@ export type CursorPosition = {
 };
 
 export type DocChangePayload = {
-  type: "layout" | "content" | "palette" | "font" | "full";
+  type: "layout" | "content" | "palette" | "font" | "full" | "field_edit";
   data: any;
   senderId: string;
   senderName: string;

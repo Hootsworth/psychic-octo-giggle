@@ -21,9 +21,9 @@ export function useCollaboration({
   onRemoteChange,
   onRequestState,
 }: UseCollaborationOptions) {
-  // Generate consistent identity & signature color for the current session
+  // Generate unique client ID per tab/device so multi-window / multi-device sessions never self-filter
   const sessionClientId = useRef(
-    user?.id ?? `guest-${Math.random().toString(36).slice(2, 9)}`,
+    `${user?.id ? user.id.slice(0, 8) : "guest"}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
   );
   const userIdentifier = user?.email ?? user?.user_metadata?.full_name ?? sessionClientId.current;
   const userName = user?.user_metadata?.full_name ?? (user?.email ? user.email.split("@")[0] : "Collaborator");
