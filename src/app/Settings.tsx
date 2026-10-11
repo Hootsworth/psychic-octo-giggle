@@ -12,6 +12,7 @@ import {
 } from "./settingsStore";
 import BackIcon from "./BackIcon";
 import BrandLogo from "./BrandLogo";
+import { dialog } from "./components/ModalDialog";
 
 const providers = [
   { id: "openai", name: "OpenAI", secret: "OPENAI_API_KEY", description: "ChatGPT and compatible OpenAI models" },
@@ -41,9 +42,15 @@ export default function Settings() {
     window.setTimeout(() => setSaved(false), 1200);
   };
 
-  const handleResetUsage = (provider: AiProvider) => {
+  const handleResetUsage = async (provider: AiProvider) => {
     const providerName = provider === "openai" ? "OpenAI" : "Google Gemini";
-    if (window.confirm(`Reset current usage count for ${providerName} back to 0?`)) {
+    const ok = await dialog.confirm({
+      title: "Reset AI Quota Count",
+      message: `Reset current usage count for ${providerName} back to 0 requests?`,
+      confirmText: "Reset Count",
+      danger: false,
+    });
+    if (ok) {
       const next = resetAiUsage(provider);
       setUsage(next);
     }

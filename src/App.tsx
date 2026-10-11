@@ -2,6 +2,7 @@ import { RouterProvider } from "react-router";
 import { router } from "./app/routes";
 import { applyTheme, loadPreferences } from "./app/settingsStore";
 import { AuthProvider } from "./app/AuthContext";
+import { DialogProvider } from "./app/components/ModalDialog";
 
 applyTheme(loadPreferences().theme);
 if (typeof document !== "undefined") {
@@ -9,5 +10,11 @@ if (typeof document !== "undefined") {
 }
 
 export default function App() {
-  return <AuthProvider><RouterProvider router={router} /></AuthProvider>;
+  return (
+    <AuthProvider>
+      <DialogProvider>
+        <RouterProvider router={router} />
+      </DialogProvider>
+    </AuthProvider>
+  );
 }

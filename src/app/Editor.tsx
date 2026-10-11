@@ -28,6 +28,7 @@ import SudokuSection from "./games/SudokuSection";
 import WordSearchSection from "./games/WordSearchSection";
 import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
 import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
+import { dialog } from "./components/ModalDialog";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -352,7 +353,11 @@ function PhotoField({
         localStorage.setItem(storageKey, value);
         window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, value, broadcast: true } }));
       } catch {
-        window.alert("This image is too large for local storage. Try a smaller compressed image.");
+        dialog.alert({
+          title: "Image Too Large",
+          message: "This image exceeds local browser storage capacity. Try a smaller or compressed image.",
+          tone: "warning",
+        });
       }
     };
     reader.readAsDataURL(file);
@@ -379,7 +384,24 @@ function PhotoField({
       <div className="editor-only absolute bottom-4 left-4 flex flex-wrap gap-1">
         <button className="rounded-full bg-[#f8f5ed] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] shadow-md hover:bg-[#ef5a35] hover:text-white" onClick={() => inputRef.current?.click()} type="button">{image ? "Replace" : label}</button>
         {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white" onClick={() => { const positions = ["center", "center top", "center bottom"]; updateMeta({ ...meta, position: positions[(positions.indexOf(meta.position) + 1) % positions.length] }); }} title="Cycle image focal point" type="button">Focus</button>}
-        {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white" onClick={() => { const alt = window.prompt("Describe this image for screen readers", meta.alt)?.trim(); if (alt) updateMeta({ ...meta, alt }); }} type="button">Alt text</button>}
+        {image && (
+          <button
+            className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white"
+            onClick={async () => {
+              const alt = await dialog.prompt({
+                title: "Image Accessibility",
+                message: "Describe this image for screen readers and accessibility:",
+                defaultValue: meta.alt,
+                placeholder: "e.g. Students gathered on the campus lawn",
+                confirmText: "Save Alt Text",
+              });
+              if (alt !== null) updateMeta({ ...meta, alt: alt.trim() });
+            }}
+            type="button"
+          >
+            Alt text
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1521,12 +1543,22 @@ export default function App() {
     window.setTimeout(() => document.querySelector(`#page-${pages.length + 1}`)?.scrollIntoView({ behavior: "smooth" }), 50);
   };
 
-  const removePage = (pageIndex: number) => {
+  const removePage = async (pageIndex: number) => {
     if (pages.length === 1) {
-      window.alert("A newsletter must contain at least one page.");
+      await dialog.alert({
+        title: "Page Limit",
+        message: "A newsletter must contain at least one page.",
+        tone: "info",
+      });
       return;
     }
-    if (!window.confirm(`Remove page ${pageIndex + 1}? Its sections will be deleted.`)) return;
+    const ok = await dialog.confirm({
+      title: "Remove Page",
+      message: `Remove page ${pageIndex + 1}? All of its sections will be deleted.`,
+      confirmText: "Remove Page",
+      danger: true,
+    });
+    if (!ok) return;
     rememberLayout();
     setPages((current) => current.filter((_, index) => index !== pageIndex));
     setActivePage((current) => Math.max(0, Math.min(current, pages.length - 2)));
@@ -1680,7 +1712,11 @@ export default function App() {
       pdf?.save(`${filename}.pdf`);
     } catch (error) {
       console.error("PDF export failed", error);
-      window.alert("The PDF could not be created. Check that uploaded images are available, then try again.");
+      dialog.alert({
+        title: "PDF Export Notice",
+        message: "The PDF could not be created. Check that uploaded images are available, then try again.",
+        tone: "danger",
+      });
     } finally {
       setExporting(false);
       setExportProgress("");
@@ -1713,9 +1749,15 @@ export default function App() {
     scheduleContentSave();
   };
 
-  const addLink = () => {
-    const url = window.prompt("Paste a link URL");
-    if (url) formatText("createLink", url);
+  const addLink = async () => {
+    const url = await dialog.prompt({
+      title: "Insert Hyperlink",
+      message: "Enter destination web link URL:",
+      placeholder: "https://example.edu",
+      defaultValue: "https://",
+      confirmText: "Insert Link",
+    });
+    if (url?.trim()) formatText("createLink", url.trim());
   };
 
   const openAiRewrite = (text: string, apply: (value: string) => void) => {
@@ -1783,7 +1825,11 @@ export default function App() {
     const end = input.selectionEnd;
     const text = sourceText.slice(start, end);
     if (!text.trim()) {
-      window.alert("Select text in Writing Mode first.");
+      dialog.alert({
+        title: "No Text Selected",
+        message: "Select text in Writing Mode first before requesting an AI rewrite.",
+        tone: "info",
+      });
       return;
     }
     openAiRewrite(text, (value) => updateSource(`${sourceText.slice(0, start)}${value}${sourceText.slice(end)}`));
@@ -1924,13 +1970,22 @@ export default function App() {
     }
   };
 
-  const saveAsTemplate = (scope: "issue" | "page") => {
-    const name = window.prompt(scope === "issue" ? "Template name" : "Page template name")?.trim();
-    if (!name) return;
+  const saveAsTemplate = async (scope: "issue" | "page") => {
+    const name = await dialog.prompt({
+      title: scope === "issue" ? "Save Newsletter Template" : "Save Page Template",
+      message:
+        scope === "issue"
+          ? "Enter a title for this reusable issue template:"
+          : "Enter a title for this reusable page layout template:",
+      placeholder: "e.g. Weekly Campus Digest",
+      confirmText: "Save Template",
+    });
+    if (!name?.trim()) return;
+    const cleanName = name.trim();
     const selectedPages = scope === "issue" ? pages : [pages[activePage] ?? [], [], []];
     saveCustomTemplate({
       id: `custom-${Date.now()}`,
-      name,
+      name: cleanName,
       description: scope === "issue" ? "Custom newsletter template created by your team." : "Custom page template created from the current page.",
       category: "Team template",
       accent: palette.accent,
@@ -1938,7 +1993,11 @@ export default function App() {
       pages: selectedPages.slice(0, 3).concat([[], [], []]).slice(0, 3) as [Section[], Section[], Section[]],
     });
     captureCheckpoint(`Saved ${scope} as template`);
-    window.alert(`“${name}” is now available when creating a newsletter.`);
+    await dialog.alert({
+      title: "Template Saved",
+      message: `“${cleanName}” is now available when creating a newsletter.`,
+      tone: "success",
+    });
   };
 
   const downloadBlob = (contents: string, filename: string, type: string) => {
@@ -2370,7 +2429,7 @@ export default function App() {
                 <div><p className="text-sm leading-relaxed text-black/55">Turn this issue—or only the selected page—into a reusable team template. Content and layout remain editable in every new issue.</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><button className="border border-black/15 p-6 text-left hover:border-[#ef5a35]" onClick={() => saveAsTemplate("issue")} type="button"><span className="font-serif text-2xl">Save full issue</span><span className="mt-2 block text-[10px] text-black/40">Keep the complete page sequence.</span></button><button className="border border-black/15 p-6 text-left hover:border-[#ef5a35]" onClick={() => saveAsTemplate("page")} type="button"><span className="font-serif text-2xl">Save current page</span><span className="mt-2 block text-[10px] text-black/40">Use this page as a starting format.</span></button></div></div>
               )}
               {studioTab === "media" && (
-                <div><div className="mb-5"><p className="text-xs font-semibold">Issue media</p><p className="mt-1 text-[9px] text-black/40">Uploaded images are stored locally with this issue. Captions and credits remain editable on canvas.</p></div>{mediaEntries.length ? <div className="grid grid-cols-2 gap-3">{mediaEntries.map(([key, value]) => <figure className="border border-black/10 bg-white p-2" key={key}><img alt="Uploaded issue media" className="aspect-video w-full object-cover" src={value} /><figcaption className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-[8px] text-black/35">{key.split("-").slice(-2).join("-")}</span><button className="text-[8px] font-bold uppercase text-[#ef5a35]" onClick={() => { if (window.confirm("Remove this stored image?")) { localStorage.removeItem(key); window.location.reload(); } }} type="button">Remove</button></figcaption></figure>)}</div> : <p className="border border-dashed border-black/15 py-14 text-center text-xs text-black/40">No uploaded media yet.</p>}</div>
+                <div><div className="mb-5"><p className="text-xs font-semibold">Issue media</p><p className="mt-1 text-[9px] text-black/40">Uploaded images are stored locally with this issue. Captions and credits remain editable on canvas.</p></div>{mediaEntries.length ? <div className="grid grid-cols-2 gap-3">{mediaEntries.map(([key, value]) => <figure className="border border-black/10 bg-white p-2" key={key}><img alt="Uploaded issue media" className="aspect-video w-full object-cover" src={value} /><figcaption className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-[8px] text-black/35">{key.split("-").slice(-2).join("-")}</span><button className="text-[8px] font-bold uppercase text-[#ef5a35] hover:text-[#d44826] transition" onClick={async () => { const ok = await dialog.confirm({ title: "Remove Media", message: "Are you sure you want to remove this stored image from issue media?", confirmText: "Remove Image", danger: true }); if (ok) { localStorage.removeItem(key); window.location.reload(); } }} type="button">Remove</button></figcaption></figure>)}</div> : <p className="border border-dashed border-black/15 py-14 text-center text-xs text-black/40">No uploaded media yet.</p>}</div>
               )}
               {studioTab === "export" && (
                 <div className="grid gap-3"><button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={downloadPdf} type="button"><span><span className="font-serif text-2xl">Visual PDF</span><span className="mt-1 block text-[9px] text-black/40">Exact page dimensions and high-resolution rendering.</span></span><span>→</span></button><button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={exportEmailHtml} type="button"><span><span className="font-serif text-2xl">Email-safe HTML</span><span className="mt-1 block text-[9px] text-black/40">Inline-styled table layout for external email delivery.</span></span><span>→</span></button><button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={exportJson} type="button"><span><span className="font-serif text-2xl">Publication JSON</span><span className="mt-1 block text-[9px] text-black/40">Structured issue package for external publishing systems.</span></span><span>→</span></button></div>

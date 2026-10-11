@@ -12,6 +12,7 @@ import {
 } from "./publishingStore";
 import BackIcon from "./BackIcon";
 import BrandLogo from "./BrandLogo";
+import { dialog } from "./components/ModalDialog";
 
 type Tab = "overview" | "releases" | "email" | "analytics" | "settings";
 const empty: Publishing = {
@@ -46,19 +47,25 @@ export default function PublishingPage() {
     savePublishing(next).then(() => setSync("saved")).catch(() => setSync("offline"));
   };
 
-  const createRelease = () => {
+  const createRelease = async () => {
     const issues = loadWorkspace().issues;
-    const title = window.prompt("Newsletter title", issues[0]?.title ?? "New university edition")?.trim();
-    if (!title) return;
-    const issue = issues.find((item) => item.title === title) ?? issues[0];
+    const title = await dialog.prompt({
+      title: "New Release",
+      message: "Enter the publication or issue title for this release:",
+      defaultValue: issues[0]?.title ?? "New university edition",
+      confirmText: "Create Release",
+    });
+    if (!title?.trim()) return;
+    const cleanTitle = title.trim();
+    const issue = issues.find((item) => item.title === cleanTitle) ?? issues[0];
     const release: Release = {
       id: publishingId("release"),
       issueId: issue?.id ?? "issue-current",
-      title,
+      title: cleanTitle,
       status: "draft",
       scheduledAt: new Date(Date.now() + 86400000).toISOString(),
       channels: { pdf: "review", web: "review", email: "not ready" },
-      slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+      slug: cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
     };
     commit({ ...data, releases: [release, ...data.releases] });
   };
@@ -69,9 +76,13 @@ export default function PublishingPage() {
   const setChannel = (release: Release, channel: keyof Release["channels"], status: ChannelStatus) =>
     updateRelease(release.id, { channels: { ...release.channels, [channel]: status } });
 
-  const publishRelease = (release: Release) => {
+  const publishRelease = async (release: Release) => {
     if (Object.values(release.channels).some((status) => status === "not ready" || status === "review")) {
-      window.alert("Every selected channel must be marked ready before publishing.");
+      await dialog.alert({
+        title: "Channels Incomplete",
+        message: "Every selected channel must be marked ready before publishing.",
+        tone: "warning",
+      });
       return;
     }
     const at = new Date().toISOString();
@@ -85,15 +96,20 @@ export default function PublishingPage() {
     });
   };
 
-  const createCampaign = () => {
+  const createCampaign = async () => {
     const release = data.releases[0];
     if (!release) return;
-    const subject = window.prompt("Email subject line", `This week from ${data.settings.publicationName}`)?.trim();
-    if (!subject) return;
+    const subject = await dialog.prompt({
+      title: "Create Email Campaign",
+      message: "Enter the subject line for this campus email blast:",
+      defaultValue: `This week from ${data.settings.publicationName}`,
+      confirmText: "Create Campaign",
+    });
+    if (!subject?.trim()) return;
     const campaign: Campaign = {
       id: publishingId("campaign"),
       releaseId: release.id,
-      subject,
+      subject: subject.trim(),
       previewText: "The latest stories, events, and student voices from campus",
       audience: "Campus subscribers",
       status: "draft",
@@ -184,10 +200,19 @@ export default function PublishingPage() {
                 <span className="font-serif text-3xl font-bold">{data.analytics.subscribers || 1240} readers</span>
                 <button
                   className="rounded-full bg-[#171714] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#ef5a35]"
-                  onClick={() => {
-                    const recipient = window.prompt("Send test proof email to:", "editor@university.edu")?.trim();
-                    if (!recipient) return;
-                    window.alert(`Test proof dispatched to ${recipient}! Format verified for desktop & mobile inboxes.`);
+                  onClick={async () => {
+                    const recipient = await dialog.prompt({
+                      title: "Send Test Proof",
+                      message: "Send a formatting test proof email to:",
+                      defaultValue: "editor@university.edu",
+                      confirmText: "Send Proof",
+                    });
+                    if (!recipient?.trim()) return;
+                    await dialog.alert({
+                      title: "Proof Dispatched",
+                      message: `Test proof dispatched to ${recipient.trim()}! Format verified for desktop & mobile inboxes.`,
+                      tone: "success",
+                    });
                   }}
                   type="button"
                 >
@@ -209,9 +234,13 @@ export default function PublishingPage() {
                     <div className="mt-4 flex gap-2">
                       <button
                         className="rounded-full bg-[#171714] px-4 py-1.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#ef5a35]"
-                        onClick={() => {
+                        onClick={async () => {
                           updateCampaign(campaign.id, { status: "sent" });
-                          window.alert(`Campaign “${campaign.subject}” has been scheduled for dispatch to all campus subscribers.`);
+                          await dialog.alert({
+                            title: "Campaign Dispatched",
+                            message: `Campaign “${campaign.subject}” has been scheduled for dispatch to all campus subscribers.`,
+                            tone: "success",
+                          });
                         }}
                         type="button"
                       >

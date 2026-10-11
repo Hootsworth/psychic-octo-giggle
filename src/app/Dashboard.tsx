@@ -13,6 +13,7 @@ import {
 import { cloneTemplatePages, loadCustomTemplates, newsletterTemplates, type NewsletterTemplate } from "./templates";
 import { useAuth } from "./AuthContext";
 import BrandLogo from "./BrandLogo";
+import { dialog } from "./components/ModalDialog";
 
 const colors = ["#ef5a35", "#3e6a59", "#7d5a87", "#c19639", "#315b75"];
 
@@ -76,18 +77,30 @@ export default function Dashboard() {
     setView(`folder:${id}`);
   };
 
-  const renameFolder = (id: string) => {
+  const renameFolder = async (id: string) => {
     const folder = workspace.folders.find((item) => item.id === id);
-    const name = window.prompt("Rename folder", folder?.name)?.trim();
-    if (!name) return;
+    const name = await dialog.prompt({
+      title: "Rename Folder",
+      message: "Enter a new name for this folder:",
+      defaultValue: folder?.name,
+      placeholder: "e.g. Campus Features",
+      confirmText: "Rename",
+    });
+    if (!name?.trim()) return;
     commit({
       ...workspace,
-      folders: workspace.folders.map((item) => (item.id === id ? { ...item, name } : item)),
+      folders: workspace.folders.map((item) => (item.id === id ? { ...item, name: name.trim() } : item)),
     });
   };
 
-  const deleteFolder = (id: string) => {
-    if (!window.confirm("Delete this folder? Its newsletters will move to All newsletters.")) return;
+  const deleteFolder = async (id: string) => {
+    const ok = await dialog.confirm({
+      title: "Delete Folder",
+      message: "Are you sure you want to delete this folder? Its newsletters will move to All newsletters.",
+      confirmText: "Delete Folder",
+      danger: true,
+    });
+    if (!ok) return;
     commit({
       folders: workspace.folders.filter((folder) => folder.id !== id),
       issues: workspace.issues.map((issue) => (issue.folderId === id ? { ...issue, folderId: null } : issue)),
@@ -109,21 +122,33 @@ export default function Dashboard() {
     commit({ ...workspace, issues: [copy, ...workspace.issues] });
   };
 
-  const renameIssue = (issue: Issue) => {
-    const title = window.prompt("Rename newsletter", issue.title)?.trim();
-    if (!title) return;
+  const renameIssue = async (issue: Issue) => {
+    const title = await dialog.prompt({
+      title: "Rename Newsletter",
+      message: "Enter a new title for this publication:",
+      defaultValue: issue.title,
+      placeholder: "e.g. Issue 14: Homecoming",
+      confirmText: "Rename",
+    });
+    if (!title?.trim()) return;
     commit({
       ...workspace,
       issues: workspace.issues.map((item) =>
         item.id === issue.id
-          ? { ...item, title, updatedAt: new Date().toISOString() }
+          ? { ...item, title: title.trim(), updatedAt: new Date().toISOString() }
           : item,
       ),
     });
   };
 
-  const deleteIssue = (issue: Issue) => {
-    if (!window.confirm(`Delete “${issue.title}”? This cannot be undone.`)) return;
+  const deleteIssue = async (issue: Issue) => {
+    const ok = await dialog.confirm({
+      title: "Delete Newsletter",
+      message: `Delete “${issue.title}”? This action cannot be undone.`,
+      confirmText: "Delete Permanently",
+      danger: true,
+    });
+    if (!ok) return;
     removeIssueDocument(issue.id);
     commit({ ...workspace, issues: workspace.issues.filter((item) => item.id !== issue.id) });
   };
