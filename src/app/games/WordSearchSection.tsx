@@ -31,6 +31,15 @@ export default function WordSearchSection({
     });
   };
 
+  const revealAllWords = () => {
+    setFoundWords(new Set(data.words));
+  };
+
+  const clearWords = () => {
+    setFoundWords(new Set());
+    setSelectedLetters(new Set());
+  };
+
   return (
     <div className="flex h-full flex-col justify-between border border-black/15 bg-[#f8f5ed] p-6 sm:p-8">
       <div>
@@ -38,9 +47,18 @@ export default function WordSearchSection({
           <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
             Campus Games · Word Search
           </span>
-          <span className="rounded bg-black/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-black/60">
-            {foundWords.size} / {data.words.length} Found
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-black/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-black/60">
+              {foundWords.size} / {data.words.length} Found
+            </span>
+            <button
+              className="rounded-full border border-black/15 px-2.5 py-1 text-[8px] font-bold uppercase hover:bg-black/5 transition"
+              onClick={foundWords.size === data.words.length ? clearWords : revealAllWords}
+              type="button"
+            >
+              {foundWords.size === data.words.length ? "Clear" : "Reveal All"}
+            </button>
+          </div>
         </div>
 
         <h3 className="mt-2 font-serif text-2xl font-bold sm:text-3xl">

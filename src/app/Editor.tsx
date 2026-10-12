@@ -29,6 +29,10 @@ import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } fr
 import { dialog } from "./components/ModalDialog";
 import QRCodeSvg from "./components/QRCodeSvg";
 import NoticeboardQrModal, { type NoticeboardQrConfig } from "./components/NoticeboardQrModal";
+import { toast } from "./components/Toast";
+import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal";
+import ShareModal from "./components/ShareModal";
+import PhotoPickerModal from "./components/PhotoPickerModal";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -388,7 +392,17 @@ function PhotoField({
       )}
       <input accept="image/*" className="hidden" onChange={onFile} ref={inputRef} type="file" />
       <div className="editor-only absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] flex-wrap gap-1">
-        <button className="rounded-full bg-[#f8f5ed] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.14em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => inputRef.current?.click()} type="button">{image ? "Replace" : label}</button>
+        <button className="rounded-full bg-[#f8f5ed] px-3.5 py-2 text-[9px] font-bold uppercase tracking-[0.14em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => inputRef.current?.click()} type="button">{image ? "Upload" : label}</button>
+        <button
+          className="rounded-full bg-[#f8f5ed] px-3.5 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white transition"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("iow-open-photo-picker", { detail: { storageKey } }));
+          }}
+          title="Browse curated editorial photo library"
+          type="button"
+        >
+          Library 📷
+        </button>
         {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => { const positions = ["center", "center top", "center bottom"]; updateMeta({ ...meta, position: positions[(positions.indexOf(meta.position) + 1) % positions.length] }); }} title="Cycle image focal point" type="button">Focus</button>}
         {image && (
           <button
@@ -1138,6 +1152,16 @@ export default function App() {
   const dragged = useRef<{ page: number; id: string } | null>(null);
   const undoStack = useRef<string[]>([]);
   const redoStack = useRef<string[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<number>(() => Date.now());
+  const [relativeSavedTime, setRelativeSavedTime] = useState("just now");
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
+  const [photoTargetKey, setPhotoTargetKey] = useState<string | null>(null);
+  const [wordStats, setWordStats] = useState({ pageWords: 0, totalWords: 0 });
+  const [pageOverflowHeights, setPageOverflowHeights] = useState<Record<number, number>>({});
   const contentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sourceRef = useRef<HTMLTextAreaElement>(null);
   const aiApplyRef = useRef<(value: string) => void>(() => undefined);
@@ -1513,6 +1537,88 @@ export default function App() {
     }
   }, [issueId]);
 
+  // QoL: Track word counts across the document and on the active page
+  const updateWordCounts = useCallback(() => {
+    const allEditables = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable"));
+    let total = 0;
+    let active = 0;
+    const activePageEl = document.querySelector<HTMLElement>(`#page-${activePage + 1}`);
+
+    allEditables.forEach((el) => {
+      const text = el.innerText?.trim() || "";
+      if (text) {
+        const words = text.split(/\s+/).filter(Boolean).length;
+        total += words;
+        if (activePageEl && activePageEl.contains(el)) {
+          active += words;
+        }
+      }
+    });
+
+    setWordStats({ pageWords: active, totalWords: total });
+  }, [activePage]);
+
+  // QoL: Track print safe-zone overflow per page
+  const checkPageOverflows = useCallback(() => {
+    const pageEls = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .page"));
+    const overflows: Record<number, number> = {};
+    pageEls.forEach((el, index) => {
+      if (el.scrollHeight > 1350) {
+        overflows[index] = el.scrollHeight;
+      }
+    });
+    setPageOverflowHeights(overflows);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateWordCounts();
+      checkPageOverflows();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pages, activePage, updateWordCounts, checkPageOverflows]);
+
+  // QoL: Relative auto-save time updater
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diffSec = Math.floor((Date.now() - lastSavedTime) / 1000);
+      if (diffSec < 15) setRelativeSavedTime("just now");
+      else if (diffSec < 60) setRelativeSavedTime(`${diffSec}s ago`);
+      else if (diffSec < 3600) setRelativeSavedTime(`${Math.floor(diffSec / 60)}m ago`);
+      else setRelativeSavedTime(`${Math.floor(diffSec / 3600)}h ago`);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [lastSavedTime]);
+
+  // QoL: Open Photo Picker event listener
+  useEffect(() => {
+    const handleOpenPhotoPicker = (e: Event) => {
+      const customEvent = e as CustomEvent<{ storageKey: string }>;
+      if (customEvent.detail?.storageKey) {
+        setPhotoTargetKey(customEvent.detail.storageKey);
+        setPhotoPickerOpen(true);
+      }
+    };
+    window.addEventListener("iow-open-photo-picker", handleOpenPhotoPicker);
+    return () => window.removeEventListener("iow-open-photo-picker", handleOpenPhotoPicker);
+  }, []);
+
+  const handlePhotoPicked = (url: string, caption?: string, credit?: string) => {
+    if (!photoTargetKey) return;
+    localStorage.setItem(photoTargetKey, url);
+    const meta = {
+      position: "center",
+      alt: caption || credit || "Editorial photograph",
+    };
+    localStorage.setItem(`${photoTargetKey}-meta`, JSON.stringify(meta));
+    window.dispatchEvent(
+      new CustomEvent("iow-photo-update", {
+        detail: { storageKey: photoTargetKey, value: url, meta, broadcast: true },
+      })
+    );
+    toast.success("Applied photo from curated library!", "Image Updated");
+  };
+
   const saveContent = () => {
     const content = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map(
       (element) => element.innerHTML,
@@ -1520,6 +1626,8 @@ export default function App() {
     localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(content));
     updateIssue(issueId, {});
     setSaved(true);
+    setLastSavedTime(Date.now());
+    setRelativeSavedTime("just now");
     window.setTimeout(() => setSaved(false), 1200);
     if (!isRemoteUpdateRef.current) {
       broadcastDocChange("content", content);
@@ -1606,8 +1714,10 @@ export default function App() {
 
   const rememberLayout = () => {
     undoStack.current.push(JSON.stringify(pages));
-    if (undoStack.current.length > 40) undoStack.current.shift();
+    if (undoStack.current.length > 50) undoStack.current.shift();
     redoStack.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
   };
 
   const updatePage = (page: number, updater: (sections: Section[]) => Section[]) => {
@@ -1792,6 +1902,9 @@ export default function App() {
     localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(pages));
     saveContent();
     setSaved(true);
+    setLastSavedTime(Date.now());
+    setRelativeSavedTime("just now");
+    toast.success("Newsletter issue saved to storage & synced.", "Saved");
     window.setTimeout(() => setSaved(false), 1800);
   };
 
@@ -1861,15 +1974,96 @@ export default function App() {
     const previous = undoStack.current.pop();
     if (!previous) return;
     redoStack.current.push(JSON.stringify(pages));
-    setPages(JSON.parse(previous));
+    setCanUndo(undoStack.current.length > 0);
+    setCanRedo(true);
+    const parsed = JSON.parse(previous);
+    setPages(parsed);
+    localStorage.setItem(`iow-layout-${issueId}`, previous);
+    toast.info("Undid last layout change", "Undo");
   };
 
   const redo = () => {
     const next = redoStack.current.pop();
     if (!next) return;
     undoStack.current.push(JSON.stringify(pages));
-    setPages(JSON.parse(next));
+    setCanUndo(true);
+    setCanRedo(redoStack.current.length > 0);
+    const parsed = JSON.parse(next);
+    setPages(parsed);
+    localStorage.setItem(`iow-layout-${issueId}`, next);
+    toast.info("Restored layout change", "Redo");
   };
+
+  // QoL: Global Keyboard Shortcuts Listener
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      const isInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable);
+
+      // Shortcuts modal: ? (when not typing) or Cmd+/
+      if ((e.key === "?" && !isInput) || ((e.metaKey || e.ctrlKey) && e.key === "/")) {
+        e.preventDefault();
+        setShortcutsOpen((prev) => !prev);
+        return;
+      }
+
+      // Close open drawers/modals on Escape
+      if (e.key === "Escape") {
+        setShortcutsOpen(false);
+        setShareOpen(false);
+        setPhotoPickerOpen(false);
+        setLibraryOpen(false);
+        setPageMenuOpen(false);
+        setDesignOpen(false);
+        setFormatOpen(false);
+        setStudioOpen(false);
+      }
+
+      // Undo: Cmd+Z (without Shift)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        if (!isInput) {
+          e.preventDefault();
+          undo();
+        }
+      }
+
+      // Redo: Cmd+Shift+Z or Cmd+Y
+      if (
+        ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "z") ||
+        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y")
+      ) {
+        if (!isInput) {
+          e.preventDefault();
+          redo();
+        }
+      }
+
+      // Force Save: Cmd+S
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        saveDraft();
+      }
+
+      // Preview toggle: Cmd+Shift+P or Cmd+P
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        setPreview((prev) => !prev);
+      }
+
+      // Quick jump to page 1, 2, 3... when not editing
+      if (!isInput && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const pageNum = parseInt(e.key, 10);
+        if (pageNum >= 1 && pageNum <= pages.length) {
+          setActivePage(pageNum - 1);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo, saveDraft, pages.length]);
 
   const setStatus = (status: Issue["status"]) => {
     const next = { ...issue, status };
@@ -2259,15 +2453,27 @@ export default function App() {
             </svg>
           </Link>
 
-          <span aria-label="Saved" className={`mr-1 h-2 w-2 rounded-full bg-[#3e6a59] transition-opacity ${saved ? "opacity-100" : "opacity-0"}`} title="Saved" />
+          {/* Auto-Save & Sync Status Pill */}
+          <button
+            className="hidden xl:flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-wider text-black/70 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/70 transition shadow-2xs"
+            onClick={saveDraft}
+            title="Click to force instant save to browser storage"
+            type="button"
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${saved ? "bg-[#3e6a59] animate-ping" : isConnected ? "bg-[#3e6a59]" : "bg-[#ef5a35]"}`} />
+            <span>{saved ? "Saved just now" : isConnected ? "Synced with peers" : "Saved"}</span>
+            <span className="font-mono text-[8px] text-black/35 dark:text-white/35">· {relativeSavedTime}</span>
+          </button>
+
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
           <button aria-label="Document design" className="editor-icon-button hidden sm:grid" onClick={() => setDesignOpen(true)} title="Document design" type="button"><EditorIcon name="palette" /></button>
           <button aria-label="Manage pages" className="editor-icon-button hidden sm:grid" onClick={() => setPageMenuOpen(true)} title="Manage pages" type="button"><EditorIcon name="pages" /></button>
           <button aria-label="Production studio" className={`editor-icon-button hidden sm:grid ${studioOpen ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setStudioOpen(true)} title="Production studio" type="button"><EditorIcon name="workflow" /></button>
           <button aria-label="Text formatting" className={`editor-icon-button ${formatOpen ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setFormatOpen(!formatOpen)} title="Text formatting" type="button"><EditorIcon name="type" /></button>
           <span className="mx-1 hidden h-5 w-px bg-black/10 lg:block" />
-          <button aria-label="Undo layout change" className="editor-icon-button hidden lg:grid" disabled={!undoStack.current.length} onClick={undo} title="Undo layout change" type="button"><EditorIcon name="undo" /></button>
-          <button aria-label="Redo layout change" className="editor-icon-button hidden lg:grid" disabled={!redoStack.current.length} onClick={redo} title="Redo layout change" type="button"><EditorIcon name="redo" /></button>
+          <button aria-label="Undo layout change" className="editor-icon-button hidden lg:grid disabled:opacity-25 disabled:pointer-events-none" disabled={!canUndo} onClick={undo} title="Undo layout change (⌘Z)" type="button"><EditorIcon name="undo" /></button>
+          <button aria-label="Redo layout change" className="editor-icon-button hidden lg:grid disabled:opacity-25 disabled:pointer-events-none" disabled={!canRedo} onClick={redo} title="Redo layout change (⌘⇧Z)" type="button"><EditorIcon name="redo" /></button>
+          <button aria-label="Keyboard shortcuts" className="editor-icon-button hidden sm:grid" onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts (?)" type="button"><span className="font-mono text-xs font-bold text-black/60 dark:text-white/60">?</span></button>
           <select aria-label="Publication status" className="hidden rounded-full border border-black/15 bg-transparent px-2 py-2 text-[8px] font-bold uppercase tracking-[0.08em] outline-none md:block" onChange={(event) => setStatus(event.target.value as Issue["status"])} value={issue.status}>
             <option value="draft">Draft</option>
             <option value="review">In review</option>
@@ -2275,7 +2481,19 @@ export default function App() {
           </select>
           <button aria-label="Add section" className="editor-icon-button" onClick={() => setLibraryOpen(true)} title="Add section" type="button"><EditorIcon name="add" /></button>
           <button aria-label={preview ? "Return to editing" : "Preview"} className="editor-icon-button" onClick={() => setPreview(!preview)} title={preview ? "Return to editing" : "Preview"} type="button"><EditorIcon name={preview ? "edit" : "preview"} /></button>
-          <button aria-label="Save" className="editor-icon-button hidden md:grid" onClick={saveDraft} title="Save" type="button"><EditorIcon name="save" /></button>
+          <button
+            aria-label="Share edition"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-white/80 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#20201d] dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
+            onClick={() => setShareOpen(true)}
+            title="Share reader edition & generate links"
+            type="button"
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            <span>Share</span>
+          </button>
+          <button aria-label="Save" className="editor-icon-button hidden md:grid" onClick={saveDraft} title="Save (⌘S)" type="button"><EditorIcon name="save" /></button>
           <button className="rounded-full bg-[#171714] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-white hover:bg-[#ef5a35] disabled:cursor-wait disabled:opacity-60" disabled={exporting} onClick={downloadPdf} type="button">
             {exporting ? exportProgress : "PDF"}
           </button>
@@ -2816,6 +3034,27 @@ export default function App() {
                   <div className="text-center"><p className="font-serif text-3xl">This page is blank</p><button className="mt-5 rounded-full bg-[#171714] px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white" onClick={() => { setActivePage(pageIndex); setLibraryOpen(true); }} type="button">Add first section</button></div>
                 </div>
               )}
+
+              {/* QoL: Print Safe-Zone Overflow Warning */}
+              {pageOverflowHeights[pageIndex] && (
+                <div className="editor-only mx-6 my-3 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-900 sm:mx-10 md:mx-14 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span>⚠️</span>
+                    <span className="font-semibold">Print Safe-Zone:</span>
+                    <span className="text-[11px] opacity-90">
+                      Page {pageIndex + 1} content height ({pageOverflowHeights[pageIndex]}px) exceeds target boundary (~1350px).
+                    </span>
+                  </div>
+                  <button
+                    className="shrink-0 rounded-full bg-amber-600 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-amber-700"
+                    onClick={balanceOverflow}
+                    type="button"
+                  >
+                    Balance Page Flow
+                  </button>
+                </div>
+              )}
+
               <button className="add-page-section editor-only" onClick={() => { setActivePage(pageIndex); setLibraryOpen(true); }} type="button">
                 + Add section to page {pageIndex + 1}
               </button>
@@ -2825,6 +3064,16 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* QoL: Floating Word Count & Reading Time Meter */}
+      <div className="editor-only fixed bottom-4 left-4 z-30 hidden sm:flex items-center gap-2 rounded-full border border-black/15 bg-[#f8f5ed]/95 px-3.5 py-1.5 shadow-lg backdrop-blur-md text-[9.5px] font-bold uppercase tracking-wider text-black/70 dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-white/70">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#ef5a35]" />
+          <span>Page {activePage + 1}: {wordStats.pageWords} words</span>
+        </span>
+        <span className="text-black/25 dark:text-white/25">·</span>
+        <span>Issue: {wordStats.totalWords} words (~{Math.max(1, Math.ceil(wordStats.totalWords / 200))} min read)</span>
+      </div>
 
       {/* Noticeboard Submission QR Modal */}
       {noticeQrModalSectionId && (
@@ -2872,6 +3121,28 @@ export default function App() {
         messages={chatMessages}
         onClose={() => setChatOpen(false)}
         onSendMessage={postChatMessage}
+      />
+
+      {/* QoL Modals */}
+      <KeyboardShortcutsModal
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
+
+      <ShareModal
+        isOpen={shareOpen}
+        issueId={issueId}
+        issueTitle={issue?.title ?? "In Other Words"}
+        onClose={() => setShareOpen(false)}
+      />
+
+      <PhotoPickerModal
+        isOpen={photoPickerOpen}
+        onClose={() => {
+          setPhotoPickerOpen(false);
+          setPhotoTargetKey(null);
+        }}
+        onSelect={handlePhotoPicked}
       />
     </div>
   );

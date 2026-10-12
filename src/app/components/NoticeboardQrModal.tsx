@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import QRCodeSvg from "./QRCodeSvg";
+import { toast } from "./Toast";
 
 export interface NoticeboardQrConfig {
   qrUrl?: string;
@@ -129,6 +130,45 @@ export default function NoticeboardQrModal({
     } catch {
       // ignore
     }
+  };
+
+  const downloadQrSvg = () => {
+    const svgEl = document.querySelector("#noticeboard-qr-stamp svg");
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `noticeboard-qr-${campaign || "notice"}.svg`;
+    a.click();
+    URL.revokeObjectURL(blobUrl);
+    toast.success("Noticeboard QR code exported as vector SVG!", "Export Complete");
+  };
+
+  const downloadQrPng = () => {
+    const svgEl = document.querySelector("#noticeboard-qr-stamp svg");
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = 600;
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 600, 600);
+        ctx.drawImage(img, 40, 40, 520, 520);
+        const pngUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        a.download = `noticeboard-qr-${campaign || "notice"}.png`;
+        a.click();
+        toast.success("Noticeboard QR code exported as high-res PNG!", "Export Complete");
+      }
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   const handleSave = () => {
@@ -309,7 +349,10 @@ export default function NoticeboardQrModal({
               </div>
 
               {/* QR Image Frame */}
-              <div className="mt-3 grid place-items-center rounded-xl border border-black/15 bg-white p-2.5 shadow-sm">
+              <div
+                className="mt-3 grid place-items-center rounded-xl border border-black/15 bg-white p-2.5 shadow-sm"
+                id="noticeboard-qr-stamp"
+              >
                 <QRCodeSvg
                   bgColor="#ffffff"
                   fgColor="#171714"
@@ -319,7 +362,27 @@ export default function NoticeboardQrModal({
                 />
               </div>
 
-              <p className="mt-3 font-serif text-xs font-semibold text-black/85 dark:text-white/90 line-clamp-2">
+              {/* QR Export Asset Buttons */}
+              <div className="mt-2 flex items-center justify-center gap-1.5">
+                <button
+                  className="rounded-md border border-black/15 bg-white/80 px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-black/70 hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#1a1a17] dark:text-white/70 dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
+                  onClick={downloadQrSvg}
+                  title="Download vector SVG format"
+                  type="button"
+                >
+                  ↓ SVG
+                </button>
+                <button
+                  className="rounded-md border border-black/15 bg-white/80 px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-black/70 hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#1a1a17] dark:text-white/70 dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
+                  onClick={downloadQrPng}
+                  title="Download raster PNG format"
+                  type="button"
+                >
+                  ↓ PNG
+                </button>
+              </div>
+
+              <p className="mt-2.5 font-serif text-xs font-semibold text-black/85 dark:text-white/90 line-clamp-2">
                 "{label || "Scan to Submit"}"
               </p>
               <p className="mt-0.5 font-mono text-[8.5px] text-black/45 dark:text-white/45 truncate">
