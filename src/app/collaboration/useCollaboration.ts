@@ -134,7 +134,7 @@ export function useCollaboration({
       if (payload?.requesterId === sessionClientId.current) return;
       if (onRequestStateRef.current) {
         const state = onRequestStateRef.current();
-        if (state) {
+        if (state && channel.state === "joined") {
           channel.send({
             type: "broadcast",
             event: "response_state",
@@ -178,11 +178,13 @@ export function useCollaboration({
         });
 
         // Request initial state from any active peer
-        channel.send({
-          type: "broadcast",
-          event: "request_state",
-          payload: { requesterId: sessionClientId.current },
-        });
+        if (channel.state === "joined") {
+          channel.send({
+            type: "broadcast",
+            event: "request_state",
+            payload: { requesterId: sessionClientId.current },
+          });
+        }
       } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
         setIsConnected(false);
       }
@@ -220,7 +222,7 @@ export function useCollaboration({
       if (now - lastCursorBroadcastRef.current < 35) return;
       lastCursorBroadcastRef.current = now;
 
-      if (!channelRef.current || !isConnected) return;
+      if (!channelRef.current || !isConnected || channelRef.current.state !== "joined") return;
 
       channelRef.current.send({
         type: "broadcast",
@@ -241,7 +243,7 @@ export function useCollaboration({
   // Broadcast layout or content changes to all connected peers
   const broadcastDocChange = useCallback(
     (type: DocChangePayload["type"], data: any) => {
-      if (!channelRef.current || !isConnected) return;
+      if (!channelRef.current || !isConnected || channelRef.current.state !== "joined") return;
       channelRef.current.send({
         type: "broadcast",
         event: "doc_change",
@@ -260,7 +262,7 @@ export function useCollaboration({
   // Broadcast updated comment threads
   const broadcastComments = useCallback(
     (comments: EditorialComment[]) => {
-      if (!channelRef.current || !isConnected) return;
+      if (!channelRef.current || !isConnected || channelRef.current.state !== "joined") return;
       channelRef.current.send({
         type: "broadcast",
         event: "comments_sync",
@@ -276,7 +278,7 @@ export function useCollaboration({
   // Send newsroom chat message to peers
   const sendChatMessage = useCallback(
     (text: string): NewsroomMessage | null => {
-      if (!text.trim() || !channelRef.current || !isConnected) return null;
+      if (!text.trim() || !channelRef.current || !isConnected || channelRef.current.state !== "joined") return null;
       const message: NewsroomMessage = {
         id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         senderId: sessionClientId.current,

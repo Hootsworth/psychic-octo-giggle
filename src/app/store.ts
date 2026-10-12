@@ -102,8 +102,8 @@ export function initWorkspaceRealtimeSync(onSync?: (workspace: Workspace) => voi
       }
     })
     .subscribe((status: string) => {
-      if (status === "SUBSCRIBED") {
-        workspaceChannel?.send({
+      if (status === "SUBSCRIBED" && workspaceChannel?.state === "joined") {
+        workspaceChannel.send({
           type: "broadcast",
           event: "request_workspace",
         });
@@ -114,7 +114,7 @@ export function initWorkspaceRealtimeSync(onSync?: (workspace: Workspace) => voi
 }
 
 export function broadcastWorkspace(workspace: Workspace) {
-  if (workspaceChannel) {
+  if (workspaceChannel && workspaceChannel.state === "joined") {
     workspaceChannel.send({
       type: "broadcast",
       event: "sync_workspace",

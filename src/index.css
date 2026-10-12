@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *, .dark, .dark *));
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
+/* Explicit Light Mode Protection: Add Section & Add Page containers stay light with legible text */
+html:not([data-theme="dark"]) .section-picker-card:hover,
+html[data-theme="light"] .section-picker-card:hover {
+  background-color: #ffffff !important;
+  color: #171714 !important;
+}
 
 :root {
   font-family: "DM Sans", sans-serif;

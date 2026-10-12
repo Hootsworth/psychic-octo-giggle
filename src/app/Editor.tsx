@@ -2386,10 +2386,19 @@ export default function App() {
             </p>
             <div className="grid gap-2">
               {SECTION_OPTIONS.map((option) => (
-                <button className="group flex items-center justify-between border border-black/15 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={option.type} onClick={() => addSection(option.type)} type="button">
+                <button
+                  className="section-picker-card group flex items-center justify-between border border-black/15 bg-white/70 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
+                  key={option.type}
+                  onClick={() => addSection(option.type)}
+                  type="button"
+                >
                   <span>
-                    <span className="block font-serif text-xl">{option.name}</span>
-                    <span className="mt-1 block text-[10px] text-black/45 dark:text-[#f3f0e8]/50">{option.description}</span>
+                    <span className="block font-serif text-xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">
+                      {option.name}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-black/60 dark:text-[#f3f0e8]/65">
+                      {option.description}
+                    </span>
                   </span>
                   <span className="text-xl text-[#ef5a35] transition-transform group-hover:translate-x-1">+</span>
                 </button>
@@ -2413,10 +2422,15 @@ export default function App() {
                 ["title-minimal", "Quiet minimal", "Generous white space, a restrained title, divider, and opening thought.", "Aa"],
                 ["title-split", "Split statement", "Asymmetric headline and quotation columns followed by a photograph.", "½"],
               ].map(([id, name, description, mark]) => (
-                <button className="group border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={id} onClick={() => addPage(id as PagePresetKind)} type="button">
-                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-3xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724]">{mark}</span>
-                  <span className="font-serif text-2xl">{name}</span>
-                  <span className="mt-2 block text-[10px] leading-relaxed text-black/45 dark:text-[#f3f0e8]/50">{description}</span>
+                <button
+                  className="section-picker-card group border border-black/15 bg-white/70 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
+                  key={id}
+                  onClick={() => addPage(id as PagePresetKind)}
+                  type="button"
+                >
+                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-3xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724] dark:group-hover:bg-[#ef5a35]">{mark}</span>
+                  <span className="font-serif text-2xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{name}</span>
+                  <span className="mt-2 block text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{description}</span>
                 </button>
               ))}
             </div>
@@ -2427,17 +2441,30 @@ export default function App() {
                 ["contents-grid", "Feature grid", "A modular feature directory paired with a compact weekly index.", "4×"],
                 ["contents-numeric", "Numeric guide", "Issue statistics and a chronological reading route.", "123"],
               ].map(([id, name, description, mark]) => (
-                <button className="group border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={id} onClick={() => addPage(id as PagePresetKind)} type="button">
-                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-2xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724]">{mark}</span>
-                  <span className="font-serif text-2xl">{name}</span>
-                  <span className="mt-2 block text-[10px] leading-relaxed text-black/45 dark:text-[#f3f0e8]/50">{description}</span>
+                <button
+                  className="section-picker-card group border border-black/15 bg-white/70 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
+                  key={id}
+                  onClick={() => addPage(id as PagePresetKind)}
+                  type="button"
+                >
+                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-2xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724] dark:group-hover:bg-[#ef5a35]">{mark}</span>
+                  <span className="font-serif text-2xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{name}</span>
+                  <span className="mt-2 block text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{description}</span>
                 </button>
               ))}
             </div>
             <p className="mb-3 mt-8 text-[9px] font-bold uppercase tracking-[0.15em] text-black/40 dark:text-white/40">Utility pages</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {[["blank", "Blank page", "An empty canvas ready for sections from the library."], ["final", "Final page", "Closing statement, quotation, and publication footer."]].map(([id, name, description]) => (
-                <button className="border border-black/15 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:hover:border-[#ef5a35] dark:hover:bg-[#20201d]" key={id} onClick={() => addPage(id as PagePresetKind)} type="button"><span className="font-serif text-2xl">{name}</span><span className="mt-2 block text-[10px] leading-relaxed text-black/45 dark:text-[#f3f0e8]/50">{description}</span></button>
+                <button
+                  className="section-picker-card group border border-black/15 bg-white/70 p-5 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
+                  key={id}
+                  onClick={() => addPage(id as PagePresetKind)}
+                  type="button"
+                >
+                  <span className="font-serif text-2xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{name}</span>
+                  <span className="mt-2 block text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{description}</span>
+                </button>
               ))}
             </div>
           </div>
