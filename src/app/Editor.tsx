@@ -2393,15 +2393,6 @@ export default function App() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            aria-pressed={pageOverviewOpen}
-            className={`editor-only editor-overview-toggle inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-[10px] font-medium ${pageOverviewOpen ? "is-active" : ""}`}
-            onClick={() => setPageOverviewOpen(!pageOverviewOpen)}
-            title={pageOverviewOpen ? "Hide page overview" : "Show page overview"}
-            type="button"
-          >
-            <EditorIcon name="pages" /><span className="hidden md:inline">Pages</span>
-          </button>
           <CollaboratorAvatars
             collaborators={collaborators}
             isConnected={isConnected}
@@ -2833,7 +2824,8 @@ export default function App() {
         </div>
       )}
 
-      <aside className={`page-overview editor-only fixed left-4 top-[5.25rem] z-30 max-h-[calc(100vh-6.5rem)] w-56 flex-col gap-2 overflow-y-auto rounded-2xl border p-3 shadow-xl ${pageOverviewOpen ? "flex" : "hidden"}`} aria-label="Page overview">
+      <div className={`editor-workspace-layout flex items-start gap-0 ${pageOverviewOpen ? "overview-visible" : ""}`}>
+      <aside className={`page-overview editor-only sticky top-20 max-h-[calc(100vh-6.5rem)] w-56 shrink-0 flex-col gap-2 overflow-y-auto border-y border-r p-3 ${pageOverviewOpen ? "flex" : "hidden"}`} aria-label="Page overview">
         <div className="flex items-center justify-between px-1 pb-1">
           <div><p className="text-xs font-semibold">Pages</p><p className="mt-0.5 text-[10px] opacity-60">{pages.length} in this issue</p></div>
           <button aria-label="Close page overview" className="overview-close grid h-7 w-7 place-items-center rounded-lg" onClick={() => setPageOverviewOpen(false)} type="button">×</button>
@@ -2871,10 +2863,10 @@ export default function App() {
               </div>
             </a>
 
-            {/* Quick Duplicate Page hover button */}
-            <div className="absolute -right-1 -top-1 hidden group-hover:flex">
+            <div className="page-overview-actions absolute right-2 top-2 hidden items-center gap-1 group-hover:flex group-focus-within:flex">
               <button
-                className="grid h-4 w-4 place-items-center rounded-full bg-[#ef5a35] text-[9px] font-bold text-white shadow hover:scale-110"
+                aria-label={`Duplicate page ${index + 1}`}
+                className="overview-duplicate grid h-6 w-6 place-items-center rounded-full text-[11px] font-semibold shadow-sm transition hover:scale-105"
                 onClick={(e) => {
                   e.stopPropagation();
                   duplicatePage(index);
@@ -2884,6 +2876,20 @@ export default function App() {
               >
                 ＋
               </button>
+              {pages.length > 1 && (
+                <button
+                  aria-label={`Delete page ${index + 1}`}
+                  className="overview-delete grid h-6 w-6 place-items-center rounded-full text-[12px] font-semibold shadow-sm transition hover:scale-105"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void removePage(index);
+                  }}
+                  title="Delete this page"
+                  type="button"
+                >
+                  ×
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -2897,8 +2903,18 @@ export default function App() {
         </button>
       </aside>
 
-      <main className={`editor-canvas mx-auto px-3 py-7 sm:px-6 md:py-12 ${sourceMode ? "max-w-[1680px]" : "max-w-[1040px]"}`}>
+      <main className={`editor-canvas min-w-0 flex-1 mx-auto px-3 py-7 sm:px-6 md:py-12 ${sourceMode ? "max-w-[1680px]" : "max-w-[1040px]"}`}>
         <div className="canvas-zoom-control editor-only fixed bottom-4 right-4 z-30 flex items-center gap-1 rounded-xl border px-1.5 py-1 shadow-md" aria-label="Canvas zoom">
+          <button
+            aria-pressed={pageOverviewOpen}
+            className={`editor-overview-toggle inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-[10px] font-medium ${pageOverviewOpen ? "is-active" : ""}`}
+            onClick={() => setPageOverviewOpen(!pageOverviewOpen)}
+            title={pageOverviewOpen ? "Hide page overview" : "Show page overview"}
+            type="button"
+          >
+            <EditorIcon name="pages" /><span>Pages</span>
+          </button>
+          <span className="zoom-divider" aria-hidden="true" />
           <button aria-label="Zoom out" className="zoom-button" disabled={canvasZoom <= 60} onClick={() => setCanvasZoom((value) => Math.max(60, value - 10))} type="button">−</button>
           <button aria-label="Reset zoom" className="zoom-value" onClick={() => setCanvasZoom(100)} title="Reset zoom to 100%" type="button">{canvasZoom}%</button>
           <button aria-label="Zoom in" className="zoom-button" disabled={canvasZoom >= 130} onClick={() => setCanvasZoom((value) => Math.min(130, value + 10))} type="button">+</button>
@@ -3094,6 +3110,7 @@ export default function App() {
           </div>
         </div>
       </main>
+      </div>
 
       {/* QoL: Floating Word Count & Reading Time Meter */}
       <div className="editor-only fixed bottom-4 left-4 z-30 hidden sm:flex items-center gap-2 rounded-full border border-black/10 bg-[#f8f5ed]/95 px-3.5 py-1.5 text-[9px] font-medium tracking-wide text-black/55 dark:border-white/10 dark:bg-[#1a1916]/95 dark:text-white/65">

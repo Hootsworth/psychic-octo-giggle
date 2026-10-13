@@ -790,6 +790,34 @@ html[data-theme="dark"] .drag-handle {
   backdrop-filter: blur(14px);
 }
 
+.editor-workspace-layout {
+  width: 100%;
+}
+
+.page-overview {
+  min-height: calc(100vh - 4.25rem);
+  border-radius: 0 1.15rem 1.15rem 0;
+  box-shadow: 5px 0 24px rgb(35 32 25 / 0.045);
+}
+
+.overview-duplicate {
+  color: white;
+  background: #34c759;
+}
+
+.overview-duplicate:hover {
+  background: #28a745;
+}
+
+.overview-delete {
+  color: white;
+  background: #ff453a;
+}
+
+.overview-delete:hover {
+  background: #d92d25;
+}
+
 .zoom-button {
   display: grid;
   width: 1.9rem;
@@ -798,6 +826,18 @@ html[data-theme="dark"] .drag-handle {
   border-radius: 0.55rem;
   color: inherit;
   font-size: 1.1rem;
+}
+
+.zoom-divider {
+  align-self: center;
+  width: 1px;
+  height: 1.2rem;
+  margin: 0 0.2rem;
+  background: rgb(23 23 20 / 0.12);
+}
+
+html[data-theme="dark"] .zoom-divider {
+  background: rgb(255 255 255 / 0.14);
 }
 
 .zoom-button:hover:not(:disabled),
@@ -888,9 +928,16 @@ html[data-theme="dark"] .drag-handle {
 
 @media (max-width: 640px) {
   .page-overview {
+    position: fixed;
+    z-index: 60;
     left: 0.75rem;
     top: 4.75rem;
     width: min(14rem, calc(100vw - 1.5rem));
+    min-height: 0;
+    max-height: calc(100vh - 5.5rem);
+    border: 1px solid rgb(23 23 20 / 0.12);
+    border-radius: 1rem;
+    box-shadow: 0 16px 44px rgb(0 0 0 / 0.18);
   }
 
   .canvas-zoom-control {
@@ -928,6 +975,28 @@ html[data-theme="dark"] .page-overview {
   color: #f2efe8;
   border-color: rgb(255 255 255 / 0.12);
   background: rgb(33 32 29 / 0.97);
+}
+
+html[data-theme="dark"] .page-overview {
+  box-shadow: 5px 0 26px rgb(0 0 0 / 0.2);
+}
+
+html[data-theme="dark"] .overview-duplicate {
+  color: #fff;
+  background: #30b957;
+}
+
+html[data-theme="dark"] .overview-duplicate:hover {
+  background: #269546;
+}
+
+html[data-theme="dark"] .overview-delete {
+  color: #fff;
+  background: #fa5147;
+}
+
+html[data-theme="dark"] .overview-delete:hover {
+  background: #d93830;
 }
 
 html[data-theme="dark"] .page-overview-card {
