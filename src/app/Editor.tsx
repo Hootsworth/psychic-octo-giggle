@@ -2366,19 +2366,20 @@ export default function App() {
         "--editor-sans": fontPair.sans,
       } as CSSProperties}
     >
-      <header className="editor-bar sticky top-0 z-40 flex min-h-14 items-center justify-between gap-3 border-b border-black/15 bg-[#f4f1e9]/95 px-3 py-2 backdrop-blur-sm md:px-5">
+      <header className="editor-bar sticky top-0 z-40 flex min-h-[4.25rem] flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b border-black/10 bg-[#f4f1e9]/95 px-4 py-2.5 backdrop-blur-md md:px-8">
         <div className="flex shrink-0 items-center gap-2">
           <Link aria-label="Back to dashboard" className="editor-icon-button" to="/" title="Back to dashboard"><EditorIcon name="back" /></Link>
-          <BrandLogo className="h-10 w-20" />
-          <div className="hidden xl:block">
-            <p className="max-w-48 truncate text-[13px] font-semibold leading-none">{issue.title}</p>
+          <BrandLogo className="h-9 w-[4.5rem] opacity-75" />
+          <div className="hidden min-w-0 border-l border-black/10 pl-4 xl:block dark:border-white/10">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-black/40 dark:text-white/40">Issue editor</p>
+            <p className="mt-1 max-w-56 truncate font-serif text-[15px] leading-none">{issue.title}</p>
           </div>
         </div>
 
-        <nav className="flex max-w-[30vw] items-center overflow-x-auto rounded-full border border-black/15 bg-white/50 p-1">
+        <nav className="editor-page-nav flex max-w-[24vw] items-center gap-0.5 overflow-x-auto rounded-xl border border-black/5 bg-black/[0.025] p-1">
           {pages.map((_, pageIndex) => (
             <a
-              className={`rounded-full px-2.5 py-1.5 text-[9px] font-bold ${activePage === pageIndex ? "bg-white shadow-sm" : ""}`}
+              className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${activePage === pageIndex ? "bg-white shadow-sm dark:bg-white/10" : ""}`}
               href={`#page-${pageIndex + 1}`}
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
@@ -2386,7 +2387,7 @@ export default function App() {
               {pageIndex + 1}
             </a>
           ))}
-          <button aria-label="Add page" className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#ef5a35] hover:bg-white" onClick={() => setPageMenuOpen(true)} title="Add page" type="button"><EditorIcon name="add" /></button>
+          <button aria-label="Add page" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#ef5a35] hover:bg-white/70 dark:hover:bg-white/10" onClick={() => setPageMenuOpen(true)} title="Add page" type="button"><EditorIcon name="add" /></button>
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -2455,31 +2456,36 @@ export default function App() {
 
           {/* Auto-Save & Sync Status Pill */}
           <button
-            className="hidden xl:flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-wider text-black/70 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/70 transition shadow-2xs"
+            className="editor-save-status hidden xl:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium text-black/55 dark:text-white/65 transition"
             onClick={saveDraft}
             title="Click to force instant save to browser storage"
             type="button"
           >
             <span className={`h-1.5 w-1.5 rounded-full ${saved ? "bg-[#3e6a59] animate-ping" : isConnected ? "bg-[#3e6a59]" : "bg-[#ef5a35]"}`} />
-            <span>{saved ? "Saved just now" : isConnected ? "Synced with peers" : "Saved"}</span>
-            <span className="font-mono text-[8px] text-black/35 dark:text-white/35">· {relativeSavedTime}</span>
+            <span>{saved ? "Saved" : isConnected ? "Synced" : "Saving"}</span>
           </button>
 
-          <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
-          <button aria-label="Document design" className="editor-icon-button hidden sm:grid" onClick={() => setDesignOpen(true)} title="Document design" type="button"><EditorIcon name="palette" /></button>
-          <button aria-label="Manage pages" className="editor-icon-button hidden sm:grid" onClick={() => setPageMenuOpen(true)} title="Manage pages" type="button"><EditorIcon name="pages" /></button>
-          <button aria-label="Production studio" className={`editor-icon-button hidden sm:grid ${studioOpen ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setStudioOpen(true)} title="Production studio" type="button"><EditorIcon name="workflow" /></button>
-          <button aria-label="Text formatting" className={`editor-icon-button ${formatOpen ? "bg-white text-[#ef5a35]" : ""}`} onClick={() => setFormatOpen(!formatOpen)} title="Text formatting" type="button"><EditorIcon name="type" /></button>
-          <span className="mx-1 hidden h-5 w-px bg-black/10 lg:block" />
-          <button aria-label="Undo layout change" className="editor-icon-button hidden lg:grid disabled:opacity-25 disabled:pointer-events-none" disabled={!canUndo} onClick={undo} title="Undo layout change (⌘Z)" type="button"><EditorIcon name="undo" /></button>
-          <button aria-label="Redo layout change" className="editor-icon-button hidden lg:grid disabled:opacity-25 disabled:pointer-events-none" disabled={!canRedo} onClick={redo} title="Redo layout change (⌘⇧Z)" type="button"><EditorIcon name="redo" /></button>
-          <button aria-label="Keyboard shortcuts" className="editor-icon-button hidden sm:grid" onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts (?)" type="button"><span className="font-mono text-xs font-bold text-black/60 dark:text-white/60">?</span></button>
+          <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "is-active" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
+          <button aria-label="Text formatting" className={`editor-icon-button hidden sm:grid ${formatOpen ? "is-active" : ""}`} onClick={() => setFormatOpen(!formatOpen)} title="Text formatting" type="button"><EditorIcon name="type" /></button>
+          <div className="editor-history-controls hidden lg:flex items-center gap-0.5 border-l border-black/10 pl-2 dark:border-white/10">
+            <button aria-label="Undo layout change" className="editor-icon-button disabled:opacity-25 disabled:pointer-events-none" disabled={!canUndo} onClick={undo} title="Undo layout change (⌘Z)" type="button"><EditorIcon name="undo" /></button>
+            <button aria-label="Redo layout change" className="editor-icon-button disabled:opacity-25 disabled:pointer-events-none" disabled={!canRedo} onClick={redo} title="Redo layout change (⌘⇧Z)" type="button"><EditorIcon name="redo" /></button>
+          </div>
           <select aria-label="Publication status" className="hidden rounded-full border border-black/15 bg-transparent px-2 py-2 text-[8px] font-bold uppercase tracking-[0.08em] outline-none md:block" onChange={(event) => setStatus(event.target.value as Issue["status"])} value={issue.status}>
             <option value="draft">Draft</option>
             <option value="review">In review</option>
             <option value="published">Published</option>
           </select>
           <button aria-label="Add section" className="editor-icon-button" onClick={() => setLibraryOpen(true)} title="Add section" type="button"><EditorIcon name="add" /></button>
+          <details className="editor-more-menu relative hidden sm:block">
+            <summary className="editor-icon-button grid cursor-pointer list-none place-items-center" aria-label="More editor tools" title="More tools"><span className="text-base leading-none">···</span></summary>
+            <div className="editor-menu-popover absolute right-0 top-10 z-50 grid min-w-48 gap-1 rounded-xl border p-1.5 shadow-xl">
+              <button onClick={() => setDesignOpen(true)} type="button">Document design</button>
+              <button onClick={() => setPageMenuOpen(true)} type="button">Manage pages</button>
+              <button onClick={() => setStudioOpen(true)} type="button">Production studio</button>
+              <button onClick={() => setShortcutsOpen(true)} type="button">Keyboard shortcuts</button>
+            </div>
+          </details>
           <button aria-label={preview ? "Return to editing" : "Preview"} className="editor-icon-button" onClick={() => setPreview(!preview)} title={preview ? "Return to editing" : "Preview"} type="button"><EditorIcon name={preview ? "edit" : "preview"} /></button>
           <button
             aria-label="Share edition"
@@ -2493,9 +2499,8 @@ export default function App() {
             </svg>
             <span>Share</span>
           </button>
-          <button aria-label="Save" className="editor-icon-button hidden md:grid" onClick={saveDraft} title="Save (⌘S)" type="button"><EditorIcon name="save" /></button>
-          <button className="rounded-full bg-[#171714] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-white hover:bg-[#ef5a35] disabled:cursor-wait disabled:opacity-60" disabled={exporting} onClick={downloadPdf} type="button">
-            {exporting ? exportProgress : "PDF"}
+          <button className="editor-export-button rounded-lg px-4 py-2 text-[10px] font-semibold disabled:cursor-wait disabled:opacity-60" disabled={exporting} onClick={downloadPdf} type="button">
+            {exporting ? exportProgress : "Export PDF"}
           </button>
         </div>
       </header>
@@ -2817,7 +2822,7 @@ export default function App() {
         </div>
       )}
 
-      <aside className="editor-only fixed left-3 top-20 z-20 hidden max-h-[calc(100vh-6rem)] w-16 flex-col gap-2 overflow-y-auto 2xl:flex">
+      <aside className="editor-only fixed left-3 top-20 z-20 hidden max-h-[calc(100vh-6rem)] w-16 flex-col gap-2 overflow-y-auto 2xl:hidden">
         {pages.map((sections, index) => (
           <div
             className={`group relative grid h-20 place-items-center border bg-[#f8f5ed] text-[10px] font-bold shadow-sm transition dark:bg-[#1a1916] ${
@@ -3066,7 +3071,7 @@ export default function App() {
       </main>
 
       {/* QoL: Floating Word Count & Reading Time Meter */}
-      <div className="editor-only fixed bottom-4 left-4 z-30 hidden sm:flex items-center gap-2 rounded-full border border-black/15 bg-[#f8f5ed]/95 px-3.5 py-1.5 shadow-lg backdrop-blur-md text-[9.5px] font-bold uppercase tracking-wider text-black/70 dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-white/70">
+      <div className="editor-only fixed bottom-4 left-4 z-30 hidden sm:flex items-center gap-2 rounded-full border border-black/10 bg-[#f8f5ed]/95 px-3.5 py-1.5 text-[9px] font-medium tracking-wide text-black/55 dark:border-white/10 dark:bg-[#1a1916]/95 dark:text-white/65">
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#ef5a35]" />
           <span>Page {activePage + 1}: {wordStats.pageWords} words</span>
