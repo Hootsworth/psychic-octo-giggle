@@ -975,7 +975,7 @@ function BuilderBlock({
               return (
                 <button
                   className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
-                    isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10 dark:text-white/60 dark:hover:bg-white/10"
+                    isActive ? "is-selected" : "text-black/60 hover:bg-black/10 dark:text-white/60 dark:hover:bg-white/10"
                   }`}
                   key={w}
                   onClick={() => onAction("setWidth", pageIndex, section.id, w)}
@@ -1008,7 +1008,7 @@ function BuilderBlock({
               return (
                 <button
                   className={`h-5 w-auto min-w-5 rounded px-1.5 text-[8px] font-bold ${
-                    isActive ? "bg-[#ef5a35] text-white" : "text-black/60 hover:bg-black/10 dark:text-white/60 dark:hover:bg-white/10"
+                    isActive ? "is-selected" : "text-black/60 hover:bg-black/10 dark:text-white/60 dark:hover:bg-white/10"
                   }`}
                   key={h}
                   onClick={() => onAction("setHeight", pageIndex, section.id, h)}

@@ -446,6 +446,11 @@ button {
   color: white;
 }
 
+.editor-theme .page-preset-mark {
+  color: #35332e;
+  background-color: #efe8d8;
+}
+
 html[data-theme="dark"] .editor-theme .editor-bar {
   color: #e6e3dc;
   border-color: rgb(255 255 255 / 0.08);
@@ -526,6 +531,18 @@ html[data-theme="dark"] .editor-theme .section-picker-card:hover {
 
 html[data-theme="dark"] .editor-theme .section-picker-card:hover .page-preset-title {
   color: #ffad95;
+}
+
+html[data-theme="dark"] .editor-theme .page-preset-mark {
+  color: #f4f1e9;
+  border-color: rgb(255 255 255 / 0.12);
+  background-color: #34332f;
+}
+
+html[data-theme="dark"] .editor-theme .section-picker-card:hover .page-preset-mark,
+html[data-theme="light"] .editor-theme .section-picker-card:hover .page-preset-mark {
+  color: #fff;
+  background-color: var(--editor-accent);
 }
 
 html[data-theme="dark"] .editor-theme .page {
@@ -708,9 +725,14 @@ html[data-theme="dark"] .drag-handle {
   background: color-mix(in srgb, var(--editor-ink) 7%, transparent);
 }
 
-.block-controls button.h-5.bg-\\[\\#ef5a35\\] {
-  color: white;
+.block-controls button.h-5.is-selected {
+  color: #fff;
   background: var(--editor-accent);
+}
+
+.block-controls button.h-5.is-selected:hover {
+  color: white;
+  background: color-mix(in srgb, var(--editor-accent) 84%, black);
 }
 
 .page-controls {
@@ -723,8 +745,8 @@ html[data-theme="dark"] .drag-handle {
 }
 
 .page-controls .page-control-duplicate {
-  color: #a63d24;
-  background: color-mix(in srgb, var(--editor-accent) 9%, var(--editor-paper));
+  color: #ff7859;
+  background: #24221f;
 }
 
 .page-controls .page-control-duplicate:hover {
@@ -743,8 +765,8 @@ html[data-theme="dark"] .page-control-button:hover {
 }
 
 html[data-theme="dark"] .page-controls .page-control-duplicate {
-  color: #ffd1c4;
-  background: color-mix(in srgb, var(--editor-accent) 22%, var(--editor-paper));
+  color: #ff7859;
+  background: #24221f;
 }
 
 html[data-theme="dark"] .page-controls .page-control-duplicate:hover {
