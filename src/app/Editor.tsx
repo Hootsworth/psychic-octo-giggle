@@ -1022,8 +1022,8 @@ function BuilderBlock({
           </div>
         )}
 
-        <button onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block">＋</button>
-        <button className="text-black/50 hover:bg-red-600 hover:text-white dark:text-white/50" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block">×</button>
+        <button aria-label="Duplicate section" className="block-primary-action" onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block">＋</button>
+        <button aria-label="Delete section" className="block-danger-action" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block">×</button>
       </div>
 
       {/* Right Edge Interactive Width Resizer Handle (Safely inside block bounds) */}
@@ -1137,6 +1137,8 @@ export default function App() {
     }
   });
   const [activePage, setActivePage] = useState(0);
+  const [canvasZoom, setCanvasZoom] = useState(100);
+  const [pageOverviewOpen, setPageOverviewOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
@@ -2391,6 +2393,15 @@ export default function App() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            aria-pressed={pageOverviewOpen}
+            className={`editor-only editor-overview-toggle inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-[10px] font-medium ${pageOverviewOpen ? "is-active" : ""}`}
+            onClick={() => setPageOverviewOpen(!pageOverviewOpen)}
+            title={pageOverviewOpen ? "Hide page overview" : "Show page overview"}
+            type="button"
+          >
+            <EditorIcon name="pages" /><span className="hidden md:inline">Pages</span>
+          </button>
           <CollaboratorAvatars
             collaborators={collaborators}
             isConnected={isConnected}
@@ -2822,13 +2833,17 @@ export default function App() {
         </div>
       )}
 
-      <aside className="editor-only fixed left-3 top-20 z-20 hidden max-h-[calc(100vh-6rem)] w-16 flex-col gap-2 overflow-y-auto 2xl:hidden">
+      <aside className={`page-overview editor-only fixed left-4 top-[5.25rem] z-30 max-h-[calc(100vh-6.5rem)] w-56 flex-col gap-2 overflow-y-auto rounded-2xl border p-3 shadow-xl ${pageOverviewOpen ? "flex" : "hidden"}`} aria-label="Page overview">
+        <div className="flex items-center justify-between px-1 pb-1">
+          <div><p className="text-xs font-semibold">Pages</p><p className="mt-0.5 text-[10px] opacity-60">{pages.length} in this issue</p></div>
+          <button aria-label="Close page overview" className="overview-close grid h-7 w-7 place-items-center rounded-lg" onClick={() => setPageOverviewOpen(false)} type="button">×</button>
+        </div>
         {pages.map((sections, index) => (
           <div
-            className={`group relative grid h-20 place-items-center border bg-[#f8f5ed] text-[10px] font-bold shadow-sm transition dark:bg-[#1a1916] ${
+            className={`page-overview-card group relative cursor-pointer rounded-xl border p-2 text-left transition ${
               activePage === index
-                ? "border-[#ef5a35] text-[#ef5a35] ring-1 ring-[#ef5a35]"
-                : "border-black/15 text-black/40 hover:border-black/40 dark:border-white/15 dark:text-white/40 dark:hover:border-white/40"
+                ? "is-active"
+                : ""
             }`}
             draggable
             key={index}
@@ -2843,13 +2858,17 @@ export default function App() {
               }
             }}
           >
-            <a
-              className="flex h-full w-full flex-col items-center justify-center"
-              href={`#page-${index + 1}`}
-              onClick={() => setActivePage(index)}
-            >
-              <span>{index + 1}</span>
-              <span className="text-[7px] font-normal">{sections.length} blocks</span>
+            <a className="block" href={`#page-${index + 1}`} onClick={() => setActivePage(index)}>
+              <div className="page-thumbnail" aria-hidden="true">
+                <div className="page-thumbnail-header" />
+                <div className="page-thumbnail-grid">
+                  {sections.slice(0, 9).map((section) => <span key={section.id} style={{ gridColumn: `span ${section.width}` }} />)}
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between px-1">
+                <span className="text-[11px] font-semibold">Page {index + 1}</span>
+                <span className="text-[9px] opacity-60">{sections.length} blocks</span>
+              </div>
             </a>
 
             {/* Quick Duplicate Page hover button */}
@@ -2869,7 +2888,7 @@ export default function App() {
           </div>
         ))}
         <button
-          className="grid h-10 place-items-center border border-dashed border-black/20 bg-[#f8f5ed] text-[#ef5a35] hover:border-[#ef5a35] dark:border-white/20 dark:bg-[#1a1916]"
+          className="overview-add-page grid h-9 place-items-center rounded-lg border border-dashed"
           onClick={() => setPageMenuOpen(true)}
           title="Add page"
           type="button"
@@ -2878,7 +2897,12 @@ export default function App() {
         </button>
       </aside>
 
-      <main className={`mx-auto px-3 py-7 sm:px-6 md:py-12 ${sourceMode ? "max-w-[1680px]" : "max-w-[1040px]"}`}>
+      <main className={`editor-canvas mx-auto px-3 py-7 sm:px-6 md:py-12 ${sourceMode ? "max-w-[1680px]" : "max-w-[1040px]"}`}>
+        <div className="canvas-zoom-control editor-only fixed bottom-4 right-4 z-30 flex items-center gap-1 rounded-xl border px-1.5 py-1 shadow-md" aria-label="Canvas zoom">
+          <button aria-label="Zoom out" className="zoom-button" disabled={canvasZoom <= 60} onClick={() => setCanvasZoom((value) => Math.max(60, value - 10))} type="button">−</button>
+          <button aria-label="Reset zoom" className="zoom-value" onClick={() => setCanvasZoom(100)} title="Reset zoom to 100%" type="button">{canvasZoom}%</button>
+          <button aria-label="Zoom in" className="zoom-button" disabled={canvasZoom >= 130} onClick={() => setCanvasZoom((value) => Math.min(130, value + 10))} type="button">+</button>
+        </div>
         <div className={sourceMode ? "grid items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)]" : ""}>
           {sourceMode && (
             <aside className="editor-only sticky top-32 overflow-hidden border border-black/15 bg-[#171714] text-white">
@@ -2921,6 +2945,7 @@ export default function App() {
           <div
             className="relative"
             id="pdf-document"
+            style={{ zoom: `${canvasZoom}%` }}
             onBlurCapture={() => {
               editSessionRef.current = false;
               saveContent();

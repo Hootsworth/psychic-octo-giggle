@@ -759,9 +759,206 @@ html[data-theme="dark"] .drag-handle {
   background: #b94339;
 }
 
+.block-controls .block-primary-action {
+  width: auto;
+  min-width: 2rem;
+  padding: 0 0.55rem;
+  color: #ff7859;
+  background: #24221f;
+  font-weight: 700;
+}
+
+.editor-theme .block-controls button.block-primary-action:hover {
+  color: white;
+  background: var(--editor-accent);
+}
+
+.block-controls .block-danger-action {
+  color: #a9443a;
+}
+
+.editor-theme .block-controls button.block-danger-action:hover {
+  color: white;
+  background: #b94339;
+}
+
+.canvas-zoom-control,
+.page-overview {
+  color: #302e29;
+  border-color: rgb(23 23 20 / 0.12);
+  background: rgb(250 249 246 / 0.97);
+  backdrop-filter: blur(14px);
+}
+
+.zoom-button {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  color: inherit;
+  font-size: 1.1rem;
+}
+
+.zoom-button:hover:not(:disabled),
+.zoom-value:hover {
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 9%, transparent);
+}
+
+.zoom-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.zoom-value {
+  min-width: 3rem;
+  height: 1.9rem;
+  border-radius: 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-overview-card {
+  color: #302e29;
+  border-color: rgb(23 23 20 / 0.10);
+  background: rgb(255 255 255 / 0.62);
+}
+
+.page-overview-card:hover {
+  border-color: color-mix(in srgb, var(--editor-accent) 45%, transparent);
+}
+
+.page-overview-card.is-active {
+  border-color: color-mix(in srgb, var(--editor-accent) 72%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--editor-accent) 24%, transparent);
+}
+
+.page-thumbnail {
+  aspect-ratio: 8.5 / 11;
+  overflow: hidden;
+  border: 1px solid rgb(23 23 20 / 0.08);
+  background: var(--editor-paper);
+  padding: 8%;
+}
+
+.page-thumbnail-header {
+  height: 12%;
+  margin-bottom: 7%;
+  border-bottom: 1px solid color-mix(in srgb, var(--editor-ink) 25%, transparent);
+}
+
+.page-thumbnail-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 14px;
+  gap: 4px;
+}
+
+.page-thumbnail-grid span {
+  border: 1px solid color-mix(in srgb, var(--editor-ink) 14%, transparent);
+  background: color-mix(in srgb, var(--editor-accent) 7%, var(--editor-paper));
+}
+
+.overview-close:hover,
+.overview-add-page:hover {
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 8%, transparent);
+}
+
+.overview-add-page {
+  color: var(--editor-accent);
+  border-color: color-mix(in srgb, var(--editor-ink) 18%, transparent);
+}
+
+.editor-overview-toggle {
+  color: color-mix(in srgb, var(--editor-ink) 68%, transparent);
+}
+
+.editor-overview-toggle:hover,
+.editor-overview-toggle.is-active {
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 9%, var(--editor-paper));
+}
+
+.exporting #pdf-document {
+  zoom: 100% !important;
+}
+
+@media (max-width: 640px) {
+  .page-overview {
+    left: 0.75rem;
+    top: 4.75rem;
+    width: min(14rem, calc(100vw - 1.5rem));
+  }
+
+  .canvas-zoom-control {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+}
+
 html[data-theme="dark"] .page-control-button:hover {
   color: #f3f0e8;
   background: color-mix(in srgb, var(--editor-ink) 8%, var(--editor-paper));
+}
+
+html[data-theme="dark"] .block-controls .block-primary-action {
+  color: #ff7859;
+  background: #24221f;
+}
+
+html[data-theme="dark"] .editor-theme .block-controls button.block-primary-action:hover {
+  color: white;
+  background: var(--editor-accent);
+}
+
+html[data-theme="dark"] .block-controls .block-danger-action {
+  color: #f0a39a;
+}
+
+html[data-theme="dark"] .editor-theme .block-controls button.block-danger-action:hover {
+  color: white;
+  background: #b94339;
+}
+
+html[data-theme="dark"] .canvas-zoom-control,
+html[data-theme="dark"] .page-overview {
+  color: #f2efe8;
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(33 32 29 / 0.97);
+}
+
+html[data-theme="dark"] .page-overview-card {
+  color: #f2efe8;
+  border-color: rgb(255 255 255 / 0.11);
+  background: rgb(255 255 255 / 0.035);
+}
+
+html[data-theme="dark"] .page-overview-card.is-active {
+  border-color: color-mix(in srgb, var(--editor-accent) 75%, white);
+}
+
+html[data-theme="dark"] .page-thumbnail {
+  border-color: rgb(255 255 255 / 0.10);
+}
+
+html[data-theme="dark"] .page-thumbnail-grid span {
+  border-color: color-mix(in srgb, var(--editor-ink) 15%, transparent);
+  background: color-mix(in srgb, var(--editor-accent) 13%, var(--editor-paper));
+}
+
+html[data-theme="dark"] .editor-overview-toggle {
+  color: color-mix(in srgb, var(--editor-ink) 72%, transparent);
+}
+
+html[data-theme="dark"] .zoom-button:hover:not(:disabled),
+html[data-theme="dark"] .zoom-value:hover,
+html[data-theme="dark"] .editor-overview-toggle:hover,
+html[data-theme="dark"] .editor-overview-toggle.is-active {
+  color: #ffd1c4;
+  background: color-mix(in srgb, var(--editor-accent) 20%, transparent);
 }
 
 html[data-theme="dark"] .page-controls .page-control-duplicate {
