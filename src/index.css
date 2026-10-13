@@ -6,7 +6,6 @@
 html:not([data-theme="dark"]) .section-picker-card:hover,
 html[data-theme="light"] .section-picker-card:hover {
   background-color: #ffffff !important;
-  color: #171714 !important;
 }
 
 :root {
@@ -397,8 +396,54 @@ button {
 }
 
 .editor-menu-popover button:hover {
+  color: #a63d24;
+  background: color-mix(in srgb, var(--editor-accent) 10%, white);
+}
+
+/* Keep controls legible when theme utilities and palette overrides meet. */
+.editor-theme .editor-bar .editor-icon-button:hover,
+.editor-theme .editor-bar .editor-icon-button.is-active {
   color: var(--editor-accent);
-  background: rgb(23 23 20 / 0.045);
+  background: color-mix(in srgb, var(--editor-accent) 10%, var(--editor-paper));
+}
+
+.editor-theme .editor-bar button[aria-label="Add page"] {
+  color: var(--editor-accent);
+}
+
+.editor-theme .editor-bar button[aria-label="Add page"]:hover {
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 11%, var(--editor-paper));
+}
+
+.editor-theme .editor-bar button[aria-label="Share edition"] {
+  color: var(--editor-accent);
+  background: var(--editor-paper);
+}
+
+.editor-theme .editor-bar button[aria-label="Share edition"]:hover {
+  color: white;
+  background: var(--editor-accent);
+}
+
+.editor-theme .section-picker-card {
+  color: var(--editor-ink);
+}
+
+.editor-theme .section-picker-card:hover {
+  color: var(--editor-ink);
+}
+
+.editor-theme .section-picker-card:hover .page-preset-title {
+  color: #a63d24;
+}
+
+.editor-theme .section-picker-card:hover .page-preset-mark {
+  background-color: var(--editor-accent);
+}
+
+.editor-theme .section-picker-card:hover .page-preset-mark {
+  color: white;
 }
 
 html[data-theme="dark"] .editor-theme .editor-bar {
@@ -445,7 +490,42 @@ html[data-theme="dark"] .editor-menu-popover {
 }
 
 html[data-theme="dark"] .editor-menu-popover button:hover {
-  background: rgb(255 255 255 / 0.07);
+  color: #ffd9ce;
+  background: color-mix(in srgb, var(--editor-accent) 24%, #242421);
+}
+
+html[data-theme="dark"] .editor-theme .editor-bar .editor-icon-button:hover,
+html[data-theme="dark"] .editor-theme .editor-bar .editor-icon-button.is-active {
+  color: #ffd9ce;
+  background: color-mix(in srgb, var(--editor-accent) 20%, #242421);
+}
+
+html[data-theme="dark"] .editor-theme .editor-bar button[aria-label="Add page"] {
+  color: #ffad95;
+}
+
+html[data-theme="dark"] .editor-theme .editor-bar button[aria-label="Add page"]:hover {
+  color: #ffad95;
+  background: rgb(255 255 255 / 0.1);
+}
+
+html[data-theme="dark"] .editor-theme .editor-bar button[aria-label="Share edition"] {
+  color: #ffad95;
+  background: #282724;
+}
+
+html[data-theme="dark"] .editor-theme .editor-bar button[aria-label="Share edition"]:hover {
+  color: white;
+  background: var(--editor-accent);
+}
+
+html[data-theme="dark"] .editor-theme .section-picker-card:hover {
+  color: var(--editor-ink);
+  background-color: #2e2d29;
+}
+
+html[data-theme="dark"] .editor-theme .section-picker-card:hover .page-preset-title {
+  color: #ffad95;
 }
 
 html[data-theme="dark"] .editor-theme .page {
@@ -558,25 +638,27 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   align-items: center;
   overflow: hidden;
   border: 1px solid rgb(0 0 0 / 0.14);
-  border-radius: 999px;
+  border-radius: 0.8rem;
   opacity: 0;
-  color: #171714;
-  background: #f8f5ed;
-  box-shadow: 0 4px 18px rgb(0 0 0 / 0.15);
-  backdrop-filter: blur(8px);
-  transition: opacity 150ms ease;
+  color: var(--editor-ink);
+  background: color-mix(in srgb, var(--editor-paper) 96%, transparent);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.09);
+  backdrop-filter: blur(12px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  transform: translateY(2px);
 }
 
 html[data-theme="dark"] .block-controls {
-  color: #f3f0e8;
-  background: #20201d;
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  color: var(--editor-ink);
+  background: color-mix(in srgb, var(--editor-paper) 96%, transparent);
+  border-color: color-mix(in srgb, var(--editor-ink) 12%, transparent);
+  box-shadow: 0 3px 14px rgb(0 0 0 / 0.18);
 }
 
 .builder-block:hover .block-controls,
 .block-controls:focus-within {
   opacity: 1;
+  transform: translateY(0);
 }
 
 .block-controls button:not(.h-5):not(.w-auto),
@@ -585,15 +667,16 @@ html[data-theme="dark"] .block-controls {
   width: 29px;
   height: 29px;
   place-items: center;
-  border-left: 1px solid rgb(0 0 0 / 0.1);
-  font-size: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--editor-ink) 9%, transparent);
+  color: color-mix(in srgb, var(--editor-ink) 70%, transparent);
+  font-size: 11px;
   cursor: pointer;
 }
 
 html[data-theme="dark"] .block-controls button:not(.h-5):not(.w-auto),
 html[data-theme="dark"] .drag-handle {
-  border-left-color: rgba(255, 255, 255, 0.1);
-  color: #f3f0e8;
+  border-left-color: color-mix(in srgb, var(--editor-ink) 9%, transparent);
+  color: color-mix(in srgb, var(--editor-ink) 70%, transparent);
 }
 
 .drag-handle {
@@ -602,8 +685,71 @@ html[data-theme="dark"] .drag-handle {
 }
 
 .block-controls button:not(.h-5):not(.w-auto):hover {
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 10%, var(--editor-paper));
+}
+
+.block-controls .drag-handle {
+  color: color-mix(in srgb, var(--editor-ink) 45%, transparent);
+}
+
+.block-controls .drag-handle:hover {
+  color: var(--editor-ink);
+  background: color-mix(in srgb, var(--editor-ink) 5%, transparent);
+}
+
+.block-controls button.h-5 {
+  min-width: 1.45rem;
+  color: color-mix(in srgb, var(--editor-ink) 72%, transparent);
+}
+
+.block-controls button.h-5:hover {
+  color: var(--editor-ink);
+  background: color-mix(in srgb, var(--editor-ink) 7%, transparent);
+}
+
+.block-controls button.h-5.bg-\\[\\#ef5a35\\] {
   color: white;
-  background: #ef5a35;
+  background: var(--editor-accent);
+}
+
+.page-controls {
+  box-shadow: 0 3px 14px rgb(31 28 23 / 0.09);
+}
+
+.page-control-button:hover {
+  color: var(--editor-ink);
+  background: color-mix(in srgb, var(--editor-ink) 6%, var(--editor-paper));
+}
+
+.page-controls .page-control-duplicate {
+  color: #a63d24;
+  background: color-mix(in srgb, var(--editor-accent) 9%, var(--editor-paper));
+}
+
+.page-controls .page-control-duplicate:hover {
+  color: white;
+  background: var(--editor-accent);
+}
+
+.page-controls .page-control-delete:hover {
+  color: white;
+  background: #b94339;
+}
+
+html[data-theme="dark"] .page-control-button:hover {
+  color: #f3f0e8;
+  background: color-mix(in srgb, var(--editor-ink) 8%, var(--editor-paper));
+}
+
+html[data-theme="dark"] .page-controls .page-control-duplicate {
+  color: #ffd1c4;
+  background: color-mix(in srgb, var(--editor-accent) 22%, var(--editor-paper));
+}
+
+html[data-theme="dark"] .page-controls .page-control-duplicate:hover {
+  color: white;
+  background: var(--editor-accent);
 }
 
 .toolbar-button {

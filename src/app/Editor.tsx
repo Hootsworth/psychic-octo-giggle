@@ -932,7 +932,7 @@ function BuilderBlock({
       </div>
 
       {/* Top Right: Floating Control Bar contained within block bounds */}
-      <div className="block-controls editor-only">
+      <div className="block-controls editor-only" aria-label="Section controls">
         <span className="drag-handle" title="Drag to reorder block">⠿</span>
 
         {/* Noticeboard QR & Submission Tracking trigger */}
@@ -2651,8 +2651,8 @@ export default function App() {
                   onClick={() => addPage(id as PagePresetKind)}
                   type="button"
                 >
-                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-3xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724] dark:group-hover:bg-[#ef5a35]">{mark}</span>
-                  <span className="font-serif text-2xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{name}</span>
+                  <span className="page-preset-mark mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-3xl transition dark:border-white/10 dark:bg-[#282724]">{mark}</span>
+                  <span className="page-preset-title font-serif text-2xl text-[#171714] transition-colors dark:text-[#f3f0e8]">{name}</span>
                   <span className="mt-2 block text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{description}</span>
                 </button>
               ))}
@@ -2670,8 +2670,8 @@ export default function App() {
                   onClick={() => addPage(id as PagePresetKind)}
                   type="button"
                 >
-                  <span className="mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-2xl transition group-hover:bg-[#ef5a35] group-hover:text-white dark:border-white/10 dark:bg-[#282724] dark:group-hover:bg-[#ef5a35]">{mark}</span>
-                  <span className="font-serif text-2xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{name}</span>
+                  <span className="page-preset-mark mb-8 grid h-16 place-items-center border border-black/10 bg-[#efe8d8] font-serif text-2xl transition dark:border-white/10 dark:bg-[#282724]">{mark}</span>
+                  <span className="page-preset-title font-serif text-2xl text-[#171714] transition-colors dark:text-[#f3f0e8]">{name}</span>
                   <span className="mt-2 block text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{description}</span>
                 </button>
               ))}
@@ -2955,12 +2955,12 @@ export default function App() {
 
               {/* Floating Page Action Bar in Editor Mode */}
               <div
-                className="editor-only absolute right-6 top-2.5 z-20 flex items-center gap-1 rounded-full border border-black/15 bg-[#f8f5ed]/95 p-1 shadow-md backdrop-blur-sm sm:right-10 md:right-14 dark:border-white/15 dark:bg-[#20201d]/95"
+                className="page-controls editor-only absolute right-6 top-2.5 z-20 flex items-center gap-1 rounded-xl border border-black/10 bg-[#f8f5ed]/95 p-1 shadow-sm backdrop-blur-sm sm:right-10 md:right-14 dark:border-white/10 dark:bg-[#20201d]/95"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Drag Handle to reorder whole page */}
                 <div
-                  className="grid h-6 w-6 cursor-grab place-items-center rounded-full text-black/50 hover:bg-black/10 hover:text-black dark:text-[#f3f0e8]/50 dark:hover:bg-white/10 dark:hover:text-white"
+                  className="page-control-button grid h-7 w-7 cursor-grab place-items-center rounded-lg text-black/45 hover:bg-black/5 hover:text-black dark:text-[#f3f0e8]/55 dark:hover:bg-white/10 dark:hover:text-white"
                   draggable
                   onDragStart={() => {
                     pageDragRef.current = pageIndex;
@@ -2972,7 +2972,7 @@ export default function App() {
 
                 {/* Move Up */}
                 <button
-                  className="grid h-6 w-6 place-items-center rounded-full text-xs font-bold text-black/60 hover:bg-black/10 hover:text-black disabled:pointer-events-none disabled:opacity-25 dark:text-[#f3f0e8]/70 dark:hover:bg-white/10 dark:hover:text-white"
+                  className="page-control-button grid h-7 w-7 place-items-center rounded-lg text-xs font-semibold text-black/55 hover:bg-black/5 hover:text-black disabled:pointer-events-none disabled:opacity-25 dark:text-[#f3f0e8]/70 dark:hover:bg-white/10 dark:hover:text-white"
                   disabled={pageIndex === 0}
                   onClick={() => movePage(pageIndex, pageIndex - 1)}
                   title="Move page up (earlier in issue)"
@@ -2983,7 +2983,7 @@ export default function App() {
 
                 {/* Move Down */}
                 <button
-                  className="grid h-6 w-6 place-items-center rounded-full text-xs font-bold text-black/60 hover:bg-black/10 hover:text-black disabled:pointer-events-none disabled:opacity-25 dark:text-[#f3f0e8]/70 dark:hover:bg-white/10 dark:hover:text-white"
+                  className="page-control-button grid h-7 w-7 place-items-center rounded-lg text-xs font-semibold text-black/55 hover:bg-black/5 hover:text-black disabled:pointer-events-none disabled:opacity-25 dark:text-[#f3f0e8]/70 dark:hover:bg-white/10 dark:hover:text-white"
                   disabled={pageIndex === pages.length - 1}
                   onClick={() => movePage(pageIndex, pageIndex + 1)}
                   title="Move page down (later in issue)"
@@ -2996,7 +2996,7 @@ export default function App() {
 
                 {/* Duplicate Page Button */}
                 <button
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-[0.08em] text-[#ef5a35] transition hover:bg-[#ef5a35] hover:text-white"
+                  className="page-control-duplicate inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[9px] font-semibold text-[#ef5a35] transition"
                   onClick={() => duplicatePage(pageIndex)}
                   title="Duplicate entire page with all sections"
                   type="button"
@@ -3007,7 +3007,7 @@ export default function App() {
                 {/* Remove Page Button */}
                 {pages.length > 1 && (
                   <button
-                    className="grid h-6 w-6 place-items-center rounded-full text-xs text-black/40 transition hover:bg-red-600 hover:text-white dark:text-[#f3f0e8]/40"
+                    className="page-control-delete grid h-7 w-7 place-items-center rounded-lg text-xs text-black/40 transition dark:text-[#f3f0e8]/45"
                     onClick={() => removePage(pageIndex)}
                     title="Remove page"
                     type="button"
