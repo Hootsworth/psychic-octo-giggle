@@ -2611,16 +2611,6 @@ export default function App() {
           </details>
           <button aria-label={preview ? "Return to editing" : "Preview"} className="editor-icon-button" onClick={() => setPreview(!preview)} title={preview ? "Return to editing" : "Preview"} type="button"><EditorIcon name={preview ? "edit" : "preview"} /></button>
           <button
-            aria-label="Email Studio"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#ef5a35]/40 bg-[#ef5a35]/10 px-2.5 sm:px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-[#ef5a35]/50 dark:bg-[#ef5a35]/15 dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
-            onClick={() => setEmailModalOpen(true)}
-            title="Responsive Email Studio, HTML Export & Test Delivery"
-            type="button"
-          >
-            <EditorIcon name="mail" />
-            <span className="hidden sm:inline">Email</span>
-          </button>
-          <button
             aria-label="Share edition"
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-black/15 bg-white/80 px-2.5 sm:px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#20201d] dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
             onClick={() => setShareOpen(true)}
