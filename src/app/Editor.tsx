@@ -1024,7 +1024,6 @@ function BuilderBlock({
           </div>
         )}
 
-        <button aria-label="Duplicate section" className="block-primary-action" onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block" type="button">＋</button>
         <button aria-label="Delete section" className="block-danger-action" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block" type="button">×</button>
       </div>
 
