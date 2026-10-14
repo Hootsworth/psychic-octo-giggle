@@ -169,7 +169,9 @@ export default function EmailExportModal({
         <div className="flex flex-wrap items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/10">
           <div className="flex items-center gap-3">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-[#ef5a35]/15 text-[#ef5a35]">
-              ✉
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
             </span>
             <div>
               <h2 className="font-serif text-xl font-bold tracking-tight">Responsive Email Studio</h2>
@@ -252,14 +254,20 @@ export default function EmailExportModal({
               onClick={() => setViewMode("desktop")}
               type="button"
             >
-              <span>🖥️ Desktop (600px)</span>
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>Desktop (600px)</span>
             </button>
             <button
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition ${viewMode === "mobile" ? "bg-[#171714] text-white dark:bg-white dark:text-black" : "text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"}`}
               onClick={() => setViewMode("mobile")}
               type="button"
             >
-              <span>📱 Mobile (375px)</span>
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span>Mobile (375px)</span>
             </button>
             <button
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition ${viewMode === "code" ? "bg-[#171714] text-white dark:bg-white dark:text-black" : "text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"}`}
@@ -273,7 +281,10 @@ export default function EmailExportModal({
               onClick={() => setViewMode("send")}
               type="button"
             >
-              <span>🚀 Send Test Email</span>
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+              <span>Send Test Email</span>
             </button>
           </div>
 
@@ -422,7 +433,7 @@ export default function EmailExportModal({
                       onClick={handleSendTest}
                       type="button"
                     >
-                      {isSending ? "Dispatching Email..." : apiKey ? "Send Live Proof to Inbox ✉" : "Run Test Email Simulation ✉"}
+                      {isSending ? "Dispatching Email..." : apiKey ? "Send Live Proof to Inbox" : "Run Test Email Simulation"}
                     </button>
                   </div>
                 </div>

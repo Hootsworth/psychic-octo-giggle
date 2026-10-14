@@ -103,8 +103,11 @@ export default function SudokuSection({
         </p>
 
         {isSolved && (
-          <div className="my-2 rounded-lg bg-[#dce9e1] p-2 text-center text-xs font-bold text-[#315b4b]">
-            🎉 Sudoku Solved! Brilliant work!
+          <div className="my-2 flex items-center justify-center gap-2 rounded-lg bg-[#dce9e1] p-2 text-center text-xs font-bold text-[#315b4b]">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span>Sudoku Solved! Brilliant work!</span>
           </div>
         )}
       </div>

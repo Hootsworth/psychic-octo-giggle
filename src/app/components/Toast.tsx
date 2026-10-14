@@ -74,9 +74,6 @@ export default function ToastContainer() {
         const isSuccess = item.type === "success";
         const isError = item.type === "error";
         const isWarning = item.type === "warning";
-
-        const icon = isSuccess ? "✓" : isError ? "✕" : isWarning ? "⚠" : "ℹ";
-
         return (
           <div
             className="pointer-events-auto flex items-start gap-3 rounded-xl border border-black/15 bg-[#f8f5ed]/95 p-3.5 shadow-2xl backdrop-blur-md transition-all duration-200 animate-in slide-in-from-bottom-2 dark:border-white/15 dark:bg-[#20201d]/95 dark:text-[#f3f0e8]"
@@ -93,7 +90,23 @@ export default function ToastContainer() {
                   : "bg-[#171714] dark:bg-white dark:text-black"
               }`}
             >
-              {icon}
+              {isSuccess ? (
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : isError ? (
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : isWarning ? (
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              ) : (
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+              )}
             </span>
 
             <div className="flex-1 min-w-0 pr-1">

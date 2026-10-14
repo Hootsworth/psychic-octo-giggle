@@ -192,7 +192,10 @@ export default function CrosswordSection({
                 title="Launch the visual Crossword Studio modal to customize words, clues & grid structure"
                 type="button"
               >
-                <span>✏️ Open Crossword Studio</span>
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span>Open Crossword Studio</span>
               </button>
             )}
             <button
@@ -233,7 +236,12 @@ export default function CrosswordSection({
 
         {isSolved && (
           <div className="my-3 flex items-center justify-between rounded-xl bg-[#dce9e1] p-3 text-xs font-bold text-[#315b4b] shadow-sm">
-            <span>🎉 Puzzle Solved! Superb work, editor!</span>
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span>Puzzle Solved! Superb work, editor!</span>
+            </div>
             <span className="text-[10px] font-normal uppercase tracking-wider">100% Accurate</span>
           </div>
         )}

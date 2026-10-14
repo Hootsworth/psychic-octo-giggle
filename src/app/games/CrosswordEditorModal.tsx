@@ -421,7 +421,12 @@ export default function CrosswordEditorModal({
                   onClick={() => setToolMode("letters")}
                   type="button"
                 >
-                  ✏️ Fill Letters
+                  <span className="inline-flex items-center gap-1.5">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    <span>Fill Letters</span>
+                  </span>
                 </button>
                 <button
                   className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
@@ -432,7 +437,10 @@ export default function CrosswordEditorModal({
                   onClick={() => setToolMode("blocks")}
                   type="button"
                 >
-                  ⬛ Place Blocks (■)
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-3 w-3 rounded-xs bg-current" />
+                    <span>Place Blocks</span>
+                  </span>
                 </button>
               </div>
 
@@ -585,8 +593,11 @@ export default function CrosswordEditorModal({
 
             {/* Quick Helper Footer */}
             <div className="mt-3 flex items-center justify-between text-[10px] text-black/50 dark:text-[#f3f0e8]/50">
-              <span>
-                💡 Type letters freely · Space/Enter flips direction · # or block tool adds black squares
+              <span className="flex items-center gap-1.5">
+                <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Type letters freely · Space/Enter flips direction · # or block tool adds black squares</span>
               </span>
               {activeWordInfo && (
                 <span className="font-semibold text-[#ef5a35]">
@@ -618,7 +629,7 @@ export default function CrosswordEditorModal({
 
                   {activeWordInfo.clue && (
                     <button
-                      className="rounded-full border border-[#ef5a35]/40 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:bg-[#1a1a17]"
+                      className="inline-flex items-center gap-1 rounded-full border border-[#ef5a35]/40 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:bg-[#1a1a17]"
                       onClick={() =>
                         applySmartClue(
                           activeWordInfo.dir,
@@ -631,7 +642,10 @@ export default function CrosswordEditorModal({
                       title="Generate a smart campus clue suggestion for this word"
                       type="button"
                     >
-                      🪄 Suggest Clue
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                      </svg>
+                      <span>Suggest Clue</span>
                     </button>
                   )}
                 </div>
@@ -736,13 +750,16 @@ export default function CrosswordEditorModal({
 
                         <div className="flex items-center gap-1.5">
                           <button
-                            className="text-[9px] font-bold uppercase text-[#ef5a35] hover:underline"
+                            className="inline-flex items-center gap-1 text-[9px] font-bold uppercase text-[#ef5a35] hover:underline"
                             onClick={() =>
                               applySmartClue(activeTab, item.number, item.row, item.col, item.answer || "")
                             }
                             type="button"
                           >
-                            🪄 Suggest
+                            <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                            </svg>
+                            <span>Suggest</span>
                           </button>
                           <button
                             className="rounded border border-black/10 px-2 py-0.5 text-[9px] font-bold uppercase text-black/60 hover:border-black hover:text-black dark:border-white/10 dark:text-[#f3f0e8]/60"

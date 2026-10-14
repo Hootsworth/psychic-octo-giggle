@@ -396,14 +396,15 @@ function PhotoField({
       <div className="editor-only absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] flex-wrap gap-1">
         <button className="rounded-full bg-[#f8f5ed] px-3.5 py-2 text-[9px] font-bold uppercase tracking-[0.14em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => inputRef.current?.click()} type="button">{image ? "Upload" : label}</button>
         <button
-          className="rounded-full bg-[#f8f5ed] px-3.5 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white transition"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#f8f5ed] px-3.5 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white transition"
           onClick={() => {
             window.dispatchEvent(new CustomEvent("iow-open-photo-picker", { detail: { storageKey } }));
           }}
           title="Browse curated editorial photo library"
           type="button"
         >
-          Library 📷
+          <EditorIcon name="camera" />
+          <span>Library</span>
         </button>
         {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => { const positions = ["center", "center top", "center bottom"]; updateMeta({ ...meta, position: positions[(positions.indexOf(meta.position) + 1) % positions.length] }); }} title="Cycle image focal point" type="button">Focus</button>}
         {image && (
@@ -636,7 +637,10 @@ function SectionContent({
                 title="Configure QR Code & Track Submissions"
                 type="button"
               >
-                <span>⚙️ QR Tracker</span>
+                <span className="inline-flex items-center gap-1">
+                  <EditorIcon name="gear" />
+                  <span>QR Tracker</span>
+                </span>
               </button>
             )}
           </div>
@@ -684,8 +688,9 @@ function SectionContent({
                 </p>
               </div>
               {onConfigureNoticeQr && (
-                <span className="editor-only text-[10px] font-bold text-black/40 group-hover/notice:text-[#ef5a35]">
-                  Edit ✎
+                <span className="editor-only inline-flex items-center gap-1 text-[10px] font-bold text-black/40 group-hover/notice:text-[#ef5a35]">
+                  <EditorIcon name="edit" />
+                  <span>Edit</span>
                 </span>
               )}
             </div>
@@ -832,7 +837,9 @@ function SectionContent({
   if (type === "crossword") {
     return (
       <div className="flex h-full min-h-[260px] flex-col items-center justify-center border border-dashed border-black/25 bg-[#f8f5ed] p-8 text-center">
-        <span className="text-3xl">🧩</span>
+        <span className="grid h-12 w-12 place-items-center rounded-xl border border-black/10 bg-[#ef5a35]/10 text-[#ef5a35]">
+          <EditorIcon name="puzzle" />
+        </span>
         <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Newspaper Games</span>
         <h3 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#171714]">Crossword Puzzle — Coming Soon</h3>
         <p className="mt-2 max-w-sm text-xs leading-relaxed text-black/55">
@@ -945,7 +952,10 @@ function BuilderBlock({
             title="Configure Submission QR Code & Tracking"
             type="button"
           >
-            <span>⚙️ QR</span>
+            <span className="inline-flex items-center gap-1">
+              <EditorIcon name="gear" />
+              <span>QR</span>
+            </span>
           </button>
         )}
 
@@ -1092,7 +1102,8 @@ type EditorIconName =
   | "back" | "workflow" | "write" | "palette" | "pages" | "undo" | "redo"
   | "add" | "preview" | "edit" | "save" | "type" | "bold" | "italic"
   | "underline" | "list" | "ordered" | "left" | "center" | "link"
-  | "heading" | "clear" | "close";
+  | "heading" | "clear" | "close" | "mail" | "share" | "camera" | "gear"
+  | "puzzle" | "alert" | "sparkle";
 
 function EditorIcon({ name }: { name: EditorIconName }) {
   const paths: Record<EditorIconName, ReactNode> = {
@@ -1119,6 +1130,13 @@ function EditorIcon({ name }: { name: EditorIconName }) {
     heading: <path d="M5 5v14M15 5v14M5 12h10M19 10v9M17 12l2-2 2 2" />,
     clear: <><path d="M4 7h16" /><path d="M10 11v6M14 11v6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></>,
     close: <path d="m6 6 12 12M18 6 6 18" />,
+    mail: <path d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />,
+    share: <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 1 1 0-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 1 0 5.367-2.684 3 3 0 0 0-5.367 2.684zm0 9.316a3 3 0 1 0 5.368 2.684 3 3 0 0 0-5.368-2.684z" />,
+    camera: <><path d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316z" /><circle cx="12" cy="12.75" r="4.5" /></>,
+    gear: <><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><circle cx="12" cy="12" r="3" /></>,
+    puzzle: <path d="M11 4a2 2 0 0 1 2 2v1h1a2 2 0 0 1 2 2 2 2 0 0 0 4 0 2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2 2 2 0 0 0 0 4 2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2 2 2 0 0 0-4 0 2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2 2 2 0 0 0 0-4 2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4a2 2 0 0 0 0-4 2 2 0 0 1 2-2z" />,
+    alert: <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />,
+    sparkle: <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z" />,
   };
   return <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24">{paths[name]}</svg>;
 }
@@ -2459,20 +2477,20 @@ export default function App() {
         "--editor-sans": fontPair.sans,
       } as CSSProperties}
     >
-      <header className="editor-bar sticky top-0 z-40 flex min-h-[4.25rem] flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b border-black/10 bg-[#f4f1e9]/95 px-4 py-2.5 backdrop-blur-md md:px-8">
+      <header className="editor-bar sticky top-0 z-40 flex h-14 flex-nowrap items-center justify-between gap-x-2 border-b border-black/10 bg-[#f4f1e9]/95 px-3 sm:px-4 md:px-6 backdrop-blur-md">
         <div className="flex shrink-0 items-center gap-2">
           <Link aria-label="Back to dashboard" className="editor-icon-button" to="/" title="Back to dashboard"><EditorIcon name="back" /></Link>
-          <BrandLogo className="h-9 w-[4.5rem] opacity-75" />
-          <div className="hidden min-w-0 border-l border-black/10 pl-4 xl:block dark:border-white/10">
+          <BrandLogo className="h-8 w-16 opacity-85" />
+          <div className="hidden min-w-0 border-l border-black/10 pl-3 2xl:block dark:border-white/10">
             <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-black/40 dark:text-white/40">Issue editor</p>
-            <p className="mt-1 max-w-56 truncate font-serif text-[15px] leading-none">{issue.title}</p>
+            <p className="mt-0.5 max-w-44 truncate font-serif text-[14px] leading-none">{issue.title}</p>
           </div>
         </div>
 
-        <nav className="editor-page-nav flex max-w-[24vw] items-center gap-0.5 overflow-x-auto rounded-xl border border-black/5 bg-black/[0.025] p-1">
+        <nav className="editor-page-nav hidden md:flex max-w-[20vw] items-center gap-0.5 overflow-x-auto rounded-xl border border-black/5 bg-black/[0.025] p-1">
           {pages.map((_, pageIndex) => (
             <a
-              className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${activePage === pageIndex ? "bg-white shadow-sm dark:bg-white/10" : ""}`}
+              className={`rounded-lg px-2.5 py-1 text-[10px] font-medium ${activePage === pageIndex ? "bg-white shadow-sm dark:bg-white/10" : ""}`}
               href={`#page-${pageIndex + 1}`}
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
@@ -2480,17 +2498,17 @@ export default function App() {
               {pageIndex + 1}
             </a>
           ))}
-          <button aria-label="Add page" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#ef5a35] hover:bg-white/70 dark:hover:bg-white/10" onClick={() => setPageMenuOpen(true)} title="Add page" type="button"><EditorIcon name="add" /></button>
+          <button aria-label="Add page" className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-[#ef5a35] hover:bg-white/70 dark:hover:bg-white/10" onClick={() => setPageMenuOpen(true)} title="Add page" type="button"><EditorIcon name="add" /></button>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <CollaboratorAvatars
             collaborators={collaborators}
             isConnected={isConnected}
             myId={myId}
             myColor={userColor}
           />
-          <span className="mx-1 hidden h-5 w-px bg-black/10 sm:block" />
+          <span className="mx-0.5 hidden h-5 w-px bg-black/10 sm:block" />
 
           {/* Editorial Notes / Comments button */}
           <button
@@ -2549,7 +2567,7 @@ export default function App() {
 
           {/* Auto-Save & Sync Status Pill */}
           <button
-            className="editor-save-status hidden xl:flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium text-black/55 dark:text-white/65 transition"
+            className="editor-save-status hidden 2xl:flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-medium text-black/55 dark:text-white/65 transition"
             onClick={saveDraft}
             title="Click to force instant save to browser storage"
             type="button"
@@ -2560,19 +2578,30 @@ export default function App() {
 
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "is-active" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
           <button aria-label="Text formatting" className={`editor-icon-button hidden sm:grid ${formatOpen ? "is-active" : ""}`} onClick={() => setFormatOpen(!formatOpen)} title="Text formatting" type="button"><EditorIcon name="type" /></button>
-          <div className="editor-history-controls hidden lg:flex items-center gap-0.5 border-l border-black/10 pl-2 dark:border-white/10">
+          <div className="editor-history-controls hidden xl:flex items-center gap-0.5 border-l border-black/10 pl-1.5 dark:border-white/10">
             <button aria-label="Undo layout change" className="editor-icon-button disabled:opacity-25 disabled:pointer-events-none" disabled={!canUndo} onClick={undo} title="Undo layout change (⌘Z)" type="button"><EditorIcon name="undo" /></button>
             <button aria-label="Redo layout change" className="editor-icon-button disabled:opacity-25 disabled:pointer-events-none" disabled={!canRedo} onClick={redo} title="Redo layout change (⌘⇧Z)" type="button"><EditorIcon name="redo" /></button>
           </div>
-          <select aria-label="Publication status" className="hidden rounded-full border border-black/15 bg-transparent px-2 py-2 text-[8px] font-bold uppercase tracking-[0.08em] outline-none md:block" onChange={(event) => setStatus(event.target.value as Issue["status"])} value={issue.status}>
-            <option value="draft">Draft</option>
-            <option value="review">In review</option>
-            <option value="published">Published</option>
-          </select>
           <button aria-label="Add section" className="editor-icon-button" onClick={() => setLibraryOpen(true)} title="Add section" type="button"><EditorIcon name="add" /></button>
-          <details className="editor-more-menu relative hidden sm:block">
+          <details className="editor-more-menu relative">
             <summary className="editor-icon-button grid cursor-pointer list-none place-items-center" aria-label="More editor tools" title="More tools"><span className="text-base leading-none">···</span></summary>
-            <div className="editor-menu-popover absolute right-0 top-10 z-50 grid min-w-48 gap-1 rounded-xl border p-1.5 shadow-xl">
+            <div className="editor-menu-popover absolute right-0 top-10 z-50 grid min-w-52 gap-1 rounded-xl border p-2 shadow-xl">
+              <div className="flex items-center justify-between px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">
+                <span>Status</span>
+                <span className="font-semibold text-[#ef5a35]">{issue.status}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 px-1 pb-1.5 mb-1 border-b border-black/10 dark:border-white/10">
+                {(["draft", "review", "published"] as const).map((s) => (
+                  <button
+                    key={s}
+                    className={`rounded py-1 text-[9px] uppercase font-bold tracking-wider transition ${issue.status === s ? "bg-[#ef5a35] text-white shadow-xs" : "bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"}`}
+                    onClick={() => setStatus(s)}
+                    type="button"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
               <button onClick={() => setDesignOpen(true)} type="button">Document design</button>
               <button onClick={() => setPageMenuOpen(true)} type="button">Manage pages</button>
               <button onClick={() => setStudioOpen(true)} type="button">Production studio</button>
@@ -2583,34 +2612,32 @@ export default function App() {
           <button aria-label={preview ? "Return to editing" : "Preview"} className="editor-icon-button" onClick={() => setPreview(!preview)} title={preview ? "Return to editing" : "Preview"} type="button"><EditorIcon name={preview ? "edit" : "preview"} /></button>
           <button
             aria-label="Email Studio"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#ef5a35]/40 bg-[#ef5a35]/10 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-[#ef5a35]/50 dark:bg-[#ef5a35]/15 dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#ef5a35]/40 bg-[#ef5a35]/10 px-2.5 sm:px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-[#ef5a35]/50 dark:bg-[#ef5a35]/15 dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
             onClick={() => setEmailModalOpen(true)}
             title="Responsive Email Studio, HTML Export & Test Delivery"
             type="button"
           >
-            <span className="text-xs">✉</span>
-            <span>Email</span>
+            <EditorIcon name="mail" />
+            <span className="hidden sm:inline">Email</span>
           </button>
           <button
             aria-label="Share edition"
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-white/80 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#20201d] dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-black/15 bg-white/80 px-2.5 sm:px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#20201d] dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
             onClick={() => setShareOpen(true)}
             title="Share reader edition & generate links"
             type="button"
           >
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>Share</span>
+            <EditorIcon name="share" />
+            <span className="hidden sm:inline">Share</span>
           </button>
-          <button className="editor-export-button rounded-lg px-4 py-2 text-[10px] font-semibold disabled:cursor-wait disabled:opacity-60" disabled={exporting} onClick={downloadPdf} type="button">
+          <button className="editor-export-button shrink-0 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] font-semibold disabled:cursor-wait disabled:opacity-60 whitespace-nowrap" disabled={exporting} onClick={downloadPdf} type="button">
             {exporting ? exportProgress : "Export PDF"}
           </button>
         </div>
       </header>
 
       {formatOpen && (
-        <div className="editor-only fixed right-4 top-[4.25rem] z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed]/95 p-2 shadow-xl backdrop-blur-md dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-[#f3f0e8]">
+        <div className="editor-only fixed right-4 top-14 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed]/95 p-2 shadow-xl backdrop-blur-md dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-[#f3f0e8]">
           {[
             ["bold", "bold"], ["italic", "italic"], ["underline", "underline"],
             ["insertUnorderedList", "list"], ["insertOrderedList", "ordered"],
@@ -3200,7 +3227,7 @@ export default function App() {
               {pageOverflowHeights[pageIndex] && (
                 <div className="editor-only mx-6 my-3 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-900 sm:mx-10 md:mx-14 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
                   <div className="flex items-center gap-2 text-xs">
-                    <span>⚠️</span>
+                    <EditorIcon name="alert" />
                     <span className="font-semibold">Print Safe-Zone:</span>
                     <span className="text-[11px] opacity-90">
                       Page {pageIndex + 1} content height ({pageOverflowHeights[pageIndex]}px) exceeds target boundary (~1350px).

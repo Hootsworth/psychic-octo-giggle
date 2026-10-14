@@ -323,7 +323,7 @@ export function generateEmailHtml(options: EmailGenerationOptions): string {
                   Campus Recreation Desk
                 </p>
                 <h3 style="margin: 0 0 8px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; font-weight: 700; color: ${ink};">
-                  🧩 ${puzzleTitle}
+                  ${puzzleTitle}
                 </h3>
                 <p style="margin: 0 0 16px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 14px; line-height: 1.5; color: #555550;">
                   This week's edition features an interactive ${puzzleTitle}. Play, fill in answers, and track your time in our live digital reader.
@@ -352,7 +352,6 @@ export function generateEmailHtml(options: EmailGenerationOptions): string {
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid #dcd7ce; padding: 18px; border-radius: 4px; background-color: #ffffff;">
             <tr>
               <td>
-                <span style="font-size: 20px; margin-right: 8px;">🎧</span>
                 <span style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${accent};">Campus Audio</span>
                 <h4 style="margin: 8px 0 6px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; font-weight: 700; color: ${ink};">
                   ${cleanHtmlFormatting(title || "Audio Feature & Playlist")}
