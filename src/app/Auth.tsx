@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { supabase } from "./supabaseClient";
 import BrandLogo from "./BrandLogo";
+import AuthLegalModal, { type LegalModalTab } from "./components/AuthLegalModal";
 
 type View = "signin" | "signup" | "forgot" | "reset" | "confirmation";
 
@@ -16,6 +17,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [legalModal, setLegalModal] = useState<LegalModalTab | null>(null);
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -89,7 +91,11 @@ export default function Auth() {
           <BrandLogo className="mb-10 h-20 w-40 object-left lg:hidden" priority />
           {view === "confirmation" ? (
             <div className="border border-black/10 bg-white p-8">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-[#dce9e1] text-xl text-[#315b4b]">✓</span>
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-[#dce9e1] text-[#315b4b]">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </span>
               <h2 className="mt-7 font-serif text-4xl tracking-[-0.04em]">Check your inbox.</h2>
               <p className="mt-4 text-sm leading-relaxed text-black/50">We sent a confirmation link to <strong className="text-black">{email}</strong>. Confirm your address, then return to sign in.</p>
               <button className="mt-8 rounded-full bg-[#171714] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.12em] text-white" onClick={() => setView("signin")} type="button">Back to sign in</button>
@@ -112,11 +118,79 @@ export default function Auth() {
                 {view === "signin" && <><button className="text-black/45 hover:text-[#ef5a35]" onClick={() => { setError(""); setView("forgot"); }} type="button">Forgot password?</button><button className="font-semibold hover:text-[#ef5a35]" onClick={() => { setError(""); setView("signup"); }} type="button">Create an account</button></>}
                 {(view === "signup" || view === "forgot") && <button className="font-semibold hover:text-[#ef5a35]" onClick={() => { setError(""); setView("signin"); }} type="button">Already have an account? Sign in</button>}
               </div>
-              <p className="mt-10 border-t border-black/10 pt-5 text-[9px] leading-relaxed text-black/35">By continuing, you agree to follow your university’s privacy, acceptable-use, and editorial policies. Do not store sensitive student records in newsletter content.</p>
+
+              {/* Legal & Editorial Policy notice with TnC, Privacy Policy, and FAQ links */}
+              <div className="mt-8 border-t border-black/10 pt-5">
+                <p className="text-[10px] leading-relaxed text-black/50">
+                  By continuing, you agree to our{" "}
+                  <button
+                    className="font-semibold text-black underline underline-offset-2 hover:text-[#ef5a35] transition"
+                    onClick={() => setLegalModal("terms")}
+                    type="button"
+                  >
+                    Terms &amp; Conditions
+                  </button>{" "}
+                  and{" "}
+                  <button
+                    className="font-semibold text-black underline underline-offset-2 hover:text-[#ef5a35] transition"
+                    onClick={() => setLegalModal("privacy")}
+                    type="button"
+                  >
+                    Privacy Policy
+                  </button>
+                  , and to follow your university’s privacy, acceptable-use, and editorial policies. Do not store sensitive student records in newsletter content.
+                </p>
+                <div className="mt-3 flex items-center gap-3 text-[10px] font-semibold text-black/45">
+                  <button
+                    className="hover:text-[#ef5a35] transition"
+                    onClick={() => setLegalModal("terms")}
+                    type="button"
+                  >
+                    Terms &amp; Conditions
+                  </button>
+                  <span className="text-black/25">·</span>
+                  <button
+                    className="hover:text-[#ef5a35] transition"
+                    onClick={() => setLegalModal("privacy")}
+                    type="button"
+                  >
+                    Privacy Policy
+                  </button>
+                  <span className="text-black/25">·</span>
+                  <button
+                    className="hover:text-[#ef5a35] transition"
+                    onClick={() => setLegalModal("faq")}
+                    type="button"
+                  >
+                    FAQ
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>
       </main>
+
+      {/* FAQ in bottom right in small font */}
+      <div className="fixed bottom-4 right-4 z-20 sm:bottom-6 sm:right-6">
+        <button
+          className="group inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-[#f8f5ed]/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-black/60 shadow-xs backdrop-blur-xs transition hover:border-[#ef5a35] hover:text-[#ef5a35]"
+          onClick={() => setLegalModal("faq")}
+          title="Frequently Asked Questions &amp; Newsroom Help"
+          type="button"
+        >
+          <svg className="h-3 w-3 text-[#ef5a35]" fill="none" stroke="currentColor" strokeWidth={2.25} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M12 18h.01" />
+          </svg>
+          <span className="tracking-widest">FAQ</span>
+        </button>
+      </div>
+
+      <AuthLegalModal
+        initialTab={legalModal || "terms"}
+        isOpen={legalModal !== null}
+        onClose={() => setLegalModal(null)}
+      />
     </div>
   );
 }
