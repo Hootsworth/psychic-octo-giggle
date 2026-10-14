@@ -37,7 +37,7 @@ import FloatingFormatToolbar from "./components/FloatingFormatToolbar";
 import EmailExportModal from "./components/EmailExportModal";
 
 const CAMPUS_IMAGE =
-  "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
+  "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
 
 type SectionType =
   | "cover"

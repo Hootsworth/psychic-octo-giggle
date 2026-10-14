@@ -122,7 +122,7 @@ export function generateEmailHtml(options: EmailGenerationOptions): string {
     const title = live.title || content.title || "";
     const byline = live.byline || content.byline || "";
     const body = live.body || content.body || "";
-    const image = live.image || (section.type === "photo" ? "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1200" : undefined);
+    const image = live.image || (section.type === "photo" ? "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1200" : undefined);
 
     if (section.type === "cover") {
       bodyContentHtml += `

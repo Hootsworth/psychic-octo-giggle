@@ -607,6 +607,11 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   text-wrap: balance;
 }
 
+.photo-field img {
+  filter: contrast(0.97) brightness(1.01) saturate(0.93);
+  transition: filter 200ms ease;
+}
+
 .page {
   min-height: 1100px;
   margin-bottom: 3rem;

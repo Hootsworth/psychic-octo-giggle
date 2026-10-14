@@ -17,7 +17,7 @@ export default function ShareModal({
   issueId,
   issueTitle,
   issueHeadline = "Read the latest edition on the digital noticeboard.",
-  coverImage = "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1200",
+  coverImage = "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1200",
 }: ShareModalProps) {
   const [activePlatform, setActivePlatform] = useState<"twitter" | "slack" | "imessage">("twitter");
   const [copied, setCopied] = useState(false);
