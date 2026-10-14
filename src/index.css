@@ -952,62 +952,140 @@ html[data-theme="dark"] .editor-theme .block-controls button.block-danger-action
 }
 
 html[data-theme="dark"] .canvas-zoom-control,
-html[data-theme="dark"] .page-overview {
+.dark .canvas-zoom-control,
+html[data-theme="dark"] .page-overview,
+.dark .page-overview {
   color: #f2efe8;
-  border-color: rgb(255 255 255 / 0.12);
-  background: rgb(33 32 29 / 0.97);
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(30 29 26 / 0.96);
 }
 
-html[data-theme="dark"] .page-overview {
-  box-shadow: 5px 0 26px rgb(0 0 0 / 0.2);
+html[data-theme="dark"] .canvas-zoom-control,
+.dark .canvas-zoom-control {
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.45);
 }
 
-html[data-theme="dark"] .overview-duplicate {
+html[data-theme="dark"] .page-overview,
+.dark .page-overview {
+  box-shadow: 5px 0 26px rgb(0 0 0 / 0.35);
+}
+
+html[data-theme="dark"] .overview-duplicate,
+.dark .overview-duplicate {
   color: #fff;
   background: #30b957;
 }
 
-html[data-theme="dark"] .overview-duplicate:hover {
+html[data-theme="dark"] .overview-duplicate:hover,
+.dark .overview-duplicate:hover {
   background: #269546;
 }
 
-html[data-theme="dark"] .overview-delete {
+html[data-theme="dark"] .overview-delete,
+.dark .overview-delete {
   color: #fff;
   background: #fa5147;
 }
 
-html[data-theme="dark"] .overview-delete:hover {
+html[data-theme="dark"] .overview-delete:hover,
+.dark .overview-delete:hover {
   background: #d93830;
 }
 
-html[data-theme="dark"] .page-overview-card {
+html[data-theme="dark"] .page-overview-card,
+.dark .page-overview-card {
   color: #f2efe8;
-  border-color: rgb(255 255 255 / 0.11);
-  background: rgb(255 255 255 / 0.035);
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.04);
 }
 
-html[data-theme="dark"] .page-overview-card.is-active {
-  border-color: color-mix(in srgb, var(--editor-accent) 75%, white);
+html[data-theme="dark"] .page-overview-card:hover,
+.dark .page-overview-card:hover {
+  border-color: color-mix(in srgb, var(--editor-accent) 60%, white);
 }
 
-html[data-theme="dark"] .page-thumbnail {
-  border-color: rgb(255 255 255 / 0.10);
+html[data-theme="dark"] .page-overview-card.is-active,
+.dark .page-overview-card.is-active {
+  border-color: #ff7859;
+  background: color-mix(in srgb, var(--editor-accent) 12%, rgb(255 255 255 / 0.04));
+  box-shadow: 0 0 0 1px #ff7859;
 }
 
-html[data-theme="dark"] .page-thumbnail-grid span {
-  border-color: color-mix(in srgb, var(--editor-ink) 15%, transparent);
-  background: color-mix(in srgb, var(--editor-accent) 13%, var(--editor-paper));
+html[data-theme="dark"] .page-thumbnail,
+.dark .page-thumbnail {
+  border-color: rgb(255 255 255 / 0.12);
+  background: #181715;
 }
 
-html[data-theme="dark"] .editor-overview-toggle {
-  color: color-mix(in srgb, var(--editor-ink) 72%, transparent);
+html[data-theme="dark"] .page-thumbnail-header,
+.dark .page-thumbnail-header {
+  border-color: rgb(255 255 255 / 0.15);
+}
+
+html[data-theme="dark"] .page-thumbnail-grid span,
+.dark .page-thumbnail-grid span {
+  border-color: rgb(255 255 255 / 0.12);
+  background: color-mix(in srgb, var(--editor-accent) 22%, #262420);
+}
+
+html[data-theme="dark"] .editor-overview-toggle,
+.dark .editor-overview-toggle {
+  color: #f2efe8;
+}
+
+html[data-theme="dark"] .editor-overview-toggle:hover,
+.dark .editor-overview-toggle:hover {
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.08);
+}
+
+html[data-theme="dark"] .editor-overview-toggle.is-active,
+.dark .editor-overview-toggle.is-active {
+  color: #ff7859;
+  background: color-mix(in srgb, var(--editor-accent) 22%, transparent);
+}
+
+html[data-theme="dark"] .zoom-button,
+.dark .zoom-button,
+html[data-theme="dark"] .zoom-value,
+.dark .zoom-value {
+  color: #f2efe8;
 }
 
 html[data-theme="dark"] .zoom-button:hover:not(:disabled),
+.dark .zoom-button:hover:not(:disabled),
 html[data-theme="dark"] .zoom-value:hover,
-html[data-theme="dark"] .editor-overview-toggle:hover,
-html[data-theme="dark"] .editor-overview-toggle.is-active {
-  color: #ffd1c4;
+.dark .zoom-value:hover {
+  color: #ff7859;
+  background: rgb(255 255 255 / 0.08);
+}
+
+html[data-theme="dark"] .zoom-divider,
+.dark .zoom-divider {
+  background: rgb(255 255 255 / 0.15);
+}
+
+html[data-theme="dark"] .overview-close,
+.dark .overview-close {
+  color: #f2efe8;
+}
+
+html[data-theme="dark"] .overview-close:hover,
+.dark .overview-close:hover {
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.10);
+}
+
+html[data-theme="dark"] .overview-add-page,
+.dark .overview-add-page {
+  border-color: rgb(255 255 255 / 0.18);
+  color: #ff7859;
+}
+
+html[data-theme="dark"] .overview-add-page:hover,
+.dark .overview-add-page:hover {
+  border-color: #ff7859;
+  color: #ffffff;
   background: color-mix(in srgb, var(--editor-accent) 20%, transparent);
 }
 

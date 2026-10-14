@@ -2957,17 +2957,17 @@ export default function App() {
       )}
 
       <div className={`editor-workspace-layout flex items-start gap-0 ${pageOverviewOpen ? "overview-visible" : ""}`}>
-      <aside className={`page-overview editor-only sticky top-20 max-h-[calc(100vh-6.5rem)] w-56 shrink-0 flex-col gap-2 overflow-y-auto border-y border-r p-3 ${pageOverviewOpen ? "flex" : "hidden"}`} aria-label="Page overview">
+      <aside className={`page-overview editor-only sticky top-20 max-h-[calc(100vh-6.5rem)] w-56 shrink-0 flex-col gap-2 overflow-y-auto border-y border-r border-black/10 bg-[#faf9f6]/95 p-3 backdrop-blur-md dark:border-white/10 dark:bg-[#1e1d1a]/95 dark:text-[#f2efe8] ${pageOverviewOpen ? "flex" : "hidden"}`} aria-label="Page overview">
         <div className="flex items-center justify-between px-1 pb-1">
-          <div><p className="text-xs font-semibold">Pages</p><p className="mt-0.5 text-[10px] opacity-60">{pages.length} in this issue</p></div>
-          <button aria-label="Close page overview" className="overview-close grid h-7 w-7 place-items-center rounded-lg" onClick={() => setPageOverviewOpen(false)} type="button">×</button>
+          <div><p className="text-xs font-semibold text-black dark:text-white">Pages</p><p className="mt-0.5 text-[10px] text-black/50 dark:text-white/50">{pages.length} in this issue</p></div>
+          <button aria-label="Close page overview" className="overview-close grid h-7 w-7 place-items-center rounded-lg text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white transition" onClick={() => setPageOverviewOpen(false)} type="button">×</button>
         </div>
         {pages.map((sections, index) => (
           <div
             className={`page-overview-card group relative cursor-pointer rounded-xl border p-2 text-left transition ${
               activePage === index
-                ? "is-active"
-                : ""
+                ? "is-active border-[#ef5a35] dark:border-[#ff7859]"
+                : "border-black/10 hover:border-black/25 dark:border-white/10 dark:hover:border-white/25"
             }`}
             draggable
             key={index}
@@ -3036,20 +3036,24 @@ export default function App() {
       </aside>
 
       <main className={`editor-canvas min-w-0 flex-1 mx-auto px-3 py-7 sm:px-6 md:py-12 ${sourceMode ? "max-w-[1680px]" : "max-w-[1040px]"}`}>
-        <div className="canvas-zoom-control editor-only fixed bottom-4 right-4 z-30 flex items-center gap-1 rounded-xl border px-1.5 py-1 shadow-md" aria-label="Canvas zoom">
+        <div className="canvas-zoom-control editor-only fixed bottom-4 right-4 z-30 flex items-center gap-1 rounded-xl border border-black/10 bg-[#faf9f6]/95 px-1.5 py-1 shadow-md backdrop-blur-md dark:border-white/15 dark:bg-[#1e1d1a]/95 dark:text-[#f2efe8]" aria-label="Canvas zoom">
           <button
             aria-pressed={pageOverviewOpen}
-            className={`editor-overview-toggle inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-[10px] font-medium ${pageOverviewOpen ? "is-active" : ""}`}
+            className={`editor-overview-toggle inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold transition ${
+              pageOverviewOpen
+                ? "is-active bg-[#ef5a35]/15 text-[#ef5a35] dark:bg-[#ef5a35]/25 dark:text-[#ff7859]"
+                : "text-black/75 hover:bg-black/5 hover:text-black dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white"
+            }`}
             onClick={() => setPageOverviewOpen(!pageOverviewOpen)}
             title={pageOverviewOpen ? "Hide page overview" : "Show page overview"}
             type="button"
           >
-            <EditorIcon name="pages" /><span>Pages</span>
+            <EditorIcon name="pages" /><span className="font-semibold">Pages</span>
           </button>
-          <span className="zoom-divider" aria-hidden="true" />
-          <button aria-label="Zoom out" className="zoom-button" disabled={canvasZoom <= 60} onClick={() => setCanvasZoom((value) => Math.max(60, value - 10))} type="button">−</button>
-          <button aria-label="Reset zoom" className="zoom-value" onClick={() => setCanvasZoom(100)} title="Reset zoom to 100%" type="button">{canvasZoom}%</button>
-          <button aria-label="Zoom in" className="zoom-button" disabled={canvasZoom >= 130} onClick={() => setCanvasZoom((value) => Math.min(130, value + 10))} type="button">+</button>
+          <span className="zoom-divider h-4 w-px bg-black/10 dark:bg-white/15" aria-hidden="true" />
+          <button aria-label="Zoom out" className="zoom-button text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white" disabled={canvasZoom <= 60} onClick={() => setCanvasZoom((value) => Math.max(60, value - 10))} type="button">−</button>
+          <button aria-label="Reset zoom" className="zoom-value font-mono text-black/80 hover:text-black dark:text-white/90 dark:hover:text-white" onClick={() => setCanvasZoom(100)} title="Reset zoom to 100%" type="button">{canvasZoom}%</button>
+          <button aria-label="Zoom in" className="zoom-button text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white" disabled={canvasZoom >= 130} onClick={() => setCanvasZoom((value) => Math.min(130, value + 10))} type="button">+</button>
         </div>
         <div className={sourceMode ? "grid items-start gap-6 lg:grid-cols-[420px_minmax(0,1fr)]" : ""}>
           {sourceMode && (
