@@ -759,18 +759,21 @@ html[data-theme="dark"] .drag-handle {
   background: #b94339;
 }
 
-.block-controls .block-primary-action {
+.block-controls .block-primary-action,
+.editor-theme .block-controls button.block-primary-action {
   width: auto;
   min-width: 2rem;
   padding: 0 0.55rem;
-  color: #ff7859;
-  background: #24221f;
+  color: #171714;
+  background: #ffffff;
   font-weight: 700;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
-.editor-theme .block-controls button.block-primary-action:hover {
-  color: white;
-  background: var(--editor-accent);
+.editor-theme .block-controls button.block-primary-action:hover,
+.block-controls button.block-primary-action:hover {
+  color: #171714;
+  background: #e5e7eb;
 }
 
 .block-controls .block-danger-action {
@@ -951,14 +954,16 @@ html[data-theme="dark"] .page-control-button:hover {
   background: color-mix(in srgb, var(--editor-ink) 8%, var(--editor-paper));
 }
 
-html[data-theme="dark"] .block-controls .block-primary-action {
-  color: #ff7859;
-  background: #24221f;
+html[data-theme="dark"] .block-controls .block-primary-action,
+html[data-theme="dark"] .editor-theme .block-controls button.block-primary-action {
+  color: #171714;
+  background: #ffffff;
 }
 
-html[data-theme="dark"] .editor-theme .block-controls button.block-primary-action:hover {
-  color: white;
-  background: var(--editor-accent);
+html[data-theme="dark"] .editor-theme .block-controls button.block-primary-action:hover,
+html[data-theme="dark"] .block-controls button.block-primary-action:hover {
+  color: #171714;
+  background: #e5e7eb;
 }
 
 html[data-theme="dark"] .block-controls .block-danger-action {
@@ -1253,9 +1258,15 @@ html[data-theme="dark"] .studio-action:hover {
   display: none !important;
 }
 
+.exporting .editor-canvas {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .exporting .page {
-  margin-bottom: 0;
-  box-shadow: none;
+  margin-bottom: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
 }
 
 .exporting .builder-block:hover {

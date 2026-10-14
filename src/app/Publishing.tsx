@@ -13,6 +13,8 @@ import {
 import BackIcon from "./BackIcon";
 import BrandLogo from "./BrandLogo";
 import { dialog } from "./components/ModalDialog";
+import EmailExportModal from "./components/EmailExportModal";
+import { cloneTemplatePages } from "./templates";
 
 type Tab = "overview" | "releases" | "email" | "analytics" | "settings";
 const empty: Publishing = {
@@ -33,6 +35,30 @@ export default function PublishingPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
   const [sync, setSync] = useState<"saved" | "saving" | "offline">("saved");
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [modalIssue, setModalIssue] = useState<{ id: string; title: string; week?: string } | null>(null);
+  const [modalPages, setModalPages] = useState<any[][]>([]);
+
+  const handleOpenEmailStudio = (issueId?: string) => {
+    const issues = loadWorkspace().issues;
+    const target = issues.find((i) => i.id === issueId) || issues[0] || {
+      id: "issue-current",
+      title: "Back to where ideas begin",
+      week: "Current Edition",
+    };
+    setModalIssue(target);
+    const savedLayout = localStorage.getItem(`iow-layout-${target.id}`);
+    if (savedLayout) {
+      try {
+        setModalPages(JSON.parse(savedLayout));
+      } catch {
+        setModalPages(cloneTemplatePages("campus-weekly") as any[][]);
+      }
+    } else {
+      setModalPages(cloneTemplatePages("campus-weekly") as any[][]);
+    }
+    setEmailModalOpen(true);
+  };
 
   useEffect(() => {
     loadPublishing().then((value) => {
@@ -199,24 +225,12 @@ export default function PublishingPage() {
               <div className="flex items-center gap-3">
                 <span className="font-serif text-3xl font-bold">{data.analytics.subscribers || 1240} readers</span>
                 <button
-                  className="rounded-full bg-[#171714] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#ef5a35]"
-                  onClick={async () => {
-                    const recipient = await dialog.prompt({
-                      title: "Send Test Proof",
-                      message: "Send a formatting test proof email to:",
-                      defaultValue: "editor@university.edu",
-                      confirmText: "Send Proof",
-                    });
-                    if (!recipient?.trim()) return;
-                    await dialog.alert({
-                      title: "Proof Dispatched",
-                      message: `Test proof dispatched to ${recipient.trim()}! Format verified for desktop & mobile inboxes.`,
-                      tone: "success",
-                    });
-                  }}
+                  className="rounded-full bg-[#ef5a35] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#d44826] transition shadow-xs flex items-center gap-1.5"
+                  onClick={() => handleOpenEmailStudio(data.releases[0]?.issueId)}
                   type="button"
                 >
-                  Send test proof ✉
+                  <span>✉</span>
+                  <span>Open Email Studio &amp; Send Proof</span>
                 </button>
               </div>
             </div>
@@ -231,7 +245,7 @@ export default function PublishingPage() {
                     </div>
                     <input className="mt-5 w-full bg-transparent font-serif text-3xl outline-none" onChange={(event) => updateCampaign(campaign.id, { subject: event.target.value })} value={campaign.subject} />
                     <input className="mt-2 w-full bg-transparent text-xs text-black/45 outline-none" onChange={(event) => updateCampaign(campaign.id, { previewText: event.target.value })} value={campaign.previewText} />
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <button
                         className="rounded-full bg-[#171714] px-4 py-1.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#ef5a35]"
                         onClick={async () => {
@@ -245,6 +259,16 @@ export default function PublishingPage() {
                         type="button"
                       >
                         Dispatch now
+                      </button>
+                      <button
+                        className="rounded-full border border-black/20 bg-white px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.12em] text-black/70 hover:border-[#ef5a35] hover:text-[#ef5a35] transition"
+                        onClick={() => {
+                          const rel = data.releases.find((r) => r.id === campaign.releaseId);
+                          handleOpenEmailStudio(rel?.issueId);
+                        }}
+                        type="button"
+                      >
+                        Email Studio &amp; HTML ↗
                       </button>
                     </div>
                   </div>
@@ -279,6 +303,16 @@ export default function PublishingPage() {
           </>
         )}
       </main>
+
+      {modalIssue && (
+        <EmailExportModal
+          isOpen={emailModalOpen}
+          issue={modalIssue}
+          onClose={() => setEmailModalOpen(false)}
+          pages={modalPages}
+          publicationName={data.settings.publicationName || "In Other Words"}
+        />
+      )}
     </div>
   );
 }

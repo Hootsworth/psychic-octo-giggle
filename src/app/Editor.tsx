@@ -33,6 +33,8 @@ import { toast } from "./components/Toast";
 import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal";
 import ShareModal from "./components/ShareModal";
 import PhotoPickerModal from "./components/PhotoPickerModal";
+import FloatingFormatToolbar from "./components/FloatingFormatToolbar";
+import EmailExportModal from "./components/EmailExportModal";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1576495199011-eb94736d05d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -1022,8 +1024,8 @@ function BuilderBlock({
           </div>
         )}
 
-        <button aria-label="Duplicate section" className="block-primary-action" onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block">＋</button>
-        <button aria-label="Delete section" className="block-danger-action" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block">×</button>
+        <button aria-label="Duplicate section" className="block-primary-action" onClick={() => onAction("duplicate", pageIndex, section.id)} title="Duplicate block" type="button">＋</button>
+        <button aria-label="Delete section" className="block-danger-action" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block" type="button">×</button>
       </div>
 
       {/* Right Edge Interactive Width Resizer Handle (Safely inside block bounds) */}
@@ -1162,6 +1164,7 @@ export default function App() {
   const [shareOpen, setShareOpen] = useState(false);
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [photoTargetKey, setPhotoTargetKey] = useState<string | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [wordStats, setWordStats] = useState({ pageWords: 0, totalWords: 0 });
   const [pageOverflowHeights, setPageOverflowHeights] = useState<Record<number, number>>({});
   const contentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1912,12 +1915,30 @@ export default function App() {
 
   const downloadPdf = async () => {
     const wasPreviewing = preview;
+    const previousZoom = canvasZoom;
+    if (canvasZoom !== 100) {
+      setCanvasZoom(100);
+    }
     setPreview(true);
     setExporting(true);
     setExportProgress("Preparing");
     try {
       await document.fonts.ready;
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+      // Ensure all images are fully loaded before rendering
+      const images = Array.from(document.querySelectorAll<HTMLImageElement>("#pdf-document img"));
+      await Promise.all(
+        images.map(
+          (img) =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise((res) => {
+                  img.onload = img.onerror = res;
+                })
+        )
+      );
+
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import("html2canvas-pro"),
         import("jspdf"),
@@ -1929,19 +1950,60 @@ export default function App() {
       for (let index = 0; index < pageElements.length; index += 1) {
         const page = pageElements[index];
         setExportProgress(`Rendering ${index + 1} of ${pageElements.length}`);
-        const width = page.offsetWidth;
-        const height = page.scrollHeight;
+
+        // Ensure current page is in viewport so rendering layout matches exactly
+        page.scrollIntoView({ block: "start", inline: "nearest" });
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+        const width = Math.ceil(page.offsetWidth);
+        const height = Math.ceil(Math.max(page.scrollHeight, page.offsetHeight));
         const orientation = width > height ? "landscape" : "portrait";
+
         const canvas = await html2canvas(page, {
-          backgroundColor: "#f8f5ed",
+          backgroundColor: palette.paper || "#f8f5ed",
           scale: 2,
           useCORS: true,
           logging: false,
           width,
           height,
-          windowWidth: width,
-          windowHeight: height,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc, clonedElement) => {
+            // 1. Reset zoom on cloned pdf-document
+            const clonedPdfDoc = clonedDoc.getElementById("pdf-document");
+            if (clonedPdfDoc) {
+              clonedPdfDoc.style.zoom = "1";
+              clonedPdfDoc.style.transform = "none";
+            }
+
+            // 2. Prevent parent container padding from constraining or shrinking the page
+            const clonedMain = clonedDoc.querySelector("main.editor-canvas");
+            if (clonedMain instanceof HTMLElement) {
+              clonedMain.style.paddingLeft = "0";
+              clonedMain.style.paddingRight = "0";
+              clonedMain.style.marginLeft = "auto";
+              clonedMain.style.marginRight = "auto";
+              clonedMain.style.maxWidth = `${width}px`;
+              clonedMain.style.width = `${width}px`;
+            }
+
+            // 3. Pin cloned page to exact pixel width to prevent any right-side gap
+            if (clonedElement instanceof HTMLElement) {
+              clonedElement.style.width = `${width}px`;
+              clonedElement.style.minWidth = `${width}px`;
+              clonedElement.style.maxWidth = `${width}px`;
+              clonedElement.style.margin = "0";
+              clonedElement.style.boxShadow = "none";
+              clonedElement.style.borderRadius = "0";
+            }
+
+            // 4. Hide all editing controls
+            clonedDoc.querySelectorAll<HTMLElement>(".editor-only").forEach((el) => {
+              el.style.display = "none";
+            });
+          },
         });
+
         if (!pdf) {
           pdf = new jsPDF({
             orientation,
@@ -1953,7 +2015,19 @@ export default function App() {
         } else {
           pdf.addPage([width, height], orientation);
         }
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.96), "JPEG", 0, 0, width, height, undefined, "FAST");
+
+        const pdfPageWidth = pdf.internal.pageSize.getWidth();
+        const pdfPageHeight = pdf.internal.pageSize.getHeight();
+        pdf.addImage(
+          canvas.toDataURL("image/jpeg", 0.98),
+          "JPEG",
+          0,
+          0,
+          pdfPageWidth,
+          pdfPageHeight,
+          undefined,
+          "FAST"
+        );
       }
       setExportProgress("Downloading");
       const filename = issue.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "newsletter";
@@ -1966,6 +2040,9 @@ export default function App() {
         tone: "danger",
       });
     } finally {
+      if (previousZoom !== 100) {
+        setCanvasZoom(previousZoom);
+      }
       setExporting(false);
       setExportProgress("");
       setPreview(wasPreviewing);
@@ -2134,6 +2211,21 @@ export default function App() {
     if (!selectionText) return;
     const apply = aiApplyRef.current;
     openAiRewrite(selectionText, apply);
+  };
+
+  const handleFloatingToolbarAiRewrite = (text: string) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0).cloneRange();
+      aiApplyRef.current = (value) => {
+        range.deleteContents();
+        range.insertNode(document.createTextNode(value));
+        selection.removeAllRanges();
+        setSelectionText("");
+        saveContent();
+      };
+    }
+    openAiRewrite(text, aiApplyRef.current);
   };
 
   const rewriteSection = (sectionId: string) => {
@@ -2485,10 +2577,21 @@ export default function App() {
               <button onClick={() => setDesignOpen(true)} type="button">Document design</button>
               <button onClick={() => setPageMenuOpen(true)} type="button">Manage pages</button>
               <button onClick={() => setStudioOpen(true)} type="button">Production studio</button>
+              <button onClick={() => setEmailModalOpen(true)} type="button">Email Studio & HTML</button>
               <button onClick={() => setShortcutsOpen(true)} type="button">Keyboard shortcuts</button>
             </div>
           </details>
           <button aria-label={preview ? "Return to editing" : "Preview"} className="editor-icon-button" onClick={() => setPreview(!preview)} title={preview ? "Return to editing" : "Preview"} type="button"><EditorIcon name={preview ? "edit" : "preview"} /></button>
+          <button
+            aria-label="Email Studio"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#ef5a35]/40 bg-[#ef5a35]/10 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-[#ef5a35]/50 dark:bg-[#ef5a35]/15 dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
+            onClick={() => setEmailModalOpen(true)}
+            title="Responsive Email Studio, HTML Export & Test Delivery"
+            type="button"
+          >
+            <span className="text-xs">✉</span>
+            <span>Email</span>
+          </button>
           <button
             aria-label="Share edition"
             className="inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-white/80 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ef5a35] hover:bg-[#ef5a35] hover:text-white dark:border-white/15 dark:bg-[#20201d] dark:hover:bg-[#ef5a35] dark:hover:text-white transition shadow-2xs"
@@ -2817,7 +2920,20 @@ export default function App() {
                 <div><div className="mb-5"><p className="text-xs font-semibold">Issue media</p><p className="mt-1 text-[9px] text-black/40">Uploaded images are stored locally with this issue. Captions and credits remain editable on canvas.</p></div>{mediaEntries.length ? <div className="grid grid-cols-2 gap-3">{mediaEntries.map(([key, value]) => <figure className="border border-black/10 bg-white p-2" key={key}><img alt="Uploaded issue media" className="aspect-video w-full object-cover" src={value} /><figcaption className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-[8px] text-black/35">{key.split("-").slice(-2).join("-")}</span><button className="text-[8px] font-bold uppercase text-[#ef5a35] hover:text-[#d44826] transition" onClick={async () => { const ok = await dialog.confirm({ title: "Remove Media", message: "Are you sure you want to remove this stored image from issue media?", confirmText: "Remove Image", danger: true }); if (ok) { localStorage.removeItem(key); window.location.reload(); } }} type="button">Remove</button></figcaption></figure>)}</div> : <p className="border border-dashed border-black/15 py-14 text-center text-xs text-black/40">No uploaded media yet.</p>}</div>
               )}
               {studioTab === "export" && (
-                <div className="grid gap-3"><button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={downloadPdf} type="button"><span><span className="font-serif text-2xl">Visual PDF</span><span className="mt-1 block text-[9px] text-black/40">Exact page dimensions and high-resolution rendering.</span></span><span>→</span></button><button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={exportEmailHtml} type="button"><span><span className="font-serif text-2xl">Email-safe HTML</span><span className="mt-1 block text-[9px] text-black/40">Inline-styled table layout for external email delivery.</span></span><span>→</span></button><button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={exportJson} type="button"><span><span className="font-serif text-2xl">Publication JSON</span><span className="mt-1 block text-[9px] text-black/40">Structured issue package for external publishing systems.</span></span><span>→</span></button></div>
+                <div className="grid gap-3">
+                  <button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={downloadPdf} type="button">
+                    <span><span className="font-serif text-2xl">Visual PDF</span><span className="mt-1 block text-[9px] text-black/40">Exact page dimensions and high-resolution rendering.</span></span>
+                    <span>→</span>
+                  </button>
+                  <button className="flex items-center justify-between border border-[#ef5a35] bg-[#ef5a35]/5 p-5 text-left hover:bg-[#ef5a35]/10" onClick={() => setEmailModalOpen(true)} type="button">
+                    <span><span className="font-serif text-2xl text-[#ef5a35]">Email Studio &amp; HTML</span><span className="mt-1 block text-[9px] text-black/50">Responsive table HTML, desktop/mobile preview, and test inbox delivery.</span></span>
+                    <span className="text-[#ef5a35] font-bold">→</span>
+                  </button>
+                  <button className="flex items-center justify-between border border-black/15 p-5 text-left hover:border-[#ef5a35]" onClick={exportJson} type="button">
+                    <span><span className="font-serif text-2xl">Publication JSON</span><span className="mt-1 block text-[9px] text-black/40">Structured issue package for external publishing systems.</span></span>
+                    <span>→</span>
+                  </button>
+                </div>
               )}
             </div>
           </aside>
@@ -2961,7 +3077,7 @@ export default function App() {
           <div
             className="relative"
             id="pdf-document"
-            style={{ zoom: `${canvasZoom}%` }}
+            style={{ zoom: exporting ? "1" : `${canvasZoom}%` }}
             onBlurCapture={() => {
               editSessionRef.current = false;
               saveContent();
@@ -3190,6 +3306,22 @@ export default function App() {
           setPhotoTargetKey(null);
         }}
         onSelect={handlePhotoPicked}
+      />
+
+      {/* Step 1: Floating Formatting Toolbar */}
+      <FloatingFormatToolbar
+        onAiRewrite={handleFloatingToolbarAiRewrite}
+        paletteAccent={palette.accent}
+      />
+
+      {/* Step 2: Responsive Email Export & Test Sender Modal */}
+      <EmailExportModal
+        isOpen={emailModalOpen}
+        issue={issue}
+        onClose={() => setEmailModalOpen(false)}
+        pages={pages}
+        palette={palette}
+        publicationName="In Other Words"
       />
     </div>
   );
