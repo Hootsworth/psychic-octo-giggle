@@ -19,6 +19,7 @@ interface Section {
   content?: {
     eyebrow?: string;
     title?: string;
+    layoutVariant?: string;
     mastheadStyle?: NewspaperMastheadSettings["mastheadStyle"];
     mastheadLogo?: string;
     mastheadTitle?: string;
@@ -37,6 +38,11 @@ interface Section {
 }
 
 type Pages = Section[][];
+
+const SECTION_LAYOUT_DEFAULTS: Record<string, string> = {
+  events: "list", notice: "submission", interview: "feature", statistics: "dashboard",
+  quote: "poster", recommendations: "shortlist", footer: "sign-off", gallery: "diptych",
+};
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
@@ -262,6 +268,8 @@ export default function ReaderView() {
                 {sections.map((section) => (
                   <div
                     className={`builder-block height-${section.height}`}
+                    data-section-type={section.type}
+                    data-layout-variant={section.content?.layoutVariant ?? SECTION_LAYOUT_DEFAULTS[section.type]}
                     key={section.id}
                     style={{ gridColumn: `span ${section.width}` }}
                   >
@@ -409,6 +417,24 @@ function ReaderSectionContent({
     );
   }
 
+  if (type === "gallery") {
+    const variant = content?.layoutVariant ?? "diptych";
+    const sources = ["a", "b", "c"].map((suffix) =>
+      localStorage.getItem(`iow-media-${issueId}-${section.id}-${suffix}`) ||
+      localStorage.getItem(`${storageKey}-${suffix}`),
+    );
+    return (
+      <div className={`grid h-full gap-2 bg-[#eee8dc] p-2 ${variant === "feature" ? "sm:grid-cols-[1.6fr_1fr]" : variant === "filmstrip" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        {sources.slice(0, variant === "filmstrip" ? 3 : 2).map((src, index) => (
+          <figure className="relative min-h-48 overflow-hidden bg-[#d8d0c1]" key={index}>
+            {src ? <img alt={`Campus gallery photograph ${index + 1}`} className="absolute inset-0 h-full w-full object-cover" src={src} /> : <div className="absolute inset-0 grid place-items-center bg-[linear-gradient(145deg,#ded5c6,#c7bdac)]"><span className="font-serif text-sm italic text-[#51483e]/65">Photograph {String(index + 1).padStart(2, "0")}</span></div>}
+            <figcaption className="absolute bottom-0 left-0 bg-[#171714]/75 px-3 py-2 text-[8px] font-semibold uppercase tracking-[0.12em] text-white">Campus dispatch · {String(index + 1).padStart(2, "0")}</figcaption>
+          </figure>
+        ))}
+      </div>
+    );
+  }
+
   if (type === "poem") {
     return (
       <div className="h-full p-7 sm:p-10">
@@ -427,44 +453,51 @@ function ReaderSectionContent({
   }
 
   if (type === "quote") {
+    const variant = content?.layoutVariant ?? "poster";
     return (
-      <div className="flex h-full flex-col justify-between bg-[#ef5a35] p-8 text-white sm:p-10">
+      <div className={`flex h-full flex-col justify-between p-8 sm:p-10 ${variant === "pull-quote" ? "bg-[#f2ecdf] text-[#25231f]" : variant === "framed" ? "border-[10px] border-double border-[#25231f] bg-[#f8f5ed] text-[#25231f]" : "bg-[#a84e38] text-white"}`}>
         <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.18em]">In their own words</p>
-        <h2 className="reader-editable my-10 font-serif text-3xl italic leading-tight sm:text-4xl">
+        <h2 className={`reader-editable my-10 font-serif italic leading-tight ${variant === "pull-quote" ? "border-l-4 border-[#a84e38] pl-7 text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>
           {content?.body ?? "“The university is not just where we learn. It is what we make together.”"}
         </h2>
-        <p className="reader-editable text-[10px] uppercase tracking-[0.14em]">— Student contributor</p>
+        <p className="reader-editable text-[10px] uppercase tracking-[0.14em]">{content?.byline ?? "— Student contributor"}</p>
       </div>
     );
   }
 
   if (type === "events") {
+    const variant = content?.layoutVariant ?? "list";
     return (
-      <div className="h-full p-7 sm:p-10">
+      <div className={`h-full p-7 sm:p-10 ${variant === "calendar" ? "bg-[#f2ecdf]" : variant === "timeline" ? "bg-[#202b27] text-[#f8f5ed]" : ""}`}>
         <h2 className="reader-editable mb-6 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "This week"}</h2>
         {content?.body ? (
-          <p className="reader-editable whitespace-pre-line border-y border-black/30 py-6 font-serif text-xl leading-[1.8]">{content.body}</p>
-        ) : [
+          <div className={variant === "calendar" ? "grid gap-3 sm:grid-cols-2" : ""}><p className="reader-editable whitespace-pre-line border-y border-black/30 py-6 font-serif text-xl leading-[1.8]">{content.body}</p></div>
+        ) : (
+        <div className={variant === "calendar" ? "grid gap-3 sm:grid-cols-2" : ""}>
+        {[
           ["MON 22", "Open mic night", "Student Union · 7:30 PM"],
           ["WED 24", "Astronomy Club stargazing", "East Lawn · 9:00 PM"],
           ["THU 25", "Women’s football: Home game", "University Field · 5:00 PM"],
           ["SAT 27", "Autumn societies fair", "Main Quad · 11:00 AM"],
         ].map(([date, title, place]) => (
-          <div className="grid gap-2 border-t border-black/30 py-5 sm:grid-cols-[70px_1fr]" key={title}>
-            <span className="text-[9px] font-bold text-[#ef5a35]">{date}</span>
+          <div className={`grid gap-2 border-t py-5 sm:grid-cols-[70px_1fr] ${variant === "calendar" ? "rounded-sm border-[#302b25]/15 bg-white/65 px-4 shadow-sm" : variant === "timeline" ? "border-white/15" : "border-black/30"}`} key={title}>
+            <span className={`text-[9px] font-bold ${variant === "timeline" ? "text-[#e3b88e]" : "text-[#ef5a35]"}`}>{date}</span>
             <div>
               <h3 className="reader-editable font-serif text-2xl leading-tight">{title}</h3>
-              <p className="reader-editable mt-1 text-[9px] uppercase tracking-[0.12em] text-black/45">{place}</p>
+              <p className={`reader-editable mt-1 text-[9px] uppercase tracking-[0.12em] ${variant === "timeline" ? "text-white/55" : "text-black/45"}`}>{place}</p>
             </div>
           </div>
         ))}
+        </div>
+        )}
       </div>
     );
   }
 
   if (type === "interview") {
+    const variant = content?.layoutVariant ?? "feature";
     return (
-      <div className="grid h-full bg-[#171714] text-[#f8f5ed] md:grid-cols-[0.65fr_1.35fr]">
+      <div className={`grid h-full ${variant === "profile" ? "bg-[#31473d] text-[#f8f5ed] md:grid-cols-2" : variant === "rapid-fire" ? "bg-[#f0e8da] text-[#25231f] md:grid-cols-[0.4fr_1.6fr]" : "bg-[#171714] text-[#f8f5ed] md:grid-cols-[0.65fr_1.35fr]"}`}>
         <div className="flex flex-col justify-between border-b border-white/15 p-7 md:border-b-0 md:border-r sm:p-9">
           <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "Five questions"}</p>
           <h2 className="reader-editable mt-12 font-serif text-3xl leading-[0.95] tracking-[-0.04em] sm:text-4xl">{content?.title ?? "A conversation with someone shaping campus"}</h2>
@@ -574,6 +607,7 @@ function ReaderSectionContent({
   }
 
   if (type === "notice") {
+    const variant = content?.layoutVariant ?? "submission";
     const qrEnabled = content?.qrEnabled !== false;
     const rawUrl = content?.qrUrl || "https://newsletter.singulr.tech/submit";
     const qrLabel = content?.qrLabel || "Scan to Submit Work";
@@ -596,7 +630,7 @@ function ReaderSectionContent({
     }
 
     return (
-      <div className="flex h-full flex-col justify-between border border-black bg-[#f8f5ed] p-6 sm:p-7">
+      <div className={`flex h-full flex-col justify-between border p-6 sm:p-7 ${variant === "announcement" ? "border-[#304a3f] bg-[#e8ede4]" : variant === "classifieds" ? "border-dashed border-[#78684e] bg-[#f1eadb]" : "border-black bg-[#f8f5ed]"}`}>
         <div>
           <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
             {content?.eyebrow ?? "Noticeboard"}
@@ -652,8 +686,9 @@ function ReaderSectionContent({
   }
 
   if (type === "statistics") {
+    const variant = content?.layoutVariant ?? "dashboard";
     return (
-      <div className="h-full bg-[#efe8d8] p-7 sm:p-9">
+      <div className={`h-full p-7 sm:p-9 ${variant === "hero-number" ? "bg-[#243a32] text-[#f8f5ed]" : variant === "comparison" ? "bg-[#e7e8e0]" : "bg-[#efe8d8]"}`}>
         <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "By the numbers"}</p>
         <h2 className="reader-editable mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "A snapshot of campus"}</h2>
         {content?.body ? (
@@ -695,6 +730,33 @@ function ReaderSectionContent({
     );
   }
 
+  if (type === "recommendations") {
+    const variant = content?.layoutVariant ?? "shortlist";
+    const picks = content?.body?.split("\n").filter(Boolean) ?? [
+      "01 · Read · A book to carry between lectures",
+      "02 · Watch · A film everyone will be discussing",
+      "03 · Listen · The conversation of the week",
+    ];
+    return (
+      <div className={`h-full p-7 sm:p-9 ${variant === "shelf" ? "bg-[#e8ddc7]" : variant === "categories" ? "bg-[#e9eeea]" : ""}`}>
+        <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "The shortlist"}</p>
+        <h2 className="reader-editable mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "Things worth your time"}</h2>
+        <div className="mt-7 divide-y divide-black/20 border-y border-black/20">
+          {picks.map((pick, index) => {
+            const [kind, ...rest] = pick.split(" · ");
+            return (
+              <div className={`grid gap-3 py-4 ${variant === "categories" ? "border-l-2 border-[#3e6a59] pl-4 sm:grid-cols-[100px_1fr]" : variant === "shelf" ? "mx-1 my-2 border border-black/10 bg-white/55 px-4 grid-cols-[34px_1fr] sm:grid-cols-[42px_90px_1fr]" : "grid-cols-[34px_1fr] sm:grid-cols-[42px_90px_1fr]"}`} key={`${pick}-${index}`}>
+                {variant !== "categories" && <span className="font-mono text-[9px] font-bold text-[#a24b35]">{String(index + 1).padStart(2, "0")}</span>}
+                {variant === "categories" ? <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#a24b35]">{kind.split(" · ").pop()}</span> : <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-black/45">{kind.split(" · ").pop()}</span>}
+                <p className="reader-editable font-serif text-lg leading-tight">{rest.join(" · ") || pick}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (type === "divider") {
     return (
       <div className="flex h-full items-center gap-5 px-7 py-6 sm:px-10">
@@ -706,11 +768,12 @@ function ReaderSectionContent({
   }
 
   if (type === "footer") {
+    const variant = content?.layoutVariant ?? "sign-off";
     return (
-      <div className="flex h-full flex-col justify-between border-t border-black p-7 sm:p-10">
+      <div className={`flex h-full flex-col justify-between border-t border-black p-7 sm:p-10 ${variant === "contact" ? "bg-[#e8ede4]" : variant === "subscribe" ? "items-center bg-[#202b27] text-center text-[#f8f5ed]" : ""}`}>
         <h2 className="reader-editable font-serif text-4xl">{content?.title ?? "Until next week, stay curious."}</h2>
-        <p className="reader-editable text-[10px] uppercase tracking-[0.16em] text-black/50">
-          Published weekly by the University Editorial Guild · Distributed across campus
+        <p className={`reader-editable whitespace-pre-line text-[10px] uppercase tracking-[0.16em] ${variant === "subscribe" ? "text-white/65" : "text-black/50"}`}>
+          {content?.body ?? (variant === "contact" ? "Write to the editorial desk · editor@university.edu\nFind us on campus · Student Union, Room 204" : variant === "subscribe" ? "Get the next edition in your inbox · Join the weekly campus dispatch" : "Published weekly by the University Editorial Guild · Distributed across campus")}
         </p>
       </div>
     );

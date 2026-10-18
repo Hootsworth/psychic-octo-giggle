@@ -73,6 +73,7 @@ type Section = {
   content?: {
     eyebrow?: string;
     title?: string;
+    layoutVariant?: string;
     mastheadStyle?: NewspaperMastheadSettings["mastheadStyle"];
     mastheadLogo?: string;
     mastheadTitle?: string;
@@ -92,6 +93,17 @@ type Section = {
 };
 
 type ArticleLayout = "classic" | "compact" | "hero" | "image-left" | "image-right" | "photo-essay";
+
+const SECTION_LAYOUTS: Partial<Record<SectionType, { id: string; label: string }[]>> = {
+  events: [{ id: "list", label: "Chronicle" }, { id: "calendar", label: "Calendar grid" }, { id: "timeline", label: "Timeline" }],
+  notice: [{ id: "submission", label: "Submission call" }, { id: "announcement", label: "Announcement" }, { id: "classifieds", label: "Classifieds" }],
+  interview: [{ id: "feature", label: "Feature Q&A" }, { id: "profile", label: "Profile" }, { id: "rapid-fire", label: "Rapid fire" }],
+  statistics: [{ id: "dashboard", label: "Data dashboard" }, { id: "hero-number", label: "Hero statistic" }, { id: "comparison", label: "Comparison" }],
+  quote: [{ id: "poster", label: "Color poster" }, { id: "pull-quote", label: "Editorial pull quote" }, { id: "framed", label: "Framed card" }],
+  recommendations: [{ id: "shortlist", label: "Shortlist" }, { id: "shelf", label: "Magazine shelf" }, { id: "categories", label: "By category" }],
+  footer: [{ id: "sign-off", label: "Sign-off" }, { id: "contact", label: "Contact panel" }, { id: "subscribe", label: "Subscribe panel" }],
+  gallery: [{ id: "diptych", label: "Diptych" }, { id: "feature", label: "Feature pair" }, { id: "filmstrip", label: "Film strip" }],
+};
 
 type ArticleTemplate = {
   id: ArticleLayout;
@@ -680,36 +692,41 @@ function SectionContent({
 
   if (type === "quote") {
     return (
-      <div className="flex h-full flex-col justify-between bg-[#ef5a35] p-8 text-white sm:p-10">
+      <div className={`section-layout-quote flex h-full flex-col justify-between p-8 sm:p-10 ${content?.layoutVariant === "pull-quote" ? "bg-[#f2ecdf] text-[#25231f]" : content?.layoutVariant === "framed" ? "border-[10px] border-double border-[#25231f] bg-[#f8f5ed] text-[#25231f]" : "bg-[#a84e38] text-white"}`}>
         <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.18em]">In their own words</Editable>
-        <Editable as="h2" className="my-10 font-serif text-4xl italic leading-tight">
+        <Editable as="h2" className={`my-10 font-serif italic leading-tight ${content?.layoutVariant === "pull-quote" ? "border-l-4 border-[#a84e38] pl-7 text-5xl" : "text-4xl"}`}>
           {content?.body ?? "“The university is not just where we learn. It is what we make together.”"}
         </Editable>
-        <Editable as="p" className="text-[10px] uppercase tracking-[0.14em]">— Student contributor</Editable>
+        <Editable as="p" className="text-[10px] uppercase tracking-[0.14em]">{content?.byline ?? "— Student contributor"}</Editable>
       </div>
     );
   }
 
   if (type === "events") {
+    const variant = content?.layoutVariant ?? "list";
     return (
-      <div className="h-full p-7 sm:p-10">
+      <div className={`h-full p-7 sm:p-10 ${variant === "calendar" ? "bg-[#f2ecdf]" : variant === "timeline" ? "bg-[#202b27] text-[#f8f5ed]" : ""}`}>
         <Editable as="h2" className="mb-6 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "This week"}</Editable>
         {content?.body ? (
-          <Editable as="p" className="whitespace-pre-line border-y border-black/30 py-6 font-serif text-xl leading-[1.8]">{content.body}</Editable>
-        ) : [
+          <div className={variant === "calendar" ? "grid gap-3 sm:grid-cols-2" : ""}><Editable as="p" className="whitespace-pre-line border-y border-black/30 py-6 font-serif text-xl leading-[1.8]">{content.body}</Editable></div>
+        ) : (
+        <div className={variant === "calendar" ? "grid gap-3 sm:grid-cols-2" : ""}>
+        {[
           ["MON 22", "Open mic night", "Student Union · 7:30 PM"],
           ["WED 24", "Astronomy Club stargazing", "East Lawn · 9:00 PM"],
           ["THU 25", "Women’s football: Home game", "University Field · 5:00 PM"],
           ["SAT 27", "Autumn societies fair", "Main Quad · 11:00 AM"],
         ].map(([date, title, place]) => (
-          <div className="grid gap-2 border-t border-black/30 py-5 sm:grid-cols-[70px_1fr]" key={title}>
-            <Editable as="span" className="text-[9px] font-bold text-[#ef5a35]">{date}</Editable>
+          <div className={`grid gap-2 border-t py-5 sm:grid-cols-[70px_1fr] ${variant === "calendar" ? "rounded-sm border-[#302b25]/15 bg-white/65 px-4 shadow-sm" : variant === "timeline" ? "border-white/15" : "border-black/30"}`} key={title}>
+            <Editable as="span" className={`text-[9px] font-bold ${variant === "timeline" ? "text-[#e3b88e]" : "text-[#ef5a35]"}`}>{date}</Editable>
             <div>
               <Editable as="h3" className="font-serif text-2xl leading-tight">{title}</Editable>
-              <Editable as="p" className="mt-1 text-[9px] uppercase tracking-[0.12em] text-black/45">{place}</Editable>
+              <Editable as="p" className={`mt-1 text-[9px] uppercase tracking-[0.12em] ${variant === "timeline" ? "text-white/55" : "text-black/45"}`}>{place}</Editable>
             </div>
           </div>
         ))}
+        </div>
+        )}
       </div>
     );
   }
@@ -730,15 +747,18 @@ function SectionContent({
   }
 
   if (type === "gallery") {
+    const variant = content?.layoutVariant ?? "diptych";
     return (
-      <div className="grid h-full gap-px bg-black sm:grid-cols-2">
+      <div className={`grid h-full gap-2 bg-[#eee8dc] p-2 ${variant === "feature" ? "sm:grid-cols-[1.6fr_1fr]" : variant === "filmstrip" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <PhotoField label="Add club photo" storageKey={`${mediaKey}-a`} />
         <PhotoField label="Add event photo" storageKey={`${mediaKey}-b`} />
+        {variant === "filmstrip" && <PhotoField label="Add third photo" storageKey={`${mediaKey}-c`} />}
       </div>
     );
   }
 
   if (type === "notice") {
+    const variant = content?.layoutVariant ?? "submission";
     const qrEnabled = content?.qrEnabled !== false;
     const rawUrl = content?.qrUrl || "https://newsletter.singulr.tech/submit";
     const qrLabel = content?.qrLabel || "Scan to Submit Work";
@@ -761,7 +781,7 @@ function SectionContent({
     }
 
     return (
-      <div className="group/notice relative flex h-full flex-col justify-between border border-black bg-[#f8f5ed] p-6 sm:p-7">
+      <div className={`group/notice relative flex h-full flex-col justify-between border p-6 sm:p-7 ${variant === "announcement" ? "border-[#304a3f] bg-[#e8ede4]" : variant === "classifieds" ? "border-dashed border-[#78684e] bg-[#f1eadb]" : "border-black bg-[#f8f5ed]"}`}>
         <div>
           <div className="flex items-center justify-between">
             <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
@@ -838,8 +858,9 @@ function SectionContent({
   }
 
   if (type === "interview") {
+    const variant = content?.layoutVariant ?? "feature";
     return (
-      <div className="grid h-full bg-[#171714] text-[#f8f5ed] md:grid-cols-[0.65fr_1.35fr]">
+      <div className={`grid h-full ${variant === "profile" ? "bg-[#31473d] text-[#f8f5ed] md:grid-cols-2" : variant === "rapid-fire" ? "bg-[#f0e8da] text-[#25231f] md:grid-cols-[0.4fr_1.6fr]" : "bg-[#171714] text-[#f8f5ed] md:grid-cols-[0.65fr_1.35fr]"}`}>
         <div className="flex flex-col justify-between border-b border-white/15 p-7 md:border-b-0 md:border-r sm:p-9">
           <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "Five questions"}</Editable>
           <Editable as="h2" className="mt-12 font-serif text-4xl leading-[0.95] tracking-[-0.04em]">{content?.title ?? "A conversation with someone shaping campus"}</Editable>
@@ -853,8 +874,9 @@ function SectionContent({
   }
 
   if (type === "statistics") {
+    const variant = content?.layoutVariant ?? "dashboard";
     return (
-      <div className="h-full bg-[#efe8d8] p-7 sm:p-9">
+      <div className={`h-full p-7 sm:p-9 ${variant === "hero-number" ? "bg-[#243a32] text-[#f8f5ed]" : variant === "comparison" ? "bg-[#e7e8e0]" : "bg-[#efe8d8]"}`}>
         <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "By the numbers"}</Editable>
         <Editable as="h2" className="mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "A snapshot of campus"}</Editable>
         {content?.body ? (
@@ -882,11 +904,24 @@ function SectionContent({
   }
 
   if (type === "recommendations") {
+    const variant = content?.layoutVariant ?? "shortlist";
     return (
-      <div className="h-full p-7 sm:p-9">
+      <div className={`h-full p-7 sm:p-9 ${variant === "shelf" ? "bg-[#e8ddc7]" : variant === "categories" ? "bg-[#e9eeea]" : ""}`}>
         <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "The shortlist"}</Editable>
         <Editable as="h2" className="mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "Things worth your time"}</Editable>
-        {content?.body ? <Editable as="p" className="mt-8 whitespace-pre-line border-y border-black/20 py-5 font-serif text-xl leading-[1.7]">{content.body}</Editable> : <div className="mt-8 divide-y divide-black/20 border-y border-black/20">{[["01", "Read", "A book to carry between lectures"], ["02", "Watch", "A film everyone will be discussing"], ["03", "Listen", "The conversation of the week"]].map(([number, kind, title]) => <div className="grid grid-cols-[35px_65px_1fr] gap-3 py-5" key={number}><span className="text-[9px] font-bold text-[#ef5a35]">{number}</span><Editable as="span" className="text-[8px] font-bold uppercase tracking-[0.12em] text-black/40">{kind}</Editable><Editable as="p" className="font-serif text-lg leading-tight">{title}</Editable></div>)}</div>}
+        {content?.body ? <Editable as="p" className="mt-8 whitespace-pre-line border-y border-black/20 py-5 font-serif text-xl leading-[1.7]">{content.body}</Editable> : <div className="mt-8 divide-y divide-black/20 border-y border-black/20">{[["01", "Read", "A book to carry between lectures"], ["02", "Watch", "A film everyone will be discussing"], ["03", "Listen", "The conversation of the week"]].map(([number, kind, title]) => <div className={`grid grid-cols-[35px_65px_1fr] gap-3 py-5 ${variant === "shelf" ? "mx-1 my-2 border border-black/10 bg-white/55 px-4" : variant === "categories" ? "border-l-2 border-[#3e6a59] pl-4" : ""}`} key={number}><span className="text-[9px] font-bold text-[#ef5a35]">{number}</span><Editable as="span" className="text-[8px] font-bold uppercase tracking-[0.12em] text-black/40">{kind}</Editable><Editable as="p" className="font-serif text-lg leading-tight">{title}</Editable></div>)}</div>}
+      </div>
+    );
+  }
+
+  if (type === "footer") {
+    const variant = content?.layoutVariant ?? "sign-off";
+    return (
+      <div className={`flex h-full flex-col justify-between border-t border-black p-7 sm:p-10 ${variant === "contact" ? "bg-[#e8ede4]" : variant === "subscribe" ? "items-center bg-[#202b27] text-center text-[#f8f5ed]" : ""}`}>
+        <Editable as="h2" className="font-serif text-4xl">{content?.title ?? "Until next week, stay curious."}</Editable>
+        <Editable as="p" className={`whitespace-pre-line text-[10px] uppercase tracking-[0.16em] ${variant === "subscribe" ? "text-white/65" : "text-black/50"}`}>
+          {content?.body ?? (variant === "contact" ? "Write to the editorial desk · editor@university.edu\nFind us on campus · Student Union, Room 204" : variant === "subscribe" ? "Get the next edition in your inbox · Join the weekly campus dispatch" : "Published weekly by the University Editorial Guild · Distributed across campus")}
+        </Editable>
       </div>
     );
   }
@@ -1019,6 +1054,7 @@ function BuilderBlock({
   onAi,
   onConfigureNoticeQr,
   onEditCrossword,
+  onSetLayoutVariant,
 }: {
   section: Section;
   bylineConvention: string;
@@ -1036,6 +1072,7 @@ function BuilderBlock({
   onAi: (sectionId: string) => void;
   onConfigureNoticeQr?: (sectionId: string) => void;
   onEditCrossword?: (sectionId: string) => void;
+  onSetLayoutVariant?: (sectionId: string, variant: string) => void;
 }) {
   const widthLabels: Record<number, string> = {
     4: "1/3 width (4 cols)",
@@ -1053,6 +1090,8 @@ function BuilderBlock({
   return (
     <section
       className={`builder-block group relative height-${section.height}`}
+      data-section-type={section.type}
+      data-layout-variant={section.content?.layoutVariant ?? SECTION_LAYOUTS[section.type]?.[0]?.id}
       data-section-id={section.id}
       draggable
       onDragOver={(event) => event.preventDefault()}
@@ -1216,6 +1255,20 @@ function BuilderBlock({
           ▼
         </button>
       </div>
+
+      {SECTION_LAYOUTS[section.type] && (
+        <div className="editor-only section-layout-picker flex items-center justify-end gap-2 border-b border-black/10 bg-[#f4f0e7] px-3 py-1.5 text-[8px] dark:border-white/10 dark:bg-[#24231f]">
+          <label className="font-bold uppercase tracking-[0.12em] text-black/45 dark:text-white/45" htmlFor={`layout-${section.id}`}>Layout</label>
+          <select
+            className="max-w-[70%] cursor-pointer rounded border border-black/10 bg-white px-2 py-1 font-semibold text-black/75 dark:border-white/15 dark:bg-[#191815] dark:text-white/75"
+            id={`layout-${section.id}`}
+            onChange={(event) => onSetLayoutVariant?.(section.id, event.target.value)}
+            value={section.content?.layoutVariant ?? SECTION_LAYOUTS[section.type]?.[0]?.id}
+          >
+            {SECTION_LAYOUTS[section.type]?.map((layout) => <option key={layout.id} value={layout.id}>{layout.label}</option>)}
+          </select>
+        </div>
+      )}
 
       <SectionContent
         bylineConvention={bylineConvention}
@@ -3546,6 +3599,13 @@ export default function App() {
                     onAction={blockAction}
                     onConfigureNoticeQr={(id) => setNoticeQrModalSectionId(id)}
                     onEditCrossword={(id) => setCrosswordModalSectionId(id)}
+                    onSetLayoutVariant={(id, layoutVariant) => {
+                      setPages((current) => current.map((items, index) => index === pageIndex
+                        ? items.map((item) => item.id === id
+                          ? { ...item, content: { ...item.content, layoutVariant } }
+                          : item)
+                        : items));
+                    }}
                     onDragStart={(page, id) => {
                       dragged.current = { page, id };
                     }}

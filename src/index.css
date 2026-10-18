@@ -1603,3 +1603,70 @@ html[data-theme="dark"] .editor-theme .canvas-zoom-control {
   font-family: var(--editor-headline-font, var(--editor-serif));
   font-weight: var(--editor-headline-weight, inherit);
 }
+
+/* Editorial section layout variants shared by the editor canvas and reader. */
+.section-layout-picker {
+  min-height: 2rem;
+}
+
+.builder-block[data-section-type="events"][data-layout-variant="calendar"] > :last-child > div:last-child > div {
+  border-top-width: 1px;
+}
+
+.builder-block[data-section-type="events"][data-layout-variant="calendar"] > :last-child > div:last-child > div h3 {
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+}
+
+.builder-block[data-section-type="events"][data-layout-variant="timeline"] > :last-child > div:last-child > div {
+  position: relative;
+  margin-left: 0.35rem;
+  padding-left: 1.25rem;
+}
+
+.builder-block[data-section-type="events"][data-layout-variant="timeline"] > :last-child > div:last-child > div::before {
+  position: absolute;
+  top: 1.55rem;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: rgb(255 255 255 / 0.2);
+  content: "";
+}
+
+.builder-block[data-section-type="statistics"][data-layout-variant="hero-number"] > :last-child > div:last-child > div > p:first-child {
+  font-size: clamp(2.8rem, 7vw, 5rem);
+  line-height: 0.9;
+  color: #edb18f;
+}
+
+.builder-block[data-section-type="statistics"][data-layout-variant="comparison"] > :last-child > div:last-child > div {
+  background: rgb(255 255 255 / 0.48);
+}
+
+.builder-block[data-section-type="statistics"][data-layout-variant="comparison"] > :last-child > div:last-child > div + div {
+  border-left: 1px solid rgb(41 38 32 / 0.18);
+}
+
+.builder-block[data-section-type="interview"][data-layout-variant="rapid-fire"] > :last-child > div:first-child {
+  border-color: rgb(41 38 32 / 0.18);
+}
+
+.builder-block[data-section-type="interview"][data-layout-variant="rapid-fire"] > :last-child > p:last-child {
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.8;
+}
+
+.builder-block[data-section-type="footer"][data-layout-variant="subscribe"] > :last-child h2 {
+  max-width: 36rem;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+.builder-block[data-section-type="gallery"][data-layout-variant="filmstrip"] > :last-child .photo-field {
+  min-height: 12rem;
+}
+
+@media (max-width: 640px) {
+  .builder-block[data-section-type="statistics"][data-layout-variant="comparison"] > :last-child > div:last-child > div {
+    padding-inline: 0.4rem;
+  }
+}
