@@ -1118,7 +1118,7 @@ function BuilderBlock({
   onDragStart: (page: number, id: string) => void;
   onDrop: (page: number, id: string) => void;
   onAction: (
-    action: "up" | "down" | "width" | "height" | "duplicate" | "delete" | "setWidth" | "setHeight" | "widthStep" | "heightStep",
+    action: "up" | "down" | "width" | "height" | "duplicate" | "delete" | "setWidth" | "setHeight" | "widthStep" | "heightStep" | "cycleShape",
     page: number,
     id: string,
     extraValue?: any,
@@ -1170,6 +1170,7 @@ function BuilderBlock({
       {/* Top Right: Floating Control Bar contained within block bounds */}
       <div className="block-controls editor-only" aria-label="Section controls">
         <span className="drag-handle" draggable onDragStart={(event) => { event.stopPropagation(); onDragStart(pageIndex, section.id); }} onDragEnd={(event) => event.stopPropagation()} title="Drag to reorder block">⠿</span>
+        {section.type === "shapeBox" && <button className="rounded px-1.5 text-[8px] font-bold uppercase" onClick={() => onAction("cycleShape", pageIndex, section.id)} title="Change shape" type="button">{section.content?.shapeKind ?? "rectangle"} ▾</button>}
 
         {/* Noticeboard QR & Submission Tracking trigger */}
         {section.type === "notice" && onConfigureNoticeQr && (
@@ -1574,7 +1575,7 @@ export default function App() {
       if ((event as CustomEvent).detail?.issueId === issueId) setCloudSaveState("saved");
     };
     const handleError = (event: Event) => {
-      if ((event as CustomEvent).detail?.issueId === issueId) setCloudSaveState("offline");
+      if ((event as CustomEvent).detail?.issueId === issueId) setCloudSaveState((current) => current === "conflict" ? "conflict" : "offline");
     };
     const handleConflict = (event: Event) => {
       const detail = (event as CustomEvent).detail;
@@ -2346,7 +2347,7 @@ export default function App() {
   };
 
   const blockAction = (
-    action: "up" | "down" | "width" | "height" | "duplicate" | "delete" | "setWidth" | "setHeight" | "widthStep" | "heightStep",
+    action: "up" | "down" | "width" | "height" | "duplicate" | "delete" | "setWidth" | "setHeight" | "widthStep" | "heightStep" | "cycleShape",
     page: number,
     id: string,
     extraValue?: any,
@@ -2354,6 +2355,10 @@ export default function App() {
     updatePage(page, (items) => {
       const index = items.findIndex((item) => item.id === id);
       if (index < 0) return items;
+      if (action === "cycleShape") {
+        const shapes: NonNullable<Section["content"]>["shapeKind"][] = ["rectangle", "circle", "line", "quote"];
+        return items.map((item) => item.id === id ? { ...item, content: { ...item.content, shapeKind: shapes[(shapes.indexOf(item.content?.shapeKind ?? "rectangle") + 1) % shapes.length] } } : item);
+      }
       if (action === "delete") return items.filter((item) => item.id !== id);
       if (action === "duplicate") {
         const copy = { ...items[index], id: `${items[index].type}-${Date.now()}` };
@@ -3209,7 +3214,7 @@ export default function App() {
           </button>
 
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "is-active" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
-          <button aria-label={freeformMode ? "Switch to flow layout" : "Switch to freeform layout"} className={`editor-icon-button hidden sm:grid ${freeformMode ? "is-active" : ""}`} onClick={() => setFreeformMode((value) => !value)} title={freeformMode ? "Switch to flow layout" : "Freeform canvas: drag and resize blocks"} type="button"><span className="text-[10px] font-bold">{freeformMode ? "XY" : "↗"}</span></button>
+          <button aria-label={freeformMode ? "Switch to flow layout" : "Switch to freeform layout"} className={`editor-icon-button ${freeformMode ? "is-active" : ""}`} onClick={() => setFreeformMode((value) => !value)} title={freeformMode ? "Switch to flow layout" : "Freeform canvas: drag and resize blocks"} type="button"><span className="text-[10px] font-bold">{freeformMode ? "XY" : "↗"}</span></button>
           <button aria-label="Text formatting" className={`editor-icon-button hidden sm:grid ${formatOpen ? "is-active" : ""}`} onClick={() => setFormatOpen(!formatOpen)} title="Text formatting" type="button"><EditorIcon name="type" /></button>
           <div className="editor-history-controls hidden xl:flex items-center gap-0.5 border-l border-black/10 pl-1.5 dark:border-white/10">
             <button aria-label="Undo layout change" className="editor-icon-button disabled:opacity-25 disabled:pointer-events-none" disabled={!canUndo} onClick={undo} title="Undo layout change (⌘Z)" type="button"><EditorIcon name="undo" /></button>
@@ -3261,7 +3266,7 @@ export default function App() {
           </button>
         </div>
       </header>
-      {cloudSaveState === "conflict" && <div className="editor-only sticky top-14 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[#a14b32]/20 bg-[#f3e6dc] px-4 py-3 text-xs text-[#5d3025] shadow-sm"><span><strong>Another editor saved first.</strong> {cloudConflictMessage} Your work is still open here, and a recovery snapshot was saved on this device. Copy any unsynced text before reloading.</span><button className="shrink-0 rounded-full border border-[#a14b32]/30 px-3 py-1.5 font-bold" onClick={() => window.location.reload()} type="button">Load latest version</button></div>}
+      {cloudSaveState === "conflict" && <div className="editor-only sticky top-14 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[#a14b32]/20 bg-[#f3e6dc] px-4 py-3 text-xs text-[#5d3025] shadow-sm"><span><strong>Another editor saved first.</strong> {cloudConflictMessage} Your edits remain open in this tab. Download a recovery copy before loading the latest version.</span><div className="flex shrink-0 gap-2"><button className="rounded-full border border-[#a14b32]/30 px-3 py-1.5 font-bold" onClick={() => { const media = Object.entries(collectMedia()).map(([key, value]) => { let meta = {}; try { meta = JSON.parse(localStorage.getItem(`${key}-meta`) ?? "{}"); } catch { /* Leave optional image metadata empty. */ } return { key, value, meta: { ...meta, ...(unsyncedMediaMeta.get(key) ?? {}) } }; }); const snapshot = { issueId, pages, content: Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map((element) => element.innerHTML), paletteId, fontId, freeformMode, media, savedAt: new Date().toISOString() }; const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" })); const link = document.createElement("a"); link.href = url; link.download = `${issueId}-recovery.json`; link.click(); URL.revokeObjectURL(url); }} type="button">Download recovery</button><button className="rounded-full border border-[#a14b32]/30 px-3 py-1.5 font-bold" onClick={() => window.location.reload()} type="button">Load latest version</button></div></div>}
 
       {formatOpen && (
         <div className="editor-only fixed right-4 top-14 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed]/95 p-2 shadow-xl backdrop-blur-md dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-[#f3f0e8]">

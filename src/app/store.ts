@@ -207,8 +207,8 @@ export async function loadPublishedIssueDocument(issueId: string): Promise<Publi
   const published = await response.json() as PublishedIssueDocument;
   const document = published.document;
   document.media?.forEach((entry) => {
-    localStorage.setItem(entry.key, entry.value);
-    if (entry.meta) localStorage.setItem(`${entry.key}-meta`, JSON.stringify(entry.meta));
+    try { localStorage.setItem(entry.key, entry.value); } catch { /* Public cloud images remain part of the returned document. */ }
+    if (entry.meta) { try { localStorage.setItem(`${entry.key}-meta`, JSON.stringify(entry.meta)); } catch { /* Crop metadata is still available in the media record. */ } }
   });
   return published;
 }
