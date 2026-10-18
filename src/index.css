@@ -1721,3 +1721,68 @@ html[data-theme="dark"] .editor-theme .canvas-zoom-control {
     padding-inline: 0.4rem;
   }
 }
+
+/* The publication canvas is a shared document; each collaborator's UI theme must not recolor it. */
+html[data-theme="dark"] .editor-theme #pdf-document .page,
+html.dark .editor-theme #pdf-document .page {
+  color: var(--editor-ink) !important;
+  background-color: var(--editor-paper) !important;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-\[\#171714\],
+html.dark .editor-theme #pdf-document .page .text-black,
+html.dark .editor-theme #pdf-document .page .text-\[\#171714\] {
+  color: var(--editor-ink) !important;
+}
+
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/20,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/25,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/30,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/35,
+html.dark .editor-theme #pdf-document .page .text-black\/20,
+html.dark .editor-theme #pdf-document .page .text-black\/25,
+html.dark .editor-theme #pdf-document .page .text-black\/30,
+html.dark .editor-theme #pdf-document .page .text-black\/35 {
+  color: color-mix(in srgb, var(--editor-ink) 45%, transparent) !important;
+}
+
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/40,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/45,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/50,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/55,
+html.dark .editor-theme #pdf-document .page .text-black\/40,
+html.dark .editor-theme #pdf-document .page .text-black\/45,
+html.dark .editor-theme #pdf-document .page .text-black\/50,
+html.dark .editor-theme #pdf-document .page .text-black\/55 {
+  color: color-mix(in srgb, var(--editor-ink) 62%, transparent) !important;
+}
+
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/60,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/65,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/70,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/75,
+html.dark .editor-theme #pdf-document .page .text-black\/60,
+html.dark .editor-theme #pdf-document .page .text-black\/65,
+html.dark .editor-theme #pdf-document .page .text-black\/70,
+html.dark .editor-theme #pdf-document .page .text-black\/75 {
+  color: color-mix(in srgb, var(--editor-ink) 78%, transparent) !important;
+}
+
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/80,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/85,
+html[data-theme="dark"] .editor-theme #pdf-document .page .text-black\/90,
+html.dark .editor-theme #pdf-document .page .text-black\/80,
+html.dark .editor-theme #pdf-document .page .text-black\/85,
+html.dark .editor-theme #pdf-document .page .text-black\/90 {
+  color: color-mix(in srgb, var(--editor-ink) 92%, transparent) !important;
+}
+
+html[data-theme="dark"] .editor-theme #pdf-document .page .bg-white,
+html[data-theme="dark"] .editor-theme #pdf-document .page .bg-\[\#f8f5ed\],
+html.dark .editor-theme #pdf-document .page .bg-white,
+html.dark .editor-theme #pdf-document .page .bg-\[\#f8f5ed\] {
+  color: var(--editor-ink) !important;
+  background-color: color-mix(in srgb, var(--editor-paper) 96%, var(--editor-ink)) !important;
+}

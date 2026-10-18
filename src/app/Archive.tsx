@@ -1,10 +1,16 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { loadWorkspace } from "./store";
+import { loadPublishedIssues, type Issue } from "./store";
 import BrandLogo from "./BrandLogo";
 import SubscribeForm from "./components/SubscribeForm";
 
 export default function Archive() {
-  const issues = loadWorkspace().issues;
+  const [issues, setIssues] = useState<Issue[]>([]);
+  useEffect(() => {
+    let active = true;
+    loadPublishedIssues().then((published) => { if (active) setIssues(published); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
   return (
     <div className="app-shell min-h-screen bg-[#f8f5ed] text-[#171714]">
       <header className="flex items-center justify-between border-b border-black px-5 py-6 sm:px-10">

@@ -81,7 +81,11 @@ export const dialog = {
 export function useDialog(): DialogContextValue {
   const ctx = useContext(DialogContext);
   if (!ctx) {
-    return dialog;
+    return {
+      showAlert: dialog.alert,
+      showConfirm: dialog.confirm,
+      showPrompt: dialog.prompt,
+    };
   }
   return ctx;
 }

@@ -1,0 +1,4 @@
+project_id = "psychic-octo-giggle"
+
+[functions.make-server-c2909e49]
+verify_jwt = true

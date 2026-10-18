@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link, useParams } from "react-router";
-import { loadWorkspace, updateIssue, type Issue } from "./store";
+import { activateWorkspaceOwner, hydrateWorkspace, loadIssueDocument, loadWorkspace, saveIssueDocument, updateIssue, type Issue } from "./store";
 import { cloneTemplatePages, saveCustomTemplate } from "./templates";
 import { rewriteWithAi } from "./ai";
 import { checkAiQuota, loadPreferences } from "./settingsStore";
@@ -68,7 +68,7 @@ type SectionType =
 type Section = {
   id: string;
   type: SectionType;
-  width: 4 | 6 | 8 | 12;
+  width: number;
   height: "compact" | "regular" | "tall";
   content?: {
     eyebrow?: string;
@@ -1103,9 +1103,7 @@ function BuilderBlock({
       data-section-type={section.type}
       data-layout-variant={section.content?.layoutVariant ?? SECTION_LAYOUTS[section.type]?.[0]?.id}
       data-section-id={section.id}
-      draggable
       onDragOver={(event) => event.preventDefault()}
-      onDragStart={() => onDragStart(pageIndex, section.id)}
       onDrop={(event: DragEvent) => {
         event.preventDefault();
         onDrop(pageIndex, section.id);
@@ -1121,7 +1119,7 @@ function BuilderBlock({
 
       {/* Top Right: Floating Control Bar contained within block bounds */}
       <div className="block-controls editor-only" aria-label="Section controls">
-        <span className="drag-handle" title="Drag to reorder block">⠿</span>
+        <span className="drag-handle" draggable onDragStart={(event) => { event.stopPropagation(); onDragStart(pageIndex, section.id); }} onDragEnd={(event) => event.stopPropagation()} title="Drag to reorder block">⠿</span>
 
         {/* Noticeboard QR & Submission Tracking trigger */}
         {section.type === "notice" && onConfigureNoticeQr && (
@@ -1365,6 +1363,8 @@ export default function App() {
   const [fontId, setFontId] = useState(() => localStorage.getItem(`iow-font-${issueId}`) ?? loadPublicationStyleGuide().fontId);
   const [preview, setPreview] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [, setMediaRevision] = useState(0);
+  const [cloudSaveState, setCloudSaveState] = useState<"loading" | "saving" | "saved" | "offline">("loading");
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const dragged = useRef<{ page: number; id: string } | null>(null);
@@ -1381,7 +1381,11 @@ export default function App() {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [wordStats, setWordStats] = useState({ pageWords: 0, totalWords: 0 });
   const [pageOverflowHeights, setPageOverflowHeights] = useState<Record<number, number>>({});
-  const contentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentTimer = useRef<number | null>(null);
+  const issuePersistTimer = useRef<number | null>(null);
+  const issueCloudLoadedRef = useRef(false);
+  const scheduleIssueSaveRef = useRef<() => void>(() => undefined);
+  const syncMediaToPeersRef = useRef<(storageKey: string) => void>(() => undefined);
   const sourceRef = useRef<HTMLTextAreaElement>(null);
   const aiApplyRef = useRef<(value: string) => void>(() => undefined);
   const aiTargetIsCurrentRef = useRef<() => boolean>(() => true);
@@ -1465,7 +1469,67 @@ export default function App() {
   };
 
   const { user } = useAuth();
+  activateWorkspaceOwner(user?.id ?? null);
   const isRemoteUpdateRef = useRef(false);
+
+  useEffect(() => {
+    const handleSuccess = (event: Event) => {
+      if ((event as CustomEvent).detail?.issueId === issueId) setCloudSaveState("saved");
+    };
+    const handleError = (event: Event) => {
+      if ((event as CustomEvent).detail?.issueId === issueId) setCloudSaveState("offline");
+    };
+    window.addEventListener("iow-issue-sync-success", handleSuccess);
+    window.addEventListener("iow-issue-sync-error", handleError);
+    return () => {
+      window.removeEventListener("iow-issue-sync-success", handleSuccess);
+      window.removeEventListener("iow-issue-sync-error", handleError);
+    };
+  }, [issueId]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    hydrateWorkspace(user.id).then((workspace) => {
+      const current = workspace.issues.find((item) => item.id === issueId);
+      if (current) setIssue(current);
+    }).catch((error) => window.dispatchEvent(new CustomEvent("iow-workspace-sync-error", { detail: error })));
+  }, [issueId, user?.id]);
+
+  useEffect(() => {
+    let active = true;
+    issueCloudLoadedRef.current = false;
+    loadIssueDocument(issueId).then((issueDocument) => {
+      if (!active) return;
+      setCloudSaveState("saved");
+      if (issueDocument) {
+        isRemoteUpdateRef.current = true;
+        issueDocument.media?.forEach((entry) => {
+          window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey: entry.key, value: entry.value, meta: entry.meta, broadcast: false } }));
+        });
+        setPages(issueDocument.pages as Pages);
+        setPaletteId(issueDocument.paletteId);
+        setFontId(issueDocument.fontId);
+        setComments((issueDocument.comments ?? []) as EditorialComment[]);
+        setChatMessages((issueDocument.chatMessages ?? []) as NewsroomMessage[]);
+        window.setTimeout(() => {
+          if (!active) return;
+          document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((element, index) => {
+            if (issueDocument.content[index] !== undefined) element.innerHTML = issueDocument.content[index];
+          });
+          issueCloudLoadedRef.current = true;
+          requestAnimationFrame(() => { isRemoteUpdateRef.current = false; });
+        }, 40);
+      } else {
+        issueCloudLoadedRef.current = true;
+        scheduleIssueSaveRef.current();
+      }
+    }).catch((error) => {
+      setCloudSaveState("offline");
+      issueCloudLoadedRef.current = true;
+      window.dispatchEvent(new CustomEvent("iow-issue-sync-error", { detail: { issueId, error } }));
+    });
+    return () => { active = false; };
+  }, [issueId, user?.id]);
 
   const handleRemoteChange = useCallback((payload: DocChangePayload) => {
     if (payload.type === "field_edit") {
@@ -1476,6 +1540,7 @@ export default function App() {
         if (target && document.activeElement !== target) {
           if (target.innerHTML !== html) {
             target.innerHTML = html;
+            scheduleIssueSaveRef.current();
           }
         }
       }
@@ -1508,14 +1573,24 @@ export default function App() {
           }
         });
         localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(payload.data));
+        scheduleIssueSaveRef.current();
       }
     } else if (payload.type === "media") {
       const { storageKey, value, meta } = payload.data || {};
+      if (payload.data?.refresh) {
+        void loadIssueDocument(issueId).then((issueDocument) => {
+          issueDocument?.media?.forEach((entry) => {
+            window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey: entry.key, value: entry.value, meta: entry.meta, broadcast: false } }));
+          });
+        }).catch(() => undefined);
+        return;
+      }
       if (storageKey) {
         isRemoteUpdateRef.current = true;
         if (value !== undefined) localStorage.setItem(storageKey, value);
         if (meta !== undefined) localStorage.setItem(`${storageKey}-meta`, JSON.stringify(meta));
         window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, value, meta, broadcast: false } }));
+        scheduleIssueSaveRef.current();
         requestAnimationFrame(() => {
           isRemoteUpdateRef.current = false;
         });
@@ -1581,7 +1656,7 @@ export default function App() {
       palette: paletteId,
       font: fontId,
       content,
-      media: collectMedia(),
+      media: Object.fromEntries(Object.entries(collectMedia()).filter(([, value]) => !value.startsWith("data:image/"))),
       comments,
     };
   }, [pages, paletteId, fontId, comments]);
@@ -1664,8 +1739,10 @@ export default function App() {
   useEffect(() => {
     const handlePhotoBroadcast = (event: Event) => {
       const detail = (event as CustomEvent).detail;
-      if (detail?.broadcast && !isRemoteUpdateRef.current) {
-        broadcastDocChange("media", { storageKey: detail.storageKey, value: detail.value, meta: detail.meta });
+      if (detail?.broadcast) {
+        if (!isRemoteUpdateRef.current) syncMediaToPeersRef.current(detail.storageKey);
+      } else if (!isRemoteUpdateRef.current) {
+        scheduleIssueSaveRef.current();
       }
     };
     window.addEventListener("iow-photo-update", handlePhotoBroadcast);
@@ -1864,6 +1941,7 @@ export default function App() {
     );
     localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(content));
     updateIssue(issueId, {});
+    scheduleIssueSaveRef.current();
     setSaved(true);
     setLastSavedTime(Date.now());
     setRelativeSavedTime("just now");
@@ -1878,10 +1956,61 @@ export default function App() {
     const prefix = `iow-media-${issueId}-`;
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
-      if (key?.startsWith(prefix)) media[key] = localStorage.getItem(key) ?? "";
+      if (key?.startsWith(prefix) && !key.endsWith("-meta")) media[key] = localStorage.getItem(key) ?? "";
     }
     return media;
   };
+
+  const scheduleIssueSave = () => {
+    if (issuePersistTimer.current) window.clearTimeout(issuePersistTimer.current);
+    setCloudSaveState("saving");
+    issuePersistTimer.current = window.setTimeout(() => {
+      issuePersistTimer.current = null;
+      void persistIssueNow().catch(() => undefined);
+    }, 900);
+  };
+  const persistIssueNow = async () => {
+    const media = Object.entries(collectMedia()).map(([key, value]) => {
+      let meta: Record<string, unknown> = {};
+      try { meta = JSON.parse(localStorage.getItem(`${key}-meta`) ?? "{}"); } catch { /* Keep media when optional metadata is malformed. */ }
+      return { key, value, meta };
+    });
+    const liveContent = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map((element) => element.innerHTML);
+    let cachedContent: string[] = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(`iow-content-${issueId}`) ?? "[]");
+      if (Array.isArray(parsed)) cachedContent = parsed;
+    } catch { /* Use empty content only when the local cache is malformed too. */ }
+    const content = liveContent.length ? liveContent : cachedContent;
+    const readArray = (key: string) => {
+      try { const value = JSON.parse(localStorage.getItem(key) ?? "[]"); return Array.isArray(value) ? value : []; } catch { return []; }
+    };
+    await saveIssueDocument(issueId, {
+      pages,
+      content,
+      paletteId,
+      fontId,
+      media,
+      comments: readArray(`iow-comments-${issueId}`),
+      chatMessages: readArray(`iow-chat-${issueId}`),
+    });
+  };
+  syncMediaToPeersRef.current = (storageKey) => {
+    setCloudSaveState("saving");
+    void persistIssueNow().then(() => {
+      let meta: Record<string, unknown> = {};
+      try { meta = JSON.parse(localStorage.getItem(`${storageKey}-meta`) ?? "{}"); } catch { /* Optional media metadata can be rebuilt by the next edit. */ }
+      broadcastDocChange("media", { storageKey, value: collectMedia()[storageKey], meta });
+    }).catch((error) => {
+      window.dispatchEvent(new CustomEvent("iow-issue-sync-error", { detail: { issueId, error } }));
+    });
+  };
+  scheduleIssueSaveRef.current = scheduleIssueSave;
+
+  useEffect(() => {
+    if (!issueCloudLoadedRef.current || isRemoteUpdateRef.current) return;
+    scheduleIssueSaveRef.current();
+  }, [pages, paletteId, fontId, comments, chatMessages]);
 
   const captureCheckpoint = (label: string) => {
     const snapshot: DocumentCheckpoint = {
@@ -1978,7 +2107,6 @@ export default function App() {
           type === "timeline" ||
           type === "recommendations" ||
           type === "statistics" ||
-          type === "crossword" ||
           type === "sudoku" ||
           type === "wordsearch"
         ? 6
@@ -2672,6 +2800,7 @@ export default function App() {
       gallery: "Gallery", notice: "Notice", divider: "Divider", footer: "Final",
       interview: "Interview", statistics: "Statistics", timeline: "Timeline",
       recommendations: "Recommendations",
+      audio: "Audio", poll: "Poll", crossword: "Crossword", sudoku: "Sudoku", wordsearch: "Word Search",
     };
     const output = pages.map((sections, pageIndex) => {
       const page = sections.map((section) => {
@@ -2800,7 +2929,7 @@ export default function App() {
     downloadBlob(html, `${issue.id}-email.html`, "text/html");
   };
 
-  const mediaEntries = Object.entries(collectMedia()).filter(([, value]) => value.startsWith("data:image"));
+  const mediaEntries = Object.entries(collectMedia()).filter(([, value]) => value.startsWith("data:image") || value.startsWith("https://"));
 
   return (
     <div
@@ -2908,11 +3037,11 @@ export default function App() {
           <button
             className="editor-save-status hidden 2xl:flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-medium text-black/55 dark:text-white/65 transition"
             onClick={saveDraft}
-            title="Click to force instant save to browser storage"
+            title="Save the current issue now"
             type="button"
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${saved ? "bg-[#3e6a59] animate-ping" : isConnected ? "bg-[#3e6a59]" : "bg-[#ef5a35]"}`} />
-            <span>{saved ? "Saved" : isConnected ? "Synced" : "Saving"}</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${cloudSaveState === "saved" ? "bg-[#3e6a59]" : cloudSaveState === "offline" ? "bg-[#ef5a35]" : "bg-[#c19639] animate-pulse"}`} />
+            <span>{cloudSaveState === "saved" ? "Cloud saved" : cloudSaveState === "offline" ? "Offline · local copy" : cloudSaveState === "saving" ? "Saving to cloud" : saved ? "Saved locally" : "Connecting"}</span>
           </button>
 
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "is-active" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
@@ -3374,7 +3503,7 @@ export default function App() {
                 <div><p className="text-sm leading-relaxed text-black/55">Turn this issue—or only the selected page—into a reusable team template. Content and layout remain editable in every new issue.</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><button className="border border-black/15 p-6 text-left hover:border-[#ef5a35]" onClick={() => saveAsTemplate("issue")} type="button"><span className="font-serif text-2xl">Save full issue</span><span className="mt-2 block text-[10px] text-black/40">Keep the complete page sequence.</span></button><button className="border border-black/15 p-6 text-left hover:border-[#ef5a35]" onClick={() => saveAsTemplate("page")} type="button"><span className="font-serif text-2xl">Save current page</span><span className="mt-2 block text-[10px] text-black/40">Use this page as a starting format.</span></button></div></div>
               )}
               {studioTab === "media" && (
-                <div><div className="mb-5"><p className="text-xs font-semibold">Issue media</p><p className="mt-1 text-[9px] text-black/40">Uploaded images are stored locally with this issue. Captions and credits remain editable on canvas.</p></div>{mediaEntries.length ? <div className="grid grid-cols-2 gap-3">{mediaEntries.map(([key, value]) => <figure className="border border-black/10 bg-white p-2" key={key}><img alt="Uploaded issue media" className="aspect-video w-full object-cover" src={value} /><figcaption className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-[8px] text-black/35">{key.split("-").slice(-2).join("-")}</span><button className="text-[8px] font-bold uppercase text-[#ef5a35] hover:text-[#d44826] transition" onClick={async () => { const ok = await dialog.confirm({ title: "Remove Media", message: "Are you sure you want to remove this stored image from issue media?", confirmText: "Remove Image", danger: true }); if (ok) { localStorage.removeItem(key); window.location.reload(); } }} type="button">Remove</button></figcaption></figure>)}</div> : <p className="border border-dashed border-black/15 py-14 text-center text-xs text-black/40">No uploaded media yet.</p>}</div>
+                <div><div className="mb-5"><p className="text-xs font-semibold">Issue media</p><p className="mt-1 text-[9px] text-black/40">Uploaded images are stored in this issue’s cloud record. Captions and credits remain editable on canvas.</p></div>{mediaEntries.length ? <div className="grid grid-cols-2 gap-3">{mediaEntries.map(([key, value]) => <figure className="border border-black/10 bg-white p-2" key={key}><img alt="Uploaded issue media" className="aspect-video w-full object-cover" src={value} /><figcaption className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-[8px] text-black/35">{key.split("-").slice(-2).join("-")}</span><button className="text-[8px] font-bold uppercase text-[#ef5a35] hover:text-[#d44826] transition" onClick={async () => { const ok = await dialog.confirm({ title: "Remove Media", message: "Are you sure you want to remove this stored image from issue media?", confirmText: "Remove Image", danger: true }); if (ok) { localStorage.removeItem(key); localStorage.removeItem(`${key}-meta`); window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey: key, value: "", broadcast: false } })); setMediaRevision((revision) => revision + 1); scheduleIssueSaveRef.current(); } }} type="button">Remove</button></figcaption></figure>)}</div> : <p className="border border-dashed border-black/15 py-14 text-center text-xs text-black/40">No uploaded media yet.</p>}</div>
               )}
               {studioTab === "export" && (
                 <div className="grid gap-3">
@@ -3777,9 +3906,7 @@ export default function App() {
 
       {/* Newsroom Live Chat Drawer */}
       <NewsroomChat
-        currentUserColor={userColor}
         currentUserId={myId}
-        currentUserName={userName}
         isOpen={chatOpen}
         messages={chatMessages}
         onClose={() => setChatOpen(false)}

@@ -1,8 +1,9 @@
 export type TemplateSection = {
   id: string;
-  type: "cover" | "heading" | "article" | "photo" | "poem" | "quote" | "events" | "gossip" | "gallery" | "notice" | "divider" | "footer" | "interview" | "statistics" | "timeline" | "recommendations";
-  width: 4 | 6 | 8 | 12;
+  type: "cover" | "heading" | "article" | "photo" | "poem" | "quote" | "events" | "gossip" | "gallery" | "notice" | "divider" | "footer" | "interview" | "statistics" | "timeline" | "recommendations" | "audio" | "poll" | "crossword" | "sudoku" | "wordsearch";
+  width: number;
   height: "compact" | "regular" | "tall";
+  content?: object;
 };
 
 export type NewsletterTemplate = {

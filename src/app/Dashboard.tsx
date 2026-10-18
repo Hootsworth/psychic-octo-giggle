@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   cloneIssueDocument,
-  initWorkspaceRealtimeSync,
+  activateWorkspaceOwner,
+  hydrateWorkspace,
   loadWorkspace,
   makeId,
   removeIssueDocument,
@@ -21,18 +22,30 @@ const colors = ["#ef5a35", "#3e6a59", "#7d5a87", "#c19639", "#315b75"];
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [workspace, setWorkspace] = useState<Workspace>(loadWorkspace);
+  activateWorkspaceOwner(user?.id ?? null);
+  const [workspace, setWorkspace] = useState<Workspace>(() => loadWorkspace(user?.id ?? null));
+  const [cloudStatus, setCloudStatus] = useState<"loading" | "saved" | "offline">("loading");
 
   useEffect(() => {
+    if (!user?.id) return;
     const handleWorkspaceChange = () => {
       setWorkspace(loadWorkspace());
     };
+    const handleSyncSuccess = () => setCloudStatus("saved");
+    const handleSyncError = () => setCloudStatus("offline");
     window.addEventListener("iow-workspace-change", handleWorkspaceChange);
-    initWorkspaceRealtimeSync(setWorkspace);
+    window.addEventListener("iow-workspace-sync-success", handleSyncSuccess);
+    window.addEventListener("iow-workspace-sync-error", handleSyncError);
+    hydrateWorkspace(user.id).then((remote) => {
+      setWorkspace(remote);
+      setCloudStatus("saved");
+    }).catch(() => setCloudStatus("offline"));
     return () => {
       window.removeEventListener("iow-workspace-change", handleWorkspaceChange);
+      window.removeEventListener("iow-workspace-sync-success", handleSyncSuccess);
+      window.removeEventListener("iow-workspace-sync-error", handleSyncError);
     };
-  }, []);
+  }, [user?.id]);
 
   const [view, setView] = useState("all");
   const [folderName, setFolderName] = useState("");
@@ -283,7 +296,7 @@ export default function Dashboard() {
           </button>
         </div>
         <p className="text-white/70">University Editorial Team</p>
-        <p className="mt-1">Cloud workspace · Phase 1</p>
+        <p className="mt-1">{cloudStatus === "loading" ? "Connecting to cloud workspace" : cloudStatus === "saved" ? "Issues saved to your cloud workspace" : "Cloud unavailable · changes cached on this device"}</p>
       </div>
     </>
   );

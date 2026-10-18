@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useParams } from "react-router";
-import { loadWorkspace, type Issue } from "./store";
+import { loadPublishedIssueDocument, loadWorkspace, type Issue, type IssueDocument } from "./store";
 import BrandLogo from "./BrandLogo";
 import NewspaperMasthead, { type NewspaperMastheadSettings } from "./NewspaperMasthead";
 import SubscribeForm from "./components/SubscribeForm";
@@ -38,6 +38,7 @@ interface Section {
 }
 
 type Pages = Section[][];
+type ReaderIssue = Issue & { description?: string; date?: string; volume?: string; pages?: Pages };
 
 const SECTION_LAYOUT_DEFAULTS: Record<string, string> = {
   events: "list", notice: "submission", interview: "feature", statistics: "dashboard",
@@ -70,37 +71,54 @@ export default function ReaderView() {
   const [readingTheme, setReadingTheme] = useState<"warm" | "cream" | "night">("warm");
   const [pollVoted, setPollVoted] = useState<number | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [publishedIssue, setPublishedIssue] = useState<Issue | null>(null);
+  const [remoteDocument, setRemoteDocument] = useState<IssueDocument | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadPublishedIssueDocument(issueId).then((published) => {
+      if (!active || !published) return;
+      setPublishedIssue(published.issue);
+      setRemoteDocument(published.document);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [issueId]);
 
   // Load workspace & issue
   const workspace = useMemo(() => loadWorkspace(), []);
-  const issue: Issue = useMemo(() => {
+  const issue: ReaderIssue = useMemo(() => {
     return (
-      workspace.issues.find((item) => item.id === issueId) ?? {
+      publishedIssue ?? workspace.issues.find((item) => item.id === issueId) ?? {
         id: issueId,
         title: "Campus Edition",
+        week: "September 2026",
         description: "Weekly student voices, campus notes, and long-form features.",
         date: "September 2026",
         volume: "Vol. 1 · No. 8",
         status: "published",
+        folderId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         pages: [],
       }
     );
-  }, [workspace, issueId]);
+  }, [workspace, issueId, publishedIssue]);
 
   // Load pages layout
   const pages: Pages = useMemo(() => {
+    if (remoteDocument?.pages) return remoteDocument.pages as Pages;
     try {
       const stored = localStorage.getItem(`iow-layout-${issueId}`);
       if (stored) return JSON.parse(stored);
     } catch {
       // fallback
     }
-    return issue.pages.length ? issue.pages : [[]];
-  }, [issueId, issue.pages]);
+    return issue.pages?.length ? issue.pages : [[]];
+  }, [issueId, issue.pages, remoteDocument]);
 
   // Palette & Font
-  const paletteId = localStorage.getItem(`iow-palette-${issueId}`) ?? "campus";
-  const fontId = localStorage.getItem(`iow-font-${issueId}`) ?? "newsreader";
+  const paletteId = remoteDocument?.paletteId ?? localStorage.getItem(`iow-palette-${issueId}`) ?? "campus";
+  const fontId = remoteDocument?.fontId ?? localStorage.getItem(`iow-font-${issueId}`) ?? "newsreader";
   const palette = PALETTES[paletteId] ?? PALETTES.campus;
   const fontPair = FONT_PAIRS[fontId] ?? FONT_PAIRS.newsreader;
   const newspaper = pages[0]?.[0]?.id === "paper-masthead";
@@ -108,13 +126,14 @@ export default function ReaderView() {
 
   // Stored content
   const storedContent = useMemo(() => {
+    if (remoteDocument?.content) return remoteDocument.content;
     try {
       const raw = localStorage.getItem(`iow-content-${issueId}`);
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
-  }, [issueId]);
+  }, [issueId, remoteDocument]);
 
   // Populate innerHTML from storedContent once mounted
   useEffect(() => {
@@ -421,10 +440,7 @@ function ReaderSectionContent({
 
   if (type === "gallery") {
     const variant = content?.layoutVariant ?? "diptych";
-    const sources = ["a", "b", "c"].map((suffix) =>
-      localStorage.getItem(`iow-media-${issueId}-${section.id}-${suffix}`) ||
-      localStorage.getItem(`${storageKey}-${suffix}`),
-    );
+    const sources = ["a", "b", "c"].map((suffix) => localStorage.getItem(`${storageKey}-${suffix}`));
     return (
       <div className={`grid h-full gap-2 bg-[#eee8dc] p-2 ${variant === "feature" ? "sm:grid-cols-[1.6fr_1fr]" : variant === "filmstrip" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         {sources.slice(0, variant === "filmstrip" ? 3 : 2).map((src, index) => (
