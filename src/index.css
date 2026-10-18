@@ -1389,3 +1389,10 @@ html[data-theme="dark"] .studio-action:hover {
     padding: 0 !important;
   }
 }
+
+.editor-theme #pdf-document h1,
+.editor-theme #pdf-document h2,
+.editor-theme #pdf-document h3 {
+  font-family: var(--editor-headline-font, var(--editor-serif));
+  font-weight: var(--editor-headline-weight, inherit);
+}

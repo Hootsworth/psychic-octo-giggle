@@ -106,6 +106,13 @@ type DocumentCheckpoint = {
   sourceText: string;
   media: Record<string, string>;
 };
+type PublicationStyleGuide = { paletteId: string; fontId: string; headlineStyle: string; bylineConvention: string };
+type PendingSuggestion = { id: string; original: string; proposed: string; apply: (value: string) => void; isCurrent: () => boolean };
+const STYLE_GUIDE_KEY = "iow-publication-style-guide";
+const loadPublicationStyleGuide = (): PublicationStyleGuide => {
+  try { return JSON.parse(localStorage.getItem(STYLE_GUIDE_KEY) ?? "null") ?? { paletteId: "campus", fontId: "newsreader", headlineStyle: "Editorial serif", bylineConvention: "By the editorial team" }; }
+  catch { return { paletteId: "campus", fontId: "newsreader", headlineStyle: "Editorial serif", bylineConvention: "By the editorial team" }; }
+};
 
 const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[] = [
   { type: "heading", name: "Section heading", description: "Large editorial title" },
@@ -455,12 +462,14 @@ function PageHeader({ page, total }: { page: number; total: number }) {
 
 function SectionContent({
   section,
+  bylineConvention,
   isCoverPhoto,
   mediaKey,
   onConfigureNoticeQr,
   onEditCrossword,
 }: {
   section: Section;
+  bylineConvention?: string;
   isCoverPhoto?: boolean;
   mediaKey: string;
   onConfigureNoticeQr?: () => void;
@@ -517,7 +526,7 @@ function SectionContent({
             {content?.body ?? "The campus feels different in September. New notebooks, old buildings, and the pleasant sense that anything might happen. This space belongs to the students filling it—with questions, stories, plans, and ideas."}
           </Editable>
           <Editable as="p" className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em]">
-            — The editorial team
+            {bylineConvention ?? "By the editorial team"}
           </Editable>
         </div>
       </div>
@@ -892,6 +901,7 @@ function SectionContent({
 
 function BuilderBlock({
   section,
+  bylineConvention,
   pageIndex,
   isCoverPhoto,
   onDragStart,
@@ -903,6 +913,7 @@ function BuilderBlock({
   onEditCrossword,
 }: {
   section: Section;
+  bylineConvention: string;
   pageIndex: number;
   isCoverPhoto?: boolean;
   onDragStart: (page: number, id: string) => void;
@@ -1099,6 +1110,7 @@ function BuilderBlock({
       </div>
 
       <SectionContent
+        bylineConvention={bylineConvention}
         isCoverPhoto={isCoverPhoto}
         mediaKey={`iow-media-${issueId}-${section.id}`}
         onConfigureNoticeQr={() => onConfigureNoticeQr?.(section.id)}
@@ -1170,13 +1182,14 @@ export default function App() {
   const [canvasZoom, setCanvasZoom] = useState(100);
   const [pageOverviewOpen, setPageOverviewOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [articleLibraryOpen, setArticleLibraryOpen] = useState(false);
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
   const [sourceMode, setSourceMode] = useState(false);
   const [sourceText, setSourceText] = useState(sourceStarter);
-  const [paletteId, setPaletteId] = useState(() => localStorage.getItem(`iow-palette-${issueId}`) ?? "campus");
-  const [fontId, setFontId] = useState(() => localStorage.getItem(`iow-font-${issueId}`) ?? "newsreader");
+  const [paletteId, setPaletteId] = useState(() => localStorage.getItem(`iow-palette-${issueId}`) ?? loadPublicationStyleGuide().paletteId);
+  const [fontId, setFontId] = useState(() => localStorage.getItem(`iow-font-${issueId}`) ?? loadPublicationStyleGuide().fontId);
   const [preview, setPreview] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -1198,6 +1211,7 @@ export default function App() {
   const contentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sourceRef = useRef<HTMLTextAreaElement>(null);
   const aiApplyRef = useRef<(value: string) => void>(() => undefined);
+  const aiTargetIsCurrentRef = useRef<() => boolean>(() => true);
   const [selectionText, setSelectionText] = useState("");
   const [aiOpen, setAiOpen] = useState(false);
   const [aiOriginal, setAiOriginal] = useState("");
@@ -1217,6 +1231,16 @@ export default function App() {
       return [];
     }
   });
+  const [styleGuide, setStyleGuide] = useState<PublicationStyleGuide>(loadPublicationStyleGuide);
+  const [suggestions, setSuggestions] = useState<PendingSuggestion[]>([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [replaceQuery, setReplaceQuery] = useState("");
+  const [findIndex, setFindIndex] = useState(0);
+  const [findMatches, setFindMatches] = useState<{ range: Range; node: Text; start: number; end: number }[]>([]);
+  const [compareCheckpointId, setCompareCheckpointId] = useState<string | null>(null);
+  const [comparisonContent, setComparisonContent] = useState<string[]>([]);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<EditorialComment[]>(() => {
     try {
@@ -2126,6 +2150,8 @@ export default function App() {
         setDesignOpen(false);
         setFormatOpen(false);
         setStudioOpen(false);
+        setFindOpen(false);
+        setSuggestionsOpen(false);
       }
 
       // Undo: Cmd+Z (without Shift)
@@ -2151,6 +2177,11 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         saveDraft();
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setFindOpen(true);
       }
 
       // Preview toggle: Cmd+Shift+P or Cmd+P
@@ -2182,6 +2213,103 @@ export default function App() {
     document.execCommand(command, false, value);
     scheduleContentSave();
   };
+
+  const searchEditableCopy = (advance = false) => {
+    if (!findQuery.trim()) return;
+    const matches: { range: Range; node: Text; start: number; end: number }[] = [];
+    document.querySelectorAll<HTMLElement>("#pdf-document .editable").forEach((editable) => {
+      const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT);
+      let node = walker.nextNode() as Text | null;
+      while (node) {
+        const source = node.data.toLocaleLowerCase();
+        const query = findQuery.toLocaleLowerCase();
+        let offset = 0;
+        while ((offset = source.indexOf(query, offset)) !== -1) {
+          const range = document.createRange();
+          range.setStart(node, offset);
+          range.setEnd(node, offset + query.length);
+          matches.push({ range, node, start: offset, end: offset + query.length });
+          offset += query.length;
+        }
+        node = walker.nextNode() as Text | null;
+      }
+    });
+    setFindMatches(matches);
+    const nextIndex = matches.length ? (advance ? (findIndex + 1) % matches.length : 0) : 0;
+    setFindIndex(nextIndex);
+    const match = matches[nextIndex];
+    if (match) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(match.range);
+      match.range.startContainer.parentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  const replaceCurrentMatch = () => {
+    const match = findMatches[findIndex];
+    if (!match || !match.node.isConnected) return;
+    match.node.replaceData(match.start, match.end - match.start, replaceQuery);
+    saveContent();
+    window.setTimeout(() => searchEditableCopy(), 0);
+  };
+
+  const replaceAllMatches = () => {
+    if (!findQuery.trim()) return;
+    const query = findQuery.toLocaleLowerCase();
+    const edits: { node: Text; offsets: number[] }[] = [];
+    findMatches.forEach(({ node, start }) => {
+      const entry = edits.find((item) => item.node === node) ?? { node, offsets: [] };
+      entry.offsets.push(start);
+      if (!edits.includes(entry)) edits.push(entry);
+    });
+    let count = 0;
+    edits.forEach(({ node, offsets }) => offsets.sort((a, b) => b - a).forEach((start) => {
+      if (node.isConnected && node.data.slice(start, start + query.length).toLocaleLowerCase() === query) {
+        node.replaceData(start, query.length, replaceQuery);
+        count += 1;
+      }
+    }));
+    saveContent();
+    setFindMatches([]);
+    toast.success(`Replaced ${count} occurrence${count === 1 ? "" : "s"}.`, "Find & replace");
+  };
+
+  const createSuggestion = () => {
+    if (!aiResult.trim()) return;
+    setSuggestions((current) => [...current, { id: `suggestion-${Date.now()}`, original: aiOriginal, proposed: aiResult, apply: aiApplyRef.current, isCurrent: aiTargetIsCurrentRef.current }]);
+    setAiOpen(false);
+    setSuggestionsOpen(true);
+  };
+
+  const savePublicationStyleGuide = () => {
+    captureCheckpoint("Before applying publication style guide");
+    localStorage.setItem(STYLE_GUIDE_KEY, JSON.stringify(styleGuide));
+    setPaletteId(styleGuide.paletteId);
+    setFontId(styleGuide.fontId);
+    localStorage.setItem(`iow-palette-${issueId}`, styleGuide.paletteId);
+    localStorage.setItem(`iow-font-${issueId}`, styleGuide.fontId);
+    broadcastDocChange("palette", styleGuide.paletteId);
+    broadcastDocChange("font", styleGuide.fontId);
+    toast.success("Publication style guide saved and applied.", "Style guide");
+  };
+
+  const createNamedCheckpoint = async () => {
+    const label = await dialog.prompt({ title: "Name this version", message: "Give this snapshot a useful name so you can find it later.", placeholder: "e.g. Approved front page", confirmText: "Save version" });
+    if (label?.trim()) captureCheckpoint(label.trim());
+  };
+
+  const compareCheckpoint = (snapshot: DocumentCheckpoint) => {
+    setCompareCheckpointId(snapshot.id);
+    setComparisonContent(Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map((item) => item.innerHTML));
+  };
+
+  const getCheckpointDiffs = (snapshot: DocumentCheckpoint) => snapshot.content.flatMap((before, index) => {
+    const after = comparisonContent[index] ?? "";
+    if (before === after) return [];
+    const plain = (html: string) => html.replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/(p|div|li|h[1-6])>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
+    return [{ index, before: plain(before), after: plain(after) }];
+  });
 
   const addLink = async () => {
     const url = await dialog.prompt({
@@ -2225,6 +2353,7 @@ export default function App() {
       return;
     }
     const range = selection.getRangeAt(0).cloneRange();
+    aiTargetIsCurrentRef.current = () => range.toString() === text;
     setSelectionText(text);
     aiApplyRef.current = (value) => {
       range.deleteContents();
@@ -2245,6 +2374,7 @@ export default function App() {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0).cloneRange();
+      aiTargetIsCurrentRef.current = () => range.toString() === text;
       aiApplyRef.current = (value) => {
         range.deleteContents();
         range.insertNode(document.createTextNode(value));
@@ -2261,7 +2391,9 @@ export default function App() {
     const fields = Array.from(section?.querySelectorAll<HTMLElement>(".editable") ?? []);
     const target = fields.sort((a, b) => b.innerText.length - a.innerText.length)[0];
     if (!target?.innerText.trim()) return;
-    openAiRewrite(target.innerText, (value) => {
+    const original = target.innerText;
+    aiTargetIsCurrentRef.current = () => target.isConnected && target.innerText === original;
+    openAiRewrite(original, (value) => {
       target.innerText = value;
       saveContent();
     });
@@ -2281,6 +2413,7 @@ export default function App() {
       });
       return;
     }
+    aiTargetIsCurrentRef.current = () => input.value.slice(start, end) === text;
     openAiRewrite(text, (value) => updateSource(`${sourceText.slice(0, start)}${value}${sourceText.slice(end)}`));
   };
 
@@ -2383,11 +2516,21 @@ export default function App() {
     const placeholders = document.querySelectorAll("#pdf-document .photo-placeholder").length;
     const lowResolution = Array.from(document.querySelectorAll<HTMLImageElement>("#pdf-document img"))
       .filter((image) => image.complete && image.naturalWidth < image.clientWidth * 1.5).length;
+    const missingAlt = Array.from(document.querySelectorAll<HTMLImageElement>("#pdf-document img")).filter((image) => !image.alt.trim()).length;
+    const unsafeLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>("#pdf-document .editable a")).filter((link) => !link.getAttribute("href")?.trim() || link.getAttribute("href") === "#" || (link.protocol !== "https:" && link.protocol !== "http:")).length;
+    const placeholderHeadlines = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document h1, #pdf-document h2, #pdf-document h3")).filter((heading) => /your (issue )?title|headline here|add (a )?headline/i.test(heading.innerText)).length;
+    const placeholderBylines = pages.flat().filter((section) => section.type === "article").filter((section) => {
+      const block = document.querySelector<HTMLElement>(`#pdf-document [data-section-id="${section.id}"]`);
+      return !block || /editorial team|by name|your name/i.test(block.innerText);
+    }).length;
     results.push({ tone: emptyPages ? "warn" : "pass", label: "Page structure", detail: emptyPages ? `${emptyPages} empty page${emptyPages === 1 ? "" : "s"}` : "Every page contains content" });
     results.push({ tone: overflow ? "warn" : "pass", label: "Page flow", detail: overflow ? `${overflow} page${overflow === 1 ? "" : "s"} should be rebalanced` : "No page overflow detected" });
     results.push({ tone: emptyFields ? "warn" : "pass", label: "Copy completeness", detail: emptyFields ? `${emptyFields} empty text field${emptyFields === 1 ? "" : "s"}` : "All text fields contain copy" });
     results.push({ tone: placeholders ? "warn" : "pass", label: "Photography", detail: placeholders ? `${placeholders} image placeholder${placeholders === 1 ? "" : "s"} remaining` : "All image slots are filled" });
     results.push({ tone: lowResolution ? "warn" : "pass", label: "Image resolution", detail: lowResolution ? `${lowResolution} image${lowResolution === 1 ? "" : "s"} may print softly` : "Image resolution looks suitable" });
+    results.push({ tone: missingAlt ? "warn" : "pass", label: "Image descriptions", detail: missingAlt ? `${missingAlt} image${missingAlt === 1 ? "" : "s"} missing alternative text` : "Images have alternative text" });
+    results.push({ tone: unsafeLinks ? "warn" : "pass", label: "Links", detail: unsafeLinks ? `${unsafeLinks} link${unsafeLinks === 1 ? "" : "s"} need a valid http or https destination` : "Links have valid destinations" });
+    results.push({ tone: placeholderHeadlines || placeholderBylines ? "warn" : "pass", label: "Editorial details", detail: `${placeholderHeadlines} placeholder headline${placeholderHeadlines === 1 ? "" : "s"}; ${placeholderBylines} article byline${placeholderBylines === 1 ? "" : "s"} still need a named author` });
     let workflowWarnings = 0;
     try {
       const workflow = JSON.parse(localStorage.getItem("iow-phase2-workflow") ?? "{}");
@@ -2486,6 +2629,8 @@ export default function App() {
         "--editor-workspace": palette.workspace,
         "--editor-serif": fontPair.serif,
         "--editor-sans": fontPair.sans,
+        "--editor-headline-font": styleGuide.headlineStyle === "Clean sans" ? fontPair.sans : fontPair.serif,
+        "--editor-headline-weight": styleGuide.headlineStyle === "Bold serif" ? "800" : "inherit",
       } as CSSProperties}
     >
       <header className="editor-bar sticky top-0 z-40 flex h-14 flex-nowrap items-center justify-between gap-x-2 border-b border-black/10 bg-[#f4f1e9]/95 px-3 sm:px-4 md:px-6 backdrop-blur-md">
@@ -2614,6 +2759,8 @@ export default function App() {
                 ))}
               </div>
               <button onClick={() => setDesignOpen(true)} type="button">Document design</button>
+              <button onClick={() => setFindOpen(true)} type="button">Find & replace <span className="float-right opacity-45">⌘F</span></button>
+              <button onClick={() => setSuggestionsOpen(true)} type="button">Suggestions {suggestions.length ? `(${suggestions.length})` : ""}</button>
               <button onClick={() => setPageMenuOpen(true)} type="button">Manage pages</button>
               <button onClick={() => setStudioOpen(true)} type="button">Production studio</button>
               <button onClick={() => setEmailModalOpen(true)} type="button">Email Studio & HTML</button>
@@ -2663,6 +2810,24 @@ export default function App() {
         </div>
       )}
 
+      {findOpen && (
+        <section className="editor-only fixed right-4 top-16 z-50 w-[min(24rem,calc(100vw-2rem))] border border-black/15 bg-[#f8f5ed] p-4 shadow-2xl dark:border-white/15 dark:bg-[#1a1916] dark:text-[#f3f0e8]">
+          <div className="mb-4 flex items-center justify-between"><div><p className="text-[8px] font-bold uppercase tracking-[0.15em] text-[#ef5a35]">Writing tools</p><h2 className="font-serif text-2xl">Find & replace</h2></div><button className="text-xl" onClick={() => setFindOpen(false)} type="button">×</button></div>
+          <div className="grid gap-2"><input aria-label="Find text" className="border border-black/15 bg-white/70 px-3 py-2 text-xs outline-none focus:border-[#ef5a35] dark:bg-white/5" onChange={(event) => setFindQuery(event.target.value)} onKeyDown={(event) => event.key === "Enter" && searchEditableCopy(true)} placeholder="Find in this issue" value={findQuery} /><input aria-label="Replace with" className="border border-black/15 bg-white/70 px-3 py-2 text-xs outline-none focus:border-[#ef5a35] dark:bg-white/5" onChange={(event) => setReplaceQuery(event.target.value)} placeholder="Replace with" value={replaceQuery} /></div>
+          <div className="mt-3 flex flex-wrap items-center gap-2"><button className="studio-action" onClick={() => searchEditableCopy()} type="button">Find</button><button className="studio-action" disabled={!findMatches.length} onClick={() => searchEditableCopy(true)} type="button">Next {findMatches.length ? `${findIndex + 1}/${findMatches.length}` : ""}</button><button className="studio-action" disabled={!findMatches.length} onClick={replaceCurrentMatch} type="button">Replace</button><button className="studio-action" disabled={!findMatches.length} onClick={replaceAllMatches} type="button">Replace all</button></div>
+          <p className="mt-3 text-[9px] leading-relaxed text-black/45 dark:text-white/45">Searches editable issue copy. Replace all keeps the surrounding inline formatting.</p>
+        </section>
+      )}
+
+      {suggestionsOpen && (
+        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/35" onMouseDown={() => setSuggestionsOpen(false)}>
+          <aside className="h-full w-full max-w-md overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="mb-6 flex items-start justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#ef5a35]">Editorial review</p><h2 className="mt-2 font-serif text-4xl">Suggestions</h2><p className="mt-2 text-[10px] text-black/45 dark:text-white/45">Proposed copy stays separate until you accept it.</p></div><button className="text-2xl" onClick={() => setSuggestionsOpen(false)} type="button">×</button></header>
+            {suggestions.length ? <div className="space-y-4">{suggestions.map((suggestion, index) => <article className="border border-black/10 bg-white/60 p-4 dark:border-white/10 dark:bg-white/5" key={suggestion.id}><div className="mb-3 flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-[0.12em]">Suggestion {index + 1}</p><button className="text-[9px] text-black/40 hover:text-black dark:text-white/40" onClick={() => setSuggestions((current) => current.filter((item) => item.id !== suggestion.id))} type="button">Dismiss</button></div><p className="max-h-24 overflow-y-auto whitespace-pre-line border-l-2 border-black/15 pl-3 text-[10px] leading-relaxed text-black/45 dark:border-white/15 dark:text-white/45">{suggestion.original}</p><p className="mt-3 max-h-36 overflow-y-auto whitespace-pre-line border-l-2 border-[#ef5a35] pl-3 font-serif text-sm leading-relaxed">{suggestion.proposed}</p><div className="mt-4 flex gap-2"><button className="rounded-full bg-[#ef5a35] px-4 py-2 text-[8px] font-bold uppercase tracking-[0.1em] text-white" onClick={() => { if (!suggestion.isCurrent()) { toast.error("This text has changed since the suggestion was made. Create a fresh suggestion before applying it.", "Suggestion is out of date"); return; } suggestion.apply(suggestion.proposed); setSuggestions((current) => current.filter((item) => item.id !== suggestion.id)); }} type="button">Accept change</button><button className="rounded-full border border-black/15 px-4 py-2 text-[8px] font-bold uppercase tracking-[0.1em]" onClick={() => setSuggestions((current) => current.filter((item) => item.id !== suggestion.id))} type="button">Reject</button></div></article>)}</div> : <p className="border border-dashed border-black/20 py-16 text-center text-xs text-black/45">No pending suggestions. Select copy and ask for an AI rewrite, then choose “Save as suggestion.”</p>}
+          </aside>
+        </div>
+      )}
+
       {selectionText && !aiOpen && (
         <button className="editor-only fixed bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#171714] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-2xl hover:bg-[#ef5a35]" onClick={rewriteCanvasSelection} type="button">
           <EditorIcon name="write" /> Rewrite selection
@@ -2708,7 +2873,8 @@ export default function App() {
                 <div className="mt-6 flex flex-wrap justify-end gap-2">
                   <button className="rounded-full border border-black/15 px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.1em]" onClick={() => setAiOpen(false)} type="button">Cancel</button>
                   <button className="rounded-full border border-black/15 px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.1em]" onClick={runAiRewrite} type="button">{aiResult ? "Try again" : "Generate rewrite"}</button>
-                  {aiResult && <button className="rounded-full bg-[#ef5a35] px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white" onClick={() => { aiApplyRef.current(aiResult); setAiOpen(false); }} type="button">Use rewrite</button>}
+                  {aiResult && <button className="rounded-full border border-[#ef5a35]/40 px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#a14b32]" onClick={createSuggestion} type="button">Save as suggestion</button>}
+                  {aiResult && <button className="rounded-full bg-[#ef5a35] px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white" onClick={() => { aiApplyRef.current(aiResult); setAiOpen(false); }} type="button">Apply now</button>}
                 </div>
               </div>
             )}
@@ -2838,6 +3004,14 @@ export default function App() {
             <div className="grid gap-2">
               {FONT_PAIRS.map((item) => <button className={`border p-4 text-left transition ${fontId === item.id ? "border-black bg-white dark:border-white dark:bg-[#242421]" : "border-black/10 hover:bg-white/60 dark:border-white/10 dark:hover:bg-[#20201d]"}`} key={item.id} onClick={() => setFontId(item.id)} type="button"><span className="block text-2xl" style={{ fontFamily: item.serif }}>Editorial Aa</span><span className="mt-2 block text-[9px] uppercase tracking-[0.12em] text-black/40 dark:text-white/40" style={{ fontFamily: item.sans }}>{item.name}</span></button>)}
             </div>
+            <div className="mt-8 border-t border-black/10 pt-6 dark:border-white/10">
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#ef5a35]">Publication style guide</p>
+              <p className="mt-2 text-[10px] leading-relaxed text-black/45 dark:text-white/45">Save a shared starting style for future issues, then apply it to this edition.</p>
+              <label className="mt-4 block"><span className="mb-1 block text-[8px] font-bold uppercase tracking-[0.1em] text-black/40">Headline style</span><select className="w-full border border-black/15 bg-transparent px-3 py-2 text-xs" onChange={(event) => setStyleGuide({ ...styleGuide, headlineStyle: event.target.value })} value={styleGuide.headlineStyle}><option>Editorial serif</option><option>Bold serif</option><option>Clean sans</option></select></label>
+              <label className="mt-3 block"><span className="mb-1 block text-[8px] font-bold uppercase tracking-[0.1em] text-black/40">Byline convention</span><input className="w-full border border-black/15 bg-transparent px-3 py-2 text-xs" onChange={(event) => setStyleGuide({ ...styleGuide, bylineConvention: event.target.value })} value={styleGuide.bylineConvention} /></label>
+              <div className="mt-3 flex gap-2"><button className="studio-action" onClick={() => setStyleGuide({ ...styleGuide, paletteId, fontId })} type="button">Use current design</button><button className="studio-action" onClick={savePublicationStyleGuide} type="button">Save & apply</button></div>
+              <p className="mt-3 text-[8px] text-black/35">Current defaults: {PALETTES.find((item) => item.id === styleGuide.paletteId)?.name} · {FONT_PAIRS.find((item) => item.id === styleGuide.fontId)?.name}</p>
+            </div>
           </aside>
         </div>
       )}
@@ -2938,7 +3112,12 @@ export default function App() {
                 </div>
               )}
               {studioTab === "history" && (
-                <div><button className="studio-action mb-5" onClick={() => captureCheckpoint("Manual checkpoint")} type="button">Create checkpoint</button><div className="space-y-2">{checkpoints.length ? checkpoints.map((item) => <div className="flex items-center justify-between border border-black/10 p-4" key={item.id}><div><p className="text-xs font-semibold">{item.label}</p><p className="mt-1 text-[9px] text-black/40">{new Date(item.at).toLocaleString()} · {item.pages.length} pages</p></div><button className="text-[8px] font-bold uppercase tracking-[0.1em] text-[#ef5a35]" onClick={() => restoreCheckpoint(item)} type="button">Restore</button></div>) : <p className="py-12 text-center text-xs text-black/40">Checkpoints appear after edits or manual saves.</p>}</div></div>
+                <div>
+                  <button className="studio-action mb-5" onClick={createNamedCheckpoint} type="button">Save named version</button>
+                  <div className="space-y-2">{checkpoints.length ? checkpoints.map((item) => <div className="border border-black/10 p-4" key={item.id}><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold">{item.label}</p><p className="mt-1 text-[9px] text-black/40">{new Date(item.at).toLocaleString()} · {item.pages.length} pages</p></div><div className="flex gap-3"><button className="text-[8px] font-bold uppercase tracking-[0.1em] text-black/55 hover:text-[#ef5a35]" onClick={() => compareCheckpoint(item)} type="button">Compare</button><button className="text-[8px] font-bold uppercase tracking-[0.1em] text-[#ef5a35]" onClick={() => restoreCheckpoint(item)} type="button">Restore</button></div></div>
+                    {compareCheckpointId === item.id && <div className="mt-4 border-t border-black/10 pt-4"><div className="mb-2 flex items-center justify-between"><p className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#ef5a35]">Snapshot compared with current issue</p><button className="text-[9px] text-black/40" onClick={() => setCompareCheckpointId(null)} type="button">Close</button></div><p className="mb-3 text-[9px] leading-relaxed text-black/50">Structure: {item.pages.length} pages at snapshot, {pages.length} now · Palette: {PALETTES.find((entry) => entry.id === item.paletteId)?.name ?? item.paletteId} → {palette.name} · Type: {FONT_PAIRS.find((entry) => entry.id === item.fontId)?.name ?? item.fontId} → {fontPair.name}</p>{getCheckpointDiffs(item).length ? getCheckpointDiffs(item).map((diff) => <div className="mb-3 grid gap-2 sm:grid-cols-2" key={diff.index}><p className="whitespace-pre-line bg-red-50 p-2 text-[9px] leading-relaxed text-red-900">− {diff.before || "(empty)"}</p><p className="whitespace-pre-line bg-green-50 p-2 text-[9px] leading-relaxed text-green-900">+ {diff.after || "(empty)"}</p></div>) : <p className="text-[9px] text-black/45">No copy changes found in this snapshot.</p>}</div>}
+                  </div>) : <p className="py-12 text-center text-xs text-black/40">Snapshots appear after edits or manual saves.</p>}</div>
+                </div>
               )}
               {studioTab === "templates" && (
                 <div><p className="text-sm leading-relaxed text-black/55">Turn this issue—or only the selected page—into a reusable team template. Content and layout remain editable in every new issue.</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><button className="border border-black/15 p-6 text-left hover:border-[#ef5a35]" onClick={() => saveAsTemplate("issue")} type="button"><span className="font-serif text-2xl">Save full issue</span><span className="mt-2 block text-[10px] text-black/40">Keep the complete page sequence.</span></button><button className="border border-black/15 p-6 text-left hover:border-[#ef5a35]" onClick={() => saveAsTemplate("page")} type="button"><span className="font-serif text-2xl">Save current page</span><span className="mt-2 block text-[10px] text-black/40">Use this page as a starting format.</span></button></div></div>
@@ -3207,6 +3386,7 @@ export default function App() {
               <div className="page-grid">
                 {sections.map((section) => (
                   <BuilderBlock
+                    bylineConvention={styleGuide.bylineConvention}
                     isCoverPhoto={section.id === "campus-photo"}
                     issueId={issueId}
                     key={section.id}
