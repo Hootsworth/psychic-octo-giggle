@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { loadWorkspace, type Issue } from "./store";
 import BrandLogo from "./BrandLogo";
+import NewspaperMasthead, { type NewspaperMastheadSettings } from "./NewspaperMasthead";
 import SubscribeForm from "./components/SubscribeForm";
 import SudokuSection from "./games/SudokuSection";
 import WordSearchSection from "./games/WordSearchSection";
@@ -18,6 +19,9 @@ interface Section {
   content?: {
     eyebrow?: string;
     title?: string;
+    mastheadStyle?: NewspaperMastheadSettings["mastheadStyle"];
+    mastheadLogo?: string;
+    mastheadTitle?: string;
     body?: string;
     byline?: string;
     noticeDetails?: string;
@@ -91,6 +95,8 @@ export default function ReaderView() {
   const fontId = localStorage.getItem(`iow-font-${issueId}`) ?? "newsreader";
   const palette = PALETTES[paletteId] ?? PALETTES.campus;
   const fontPair = FONT_PAIRS[fontId] ?? FONT_PAIRS.newsreader;
+  const newspaper = pages[0]?.[0]?.id === "paper-masthead";
+  const masthead = pages[0]?.find((section) => section.id === "paper-masthead")?.content;
 
   // Stored content
   const storedContent = useMemo(() => {
@@ -233,16 +239,23 @@ export default function ReaderView() {
                 color: readingTheme === "night" ? "#f3f0e8" : palette.ink,
               }}
             >
-              {/* Clean Masthead Header */}
-              <div className="mx-6 flex items-end justify-between border-b border-black/20 pb-3 pt-7 sm:mx-10 md:mx-14">
-                <BrandLogo className="h-12 w-24 object-left" />
-                <div className="flex items-center gap-5 text-[9px] font-semibold uppercase tracking-[0.18em]">
-                  <span>The University Edition</span>
-                  <span className="text-[#ef5a35]">
-                    {String(pageIndex + 1).padStart(2, "0")} / {String(pages.length).padStart(2, "0")}
-                  </span>
+              {/* Publication masthead */}
+              {newspaper ? (
+                <div className="mx-6 border-b-4 border-double border-black px-1 pb-3 pt-6 sm:mx-10 md:mx-14">
+                  <div className="flex items-center justify-between border-b border-black/40 pb-2 text-[8px] font-bold uppercase tracking-[0.16em]"><span>Independent student press</span><span>Vol. 01 · No. {String(pageIndex + 1).padStart(2, "0")}</span><span>University edition</span></div>
+                  <NewspaperMasthead className="my-1" settings={masthead} />
+                  <p className="mb-1 text-center font-serif text-[9px] uppercase tracking-[0.2em]">News · Opinion · Arts · Campus life</p>
+                  <div className="flex justify-between border-t border-black/40 pt-2 font-serif text-[9px] uppercase tracking-[0.1em]"><span>Reporting from campus</span><span>Edition {String(pageIndex + 1).padStart(2, "0")} of {String(pages.length).padStart(2, "0")}</span></div>
                 </div>
-              </div>
+              ) : (
+                <div className="mx-6 flex items-end justify-between border-b border-black/20 pb-3 pt-7 sm:mx-10 md:mx-14">
+                  <BrandLogo className="h-12 w-24 object-left" />
+                  <div className="flex items-center gap-5 text-[9px] font-semibold uppercase tracking-[0.18em]">
+                    <span>The University Edition</span>
+                    <span className="text-[#ef5a35]">{String(pageIndex + 1).padStart(2, "0")} / {String(pages.length).padStart(2, "0")}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Page Grid */}
               <div className="page-grid">

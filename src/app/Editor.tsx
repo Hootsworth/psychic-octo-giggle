@@ -15,6 +15,7 @@ import { cloneTemplatePages, saveCustomTemplate } from "./templates";
 import { rewriteWithAi } from "./ai";
 import { checkAiQuota, loadPreferences } from "./settingsStore";
 import BrandLogo from "./BrandLogo";
+import NewspaperMasthead, { type NewspaperMastheadSettings } from "./NewspaperMasthead";
 import { useAuth } from "./AuthContext";
 import { useCollaboration } from "./collaboration/useCollaboration";
 import MultiplayerCursors from "./collaboration/MultiplayerCursors";
@@ -72,6 +73,9 @@ type Section = {
   content?: {
     eyebrow?: string;
     title?: string;
+    mastheadStyle?: NewspaperMastheadSettings["mastheadStyle"];
+    mastheadLogo?: string;
+    mastheadTitle?: string;
     byline?: string;
     body?: string;
     articleLayout?: ArticleLayout;
@@ -461,15 +465,54 @@ function PhotoField({
   );
 }
 
-function PageHeader({ page, total }: { page: number; total: number }) {
-  const newspaper = typeof window !== "undefined" && window.location.pathname.includes("/editor/") && (() => {
-    const issueId = window.location.pathname.split("/").pop();
-    try { return JSON.parse(localStorage.getItem(`iow-layout-${issueId}`) ?? "[]")[0]?.[0]?.id === "paper-masthead"; } catch { return false; }
-  })();
+function PageHeader({
+  page,
+  total,
+  newspaper = false,
+  masthead,
+  onUpdateMasthead,
+}: {
+  page: number;
+  total: number;
+  newspaper?: boolean;
+  masthead?: NewspaperMastheadSettings;
+  onUpdateMasthead?: (patch: NewspaperMastheadSettings) => void;
+}) {
   if (newspaper) return (
     <div className="mx-6 border-b-4 border-double border-black px-1 pb-3 pt-6 sm:mx-10 md:mx-14">
       <div className="flex items-center justify-between border-b border-black/40 pb-2 text-[8px] font-bold uppercase tracking-[0.16em]"><span>Independent student press</span><span>Vol. 01 · No. {String(page).padStart(2, "0")}</span><span>University edition</span></div>
-      <div className="py-4 text-center"><p className="font-serif text-[clamp(3.1rem,8vw,6rem)] font-black uppercase leading-[0.78] tracking-[-0.08em]">The Campus Gazette</p><p className="mt-3 font-serif text-[9px] uppercase tracking-[0.2em]">News · Opinion · Arts · Campus life</p></div>
+      {page === 1 && onUpdateMasthead && (
+        <div className="editor-only flex flex-wrap items-center justify-center gap-2 border-b border-black/15 py-2 text-[8px]">
+          <label className="font-bold uppercase tracking-[0.1em] text-black/50" htmlFor="masthead-style">Masthead</label>
+          <select className="rounded border border-black/15 bg-white px-2 py-1" id="masthead-style" onChange={(event) => onUpdateMasthead({ mastheadStyle: event.target.value as NewspaperMastheadSettings["mastheadStyle"] })} value={masthead?.mastheadStyle ?? "text"}>
+            <option value="brand">Use publication logo</option>
+            <option value="custom-logo">Upload a different logo</option>
+            <option value="text">Use title text</option>
+          </select>
+          {(masthead?.mastheadStyle ?? "text") === "text" && (
+            <input aria-label="Masthead title" className="w-48 rounded border border-black/15 bg-white px-2 py-1" defaultValue={masthead?.mastheadTitle ?? "The Campus Gazette"} key={masthead?.mastheadTitle ?? "The Campus Gazette"} onBlur={(event) => onUpdateMasthead({ mastheadTitle: event.currentTarget.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} placeholder="Publication title" />
+          )}
+          {(masthead?.mastheadStyle ?? "text") === "custom-logo" && (
+            <label className="cursor-pointer rounded border border-black/15 bg-white px-2 py-1 font-semibold hover:border-[#a14b32]">
+              {masthead?.mastheadLogo ? "Replace logo" : "Choose image"}
+              <input accept="image/*" className="sr-only" onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith("image/") || file.size > 2_000_000) {
+                  toast.show("Choose an image smaller than 2 MB.", "error", "Logo not uploaded");
+                  event.currentTarget.value = "";
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => onUpdateMasthead({ mastheadLogo: String(reader.result ?? "") });
+                reader.readAsDataURL(file);
+              }} type="file" />
+            </label>
+          )}
+        </div>
+      )}
+      <NewspaperMasthead className="my-1" settings={masthead} />
+      <p className="mb-1 text-center font-serif text-[9px] uppercase tracking-[0.2em]">News · Opinion · Arts · Campus life</p>
       <div className="flex justify-between border-t border-black/40 pt-2 font-serif text-[9px] uppercase tracking-[0.1em]"><span>Reporting from campus</span><span>Edition {String(page).padStart(2, "0")} of {String(total).padStart(2, "0")}</span></div>
     </div>
   );
@@ -3412,7 +3455,19 @@ export default function App() {
                 }
               }}
             >
-              <PageHeader page={pageIndex + 1} total={pages.length} />
+              <PageHeader
+                masthead={pages[0]?.find((section) => section.id === "paper-masthead")?.content}
+                newspaper={pages[0]?.[0]?.id === "paper-masthead"}
+                onUpdateMasthead={(patch) => {
+                  setPages((current) => current.map((sections, index) => index === 0
+                    ? sections.map((section) => section.id === "paper-masthead"
+                      ? { ...section, content: { ...section.content, ...patch } }
+                      : section)
+                    : sections));
+                }}
+                page={pageIndex + 1}
+                total={pages.length}
+              />
 
               {/* Floating Page Action Bar in Editor Mode */}
               <div
