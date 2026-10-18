@@ -5,6 +5,7 @@ import BrandLogo from "./BrandLogo";
 import SubscribeForm from "./components/SubscribeForm";
 import SudokuSection from "./games/SudokuSection";
 import WordSearchSection from "./games/WordSearchSection";
+import CrosswordSection from "./games/CrosswordSection";
 import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
 import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
 import QRCodeSvg from "./components/QRCodeSvg";
@@ -703,18 +704,7 @@ function ReaderSectionContent({
   }
 
   if (type === "crossword") {
-    return (
-      <div className="flex h-full min-h-[260px] flex-col items-center justify-center border border-dashed border-black/25 bg-[#f8f5ed] p-8 text-center">
-        <svg className="h-8 w-8 text-[#ef5a35]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v.163a.75.75 0 01-.75.75h-.326c-.355 0-.676-.186-.959-.401a2.025 2.025 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401h.163a.75.75 0 01.75.75v.326c0 .355-.186.676-.401.959a2.025 2.025 0 00-.349 1.003c0 1.036 1.007 1.875 2.25 1.875s2.25-.84 2.25-1.875a2.025 2.025 0 00-.349-1.003.75.75 0 01-.401-.959v-.163a.75.75 0 01.75-.75h.326c.355 0 .676.186.959.401.29.221.634.349 1.003.349 1.036 0 1.875-1.007 1.875-2.25s-.84-2.25-1.875-2.25a2.025 2.025 0 00-1.003.349.75.75 0 01-.959.401h-.163a.75.75 0 01-.75-.75v-.326z" />
-        </svg>
-        <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Newspaper Games</span>
-        <h3 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#171714]">Crossword Puzzle — Coming Soon</h3>
-        <p className="mt-2 max-w-sm text-xs leading-relaxed text-black/55">
-          The interactive crossword puzzle is currently being redesigned with custom grid geometry and clue assistance. Stay tuned for the upcoming release!
-        </p>
-      </div>
-    );
+    return <CrosswordSection data={content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD} />;
   }
 
   if (type === "sudoku") {

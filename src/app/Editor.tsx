@@ -24,6 +24,8 @@ import NewsroomChat from "./collaboration/NewsroomChat";
 import type { DocChangePayload, EditorialComment, NewsroomMessage } from "./collaboration/types";
 import SudokuSection from "./games/SudokuSection";
 import WordSearchSection from "./games/WordSearchSection";
+import CrosswordSection from "./games/CrosswordSection";
+import CrosswordEditorModal from "./games/CrosswordEditorModal";
 import type { CrosswordData, SudokuData, WordSearchData } from "./games/types";
 import { DEFAULT_CAMPUS_MINI_CROSSWORD, DEFAULT_SUDOKU, DEFAULT_WORD_SEARCH } from "./games/presets";
 import { dialog } from "./components/ModalDialog";
@@ -153,7 +155,7 @@ const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[
   { type: "recommendations", name: "Recommendations", description: "Curated books, films, links, or places" },
   { type: "audio", name: "Campus Audio", description: "Embedded playlist, podcast episode or campus radio track" },
   { type: "poll", name: "Student Poll", description: "Interactive community poll with live options" },
-  { type: "crossword", name: "Crossword (Coming Soon)", description: "Campus crossword puzzle — currently being redesigned" },
+  { type: "crossword", name: "Crossword", description: "A beautifully typeset, interactive campus mini crossword" },
   { type: "sudoku", name: "Sudoku Puzzle", description: "Classic 9×9 newspaper number puzzle" },
   { type: "wordsearch", name: "Word Search", description: "Campus-themed word finding puzzle" },
 ];
@@ -926,16 +928,7 @@ function SectionContent({
 
   if (type === "crossword") {
     return (
-      <div className="flex h-full min-h-[260px] flex-col items-center justify-center border border-dashed border-black/25 bg-[#f8f5ed] p-8 text-center">
-        <span className="grid h-12 w-12 place-items-center rounded-xl border border-black/10 bg-[#ef5a35]/10 text-[#ef5a35]">
-          <EditorIcon name="puzzle" />
-        </span>
-        <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Newspaper Games</span>
-        <h3 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#171714]">Crossword Puzzle — Coming Soon</h3>
-        <p className="mt-2 max-w-sm text-xs leading-relaxed text-black/55">
-          The interactive crossword studio is currently undergoing a complete visual and grid redesign with automated symmetry and clue validation.
-        </p>
-      </div>
+      <CrosswordSection data={content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD} isEditor onEdit={onEditCrossword} />
     );
   }
 
@@ -1331,6 +1324,7 @@ export default function App() {
   const [aiReview, setAiReview] = useState("");
   const [aiReviewing, setAiReviewing] = useState(false);
   const [noticeQrModalSectionId, setNoticeQrModalSectionId] = useState<string | null>(null);
+  const [crosswordModalSectionId, setCrosswordModalSectionId] = useState<string | null>(null);
 
   const handleSaveNoticeQr = (config: NoticeboardQrConfig) => {
     if (!noticeQrModalSectionId) return;
@@ -1853,21 +1847,14 @@ export default function App() {
   };
 
   const addSection = (type: SectionType, articleLayout?: ArticleLayout) => {
-    if (type === "crossword") {
-      dialog.alert({
-        title: "Crossword — Coming Soon",
-        message: "The interactive crossword studio is currently undergoing a complete visual and grid redesign. New symmetric grid layouts and clue assistance will be available soon!",
-        tone: "info",
-      });
-      return;
-    }
-
     const articleTemplate = type === "article"
       ? ARTICLE_TEMPLATES.find((template) => template.id === (articleLayout ?? "classic"))
       : undefined;
     const width = articleTemplate?.width ?? (
       type === "notice" || type === "gossip"
         ? 4
+        : type === "crossword"
+        ? 12
         : type === "poem" ||
           type === "events" ||
           type === "timeline" ||
@@ -1892,6 +1879,7 @@ export default function App() {
       contentForType.qrCampaign = "issue-submissions";
       contentForType.useTrackingParams = true;
     }
+    if (type === "crossword") contentForType.crossword = DEFAULT_CAMPUS_MINI_CROSSWORD;
     if (type === "sudoku") contentForType.sudoku = DEFAULT_SUDOKU;
     if (type === "wordsearch") contentForType.wordsearch = DEFAULT_WORD_SEARCH;
 
@@ -1901,7 +1889,7 @@ export default function App() {
         id: `${type}-${Date.now()}`,
         type,
         width,
-        height: articleTemplate?.height ?? (type === "sudoku" ? "tall" : "regular"),
+        height: articleTemplate?.height ?? (type === "sudoku" || type === "crossword" ? "tall" : "regular"),
         content: contentForType,
       },
     ]);
@@ -3554,6 +3542,24 @@ export default function App() {
         <span className="text-black/25 dark:text-white/25">·</span>
         <span>Issue: {wordStats.totalWords} words (~{Math.max(1, Math.ceil(wordStats.totalWords / 200))} min read)</span>
       </div>
+
+      {/* Noticeboard Submission QR Modal */}
+      {crosswordModalSectionId && (
+        <CrosswordEditorModal
+          initialData={pages.flat().find((section) => section.id === crosswordModalSectionId)?.content?.crossword || DEFAULT_CAMPUS_MINI_CROSSWORD}
+          isOpen
+          onClose={() => setCrosswordModalSectionId(null)}
+          onSave={(crossword) => {
+            rememberLayout();
+            const nextPages = pages.map((sections) => sections.map((section) => section.id === crosswordModalSectionId
+              ? { ...section, content: { ...section.content, crossword } }
+              : section));
+            setPages(nextPages);
+            localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(nextPages));
+            setCrosswordModalSectionId(null);
+          }}
+        />
+      )}
 
       {/* Noticeboard Submission QR Modal */}
       {noticeQrModalSectionId && (

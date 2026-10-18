@@ -171,49 +171,41 @@ export default function CrosswordSection({
   };
 
   return (
-    <div className="flex h-full flex-col justify-between border border-black/15 bg-[#f8f5ed] p-6 sm:p-8">
+    <div className="relative flex h-full flex-col overflow-hidden border border-[#302b25]/20 bg-[#f7f3e9] p-4 text-[#26231f] shadow-[0_14px_40px_rgba(39,32,20,0.10)] sm:p-7 print:shadow-none">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-2 border border-[#302b25]/[0.07]" />
       {/* Editorial Header */}
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
-              Campus Puzzle Desk · Daily Mini
-            </span>
-            <span className="rounded-full bg-black/5 px-2 py-0.5 text-[8px] font-bold tracking-wider text-black/50">
-              {data.size}×{data.size}
-            </span>
-          </div>
+        <div className="relative flex flex-wrap items-center justify-between gap-3 border-b border-[#302b25]/25 pb-2 text-[8px] font-bold uppercase tracking-[0.18em] text-[#645b4f]">
+          <span className="flex items-center gap-2"><span className="inline-block h-1.5 w-1.5 rounded-full bg-[#a24b35]" />The Campus Gazette <span className="text-[#a24b35]">/</span> Games</span>
+          <span className="font-mono tracking-[0.12em]">No. 08 <span className="mx-1 text-black/25">·</span> {data.size} × {data.size}</span>
+        </div>
 
+        <div className="relative flex flex-wrap items-end justify-between gap-4 border-b-[3px] border-double border-[#302b25]/70 py-4 sm:py-5">
+          <div>
+            <p className="mb-1 text-[8px] font-bold uppercase tracking-[0.24em] text-[#a24b35]">The weekly mini · No. 08</p>
+            <h3 className="font-serif text-4xl font-black leading-[0.9] tracking-[-0.055em] sm:text-6xl">Crossword</h3>
+            <p className="mt-2 font-serif text-xs italic text-[#645b4f]">{data.title || "A little wordplay for your week"}</p>
+          </div>
+          <div className="flex items-center gap-2 pb-1">
+            <span className="hidden text-right text-[8px] uppercase leading-relaxed tracking-[0.14em] text-[#756b5e] sm:block">A campus mini<br />by {data.author || "The Puzzle Desk"}</span>
           <div className="flex flex-wrap items-center gap-1.5">
-            {isEditor && onEdit && (
-              <button
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#ef5a35] px-3.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm transition hover:bg-[#d44826]"
-                onClick={onEdit}
-                title="Launch the visual Crossword Studio modal to customize words, clues & grid structure"
-                type="button"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                <span>Open Crossword Studio</span>
-              </button>
-            )}
+            {isEditor && onEdit && <button className="rounded-sm bg-[#a24b35] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#813b2a]" onClick={onEdit} type="button">Edit puzzle</button>}
             <button
-              className="rounded-full border border-black/15 bg-white/70 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.08em] hover:bg-black/5"
+              className="rounded-sm border border-[#302b25]/25 bg-white/60 px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] transition hover:border-[#a24b35] hover:text-[#a24b35]"
               onClick={checkCurrentWord}
               type="button"
             >
               Check Word
             </button>
             <button
-              className="rounded-full border border-black/15 bg-white/70 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.08em] hover:bg-black/5"
+              className="rounded-sm border border-[#302b25]/25 bg-white/60 px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] transition hover:border-[#a24b35] hover:text-[#a24b35]"
               onClick={() => setShowSolution(!showSolution)}
               type="button"
             >
               {showSolution ? "Hide Solution" : "Reveal Solution"}
             </button>
             <button
-              className="rounded-full border border-black/15 bg-white/70 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.08em] hover:bg-black/5"
+              className="rounded-sm border border-[#302b25]/25 bg-white/60 px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] transition hover:border-[#a24b35] hover:text-[#a24b35]"
               onClick={clearGrid}
               title="Clear all entries"
               type="button"
@@ -221,21 +213,16 @@ export default function CrosswordSection({
               Clear
             </button>
           </div>
-        </div>
-
-        <div className="mt-3 flex items-baseline justify-between border-b border-black/10 pb-3">
-          <div>
-            <h3 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">
-              {data.title || "The Campus Mini"}
-            </h3>
-            <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-black/50">
-              Edited by {data.author || "The Editorial Desk"} · {((data.clues?.across || []).length + (data.clues?.down || []).length)} Clues
-            </p>
           </div>
         </div>
 
+        <div className="relative mt-2 flex items-center justify-between text-[8px] uppercase tracking-[0.14em] text-[#756b5e]">
+          <span>{((data.clues?.across || []).length + (data.clues?.down || []).length)} clues · {isEditor ? "Editor preview" : "Interactive puzzle"}</span>
+          <span>Tap a square to begin</span>
+        </div>
+
         {isSolved && (
-          <div className="my-3 flex items-center justify-between rounded-xl bg-[#dce9e1] p-3 text-xs font-bold text-[#315b4b] shadow-sm">
+          <div className="my-3 flex items-center justify-between border border-[#315b4b]/20 bg-[#e4ebdf] p-3 text-xs font-bold text-[#315b4b]">
             <div className="flex items-center gap-2">
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -248,17 +235,17 @@ export default function CrosswordSection({
       </div>
 
       {/* Active Clue Bar (NYT style live focus banner) */}
-      <div className="my-4 flex items-center justify-between rounded-lg border border-black/10 bg-[#f1ecdf] px-3.5 py-2 text-xs">
+      <div className="relative my-3 flex items-center justify-between border-y border-[#302b25]/15 bg-[#eee8db] px-3 py-2.5 text-xs">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <span className="shrink-0 rounded bg-[#ef5a35] px-2 py-0.5 font-mono text-[9px] font-bold text-white">
+          <span className="shrink-0 bg-[#a24b35] px-2 py-1 font-mono text-[9px] font-bold tracking-wide text-white">
             {activeClue ? `${activeClue.number}-${direction.toUpperCase()}` : "SELECT CELL"}
           </span>
-          <span className="truncate font-serif text-sm font-semibold text-black">
+          <span className="truncate font-serif text-sm font-semibold text-[#302b25]">
             {activeClue?.clue || "Click any square to view clue and start typing"}
           </span>
         </div>
         <button
-          className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-black/50 hover:text-[#ef5a35]"
+          className="shrink-0 border-l border-[#302b25]/15 pl-3 text-[8px] font-bold uppercase tracking-wider text-[#645b4f] hover:text-[#a24b35]"
           onClick={() => setDirection((d) => (d === "across" ? "down" : "across"))}
           type="button"
         >
@@ -267,14 +254,14 @@ export default function CrosswordSection({
       </div>
 
       {/* Main puzzle layout */}
-      <div className="grid items-start gap-6 lg:grid-cols-[auto_1fr]">
+      <div className="relative grid items-start gap-5 lg:grid-cols-[minmax(245px,0.9fr)_minmax(260px,1.1fr)] xl:gap-8">
         {/* The Crossword Grid */}
-        <div className="mx-auto flex flex-col items-center">
+        <div className="mx-auto flex w-full max-w-[420px] flex-col items-center">
           <div
-            className="grid border-2 border-black bg-black shadow-md"
+            className="grid w-full border-[5px] border-[#25231f] bg-[#25231f] shadow-[0_8px_20px_rgba(37,35,31,0.18)]"
             style={{
-              gridTemplateColumns: `repeat(${data.size}, minmax(0, 42px))`,
-              gap: "1px",
+              gridTemplateColumns: `repeat(${data.size}, minmax(0, 1fr))`,
+              gap: "2px",
             }}
           >
             {data.grid.map((row, r) =>
@@ -288,7 +275,7 @@ export default function CrosswordSection({
                 if (isBlack) {
                   return (
                     <div
-                      className="h-10 w-10 bg-[#171714] sm:h-11 sm:w-11"
+                      className="aspect-square bg-[#25231f]"
                       key={`${r}-${c}`}
                     />
                   );
@@ -302,20 +289,20 @@ export default function CrosswordSection({
 
                 return (
                   <div
-                    className={`relative flex h-10 w-10 cursor-pointer items-center justify-center font-serif text-lg font-bold select-none transition sm:h-11 sm:w-11 ${
+                    className={`relative flex aspect-square cursor-pointer items-center justify-center font-serif text-xl font-semibold select-none transition sm:text-2xl ${
                       isSelected
-                        ? "bg-[#fed7aa] ring-2 ring-inset ring-[#ef5a35] dark:bg-[#b45309]/50"
+                        ? "z-10 bg-[#e7b187] ring-2 ring-inset ring-[#a24b35]"
                         : isInActiveWord
-                          ? "bg-[#ffedd5] dark:bg-[#78350f]/30"
-                          : "bg-[#fbf9f4] hover:bg-black/5"
-                    } ${isIncorrect ? "text-[#ef5a35] underline decoration-wavy" : "text-black"}`}
+                          ? "bg-[#efe3c8]"
+                          : "bg-[#fbf8f0] hover:bg-[#f0e7d5]"
+                    } ${isIncorrect ? "text-[#a24b35] underline decoration-wavy" : "text-[#25231f]"}`}
                     key={`${r}-${c}`}
                     onClick={() => handleCellClick(r, c)}
                     onKeyDown={(e) => handleKeyDown(e, r, c)}
                     tabIndex={0}
                   >
                     {clueNum && (
-                      <span className="absolute left-1 top-0.5 font-sans text-[8.5px] font-bold leading-none text-black/60">
+                      <span className="absolute left-1 top-0.5 font-sans text-[8px] font-bold leading-none text-[#71685b]">
                         {clueNum}
                       </span>
                     )}
@@ -326,8 +313,8 @@ export default function CrosswordSection({
             )}
           </div>
 
-          <p className="mt-2 text-[9px] text-black/45">
-            Space: flip direction · Arrows: navigate · Type letters
+          <p className="mt-3 text-center text-[8px] uppercase tracking-[0.13em] text-[#756b5e]">
+            Type to fill <span className="mx-1 text-[#a24b35]">·</span> Space to switch <span className="mx-1 text-[#a24b35]">·</span> Arrows to move
           </p>
         </div>
 
@@ -335,28 +322,28 @@ export default function CrosswordSection({
         <div className="grid grid-cols-2 gap-5 text-left">
           {/* Across */}
           <div>
-            <div className="flex items-center justify-between border-b border-black/20 pb-1">
-              <h4 className="font-serif text-xs font-bold uppercase tracking-[0.1em]">
+            <div className="flex items-center justify-between border-b-2 border-[#302b25]/70 pb-2">
+              <h4 className="font-serif text-lg font-bold tracking-tight">
                 Across
               </h4>
               <span className="font-mono text-[9px] text-black/40">
                 {(data.clues?.across || []).length}
               </span>
             </div>
-            <div className="mt-2.5 space-y-1.5 text-[11px] leading-tight">
+            <div className="mt-2.5 max-h-[320px] space-y-1 overflow-auto text-[11px] leading-relaxed">
               {(data.clues?.across || []).map((item) => {
                 const isActive = activeClue?.number === item.number && direction === "across";
                 return (
                   <div
-                    className={`cursor-pointer rounded p-1 transition ${
+                    className={`cursor-pointer border-b border-[#302b25]/[0.08] px-2 py-1.5 transition ${
                       isActive
-                        ? "bg-[#ef5a35]/15 font-semibold text-[#ef5a35] ring-1 ring-[#ef5a35]/30"
-                        : "text-black/80 hover:bg-black/5 hover:text-black"
+                        ? "bg-[#ead7c8] font-semibold text-[#8d3f2c]"
+                        : "text-[#51483e] hover:bg-[#eee8db] hover:text-[#25231f]"
                     }`}
                     key={item.number}
                     onClick={() => selectClue(item, "across")}
                   >
-                    <span className="mr-1 font-mono font-bold text-black">{item.number}.</span>
+                    <span className="mr-2 font-mono text-[9px] font-bold text-[#a24b35]">{String(item.number).padStart(2, "0")}</span>
                     {item.clue || item.answer}
                   </div>
                 );
@@ -366,28 +353,28 @@ export default function CrosswordSection({
 
           {/* Down */}
           <div>
-            <div className="flex items-center justify-between border-b border-black/20 pb-1">
-              <h4 className="font-serif text-xs font-bold uppercase tracking-[0.1em]">
+            <div className="flex items-center justify-between border-b-2 border-[#302b25]/70 pb-2">
+              <h4 className="font-serif text-lg font-bold tracking-tight">
                 Down
               </h4>
               <span className="font-mono text-[9px] text-black/40">
                 {(data.clues?.down || []).length}
               </span>
             </div>
-            <div className="mt-2.5 space-y-1.5 text-[11px] leading-tight">
+            <div className="mt-2.5 max-h-[320px] space-y-1 overflow-auto text-[11px] leading-relaxed">
               {(data.clues?.down || []).map((item) => {
                 const isActive = activeClue?.number === item.number && direction === "down";
                 return (
                   <div
-                    className={`cursor-pointer rounded p-1 transition ${
+                    className={`cursor-pointer border-b border-[#302b25]/[0.08] px-2 py-1.5 transition ${
                       isActive
-                        ? "bg-[#ef5a35]/15 font-semibold text-[#ef5a35] ring-1 ring-[#ef5a35]/30"
-                        : "text-black/80 hover:bg-black/5 hover:text-black"
+                        ? "bg-[#ead7c8] font-semibold text-[#8d3f2c]"
+                        : "text-[#51483e] hover:bg-[#eee8db] hover:text-[#25231f]"
                     }`}
                     key={item.number}
                     onClick={() => selectClue(item, "down")}
                   >
-                    <span className="mr-1 font-mono font-bold text-black">{item.number}.</span>
+                    <span className="mr-2 font-mono text-[9px] font-bold text-[#a24b35]">{String(item.number).padStart(2, "0")}</span>
                     {item.clue || item.answer}
                   </div>
                 );
