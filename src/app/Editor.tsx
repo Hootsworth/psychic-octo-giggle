@@ -3487,6 +3487,7 @@ export default function App() {
                     onAi={rewriteSection}
                     onAction={blockAction}
                     onConfigureNoticeQr={(id) => setNoticeQrModalSectionId(id)}
+                    onEditCrossword={(id) => setCrosswordModalSectionId(id)}
                     onDragStart={(page, id) => {
                       dragged.current = { page, id };
                     }}
