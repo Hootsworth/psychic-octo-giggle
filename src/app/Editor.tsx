@@ -184,6 +184,7 @@ const PALETTES = [
   { id: "literary", name: "Literary Plum", accent: "#7d5a87", paper: "#f7f1eb", ink: "#241b26", workspace: "#dfd8df" },
   { id: "academic", name: "Academic Blue", accent: "#315b75", paper: "#f3f4f1", ink: "#17232a", workspace: "#d9dfe1" },
   { id: "monochrome", name: "Monochrome", accent: "#171714", paper: "#ffffff", ink: "#111111", workspace: "#ddddda" },
+  { id: "rv-classic", name: "RV University Classic", accent: "#D7AC54", paper: "#EBEBD3", ink: "#233039", workspace: "#deded0" },
 ];
 
 const FONT_PAIRS = [
@@ -191,6 +192,15 @@ const FONT_PAIRS = [
   { id: "classic", name: "Georgia + Arial", serif: "Georgia, serif", sans: "Arial, sans-serif" },
   { id: "modern", name: "Arial + Arial", serif: "Arial, sans-serif", sans: "Arial, sans-serif" },
   { id: "traditional", name: "Times + Helvetica", serif: '"Times New Roman", serif', sans: "Helvetica, Arial, sans-serif" },
+  { id: "rv-classic", name: "Playfair Display + Cantarell", serif: '"Playfair Display", Georgia, serif', sans: '"Cantarell", "Helvetica Neue", Arial, sans-serif' },
+];
+
+const DESIGN_TEMPLATES = [
+  { id: "rv-university", name: "RV University", description: "The current warm-paper editorial design.", paletteId: "campus", fontId: "newsreader", colors: ["#f8f5ed", "#171714", "#ef5a35"] },
+  { id: "rv-classic", name: "RV University Classic", description: "Slate navy, cream, restrained gold, and literary display type.", paletteId: "rv-classic", fontId: "rv-classic", colors: ["#EBEBD3", "#233039", "#D7AC54"] },
+  { id: "broadsheet", name: "The Broadsheet", description: "Crisp black ink, bright stock, and a confident red rule.", paletteId: "monochrome", fontId: "traditional", colors: ["#ffffff", "#111111", "#a8432d"] },
+  { id: "library-review", name: "The Library Review", description: "Quiet ivory, forest ink, and an understated literary rhythm.", paletteId: "library", fontId: "classic", colors: ["#f3f0e7", "#18201c", "#3e6a59"] },
+  { id: "modern-campus", name: "Modern Campus", description: "Cool paper and blue accents for a contemporary university edition.", paletteId: "academic", fontId: "modern", colors: ["#f3f4f1", "#17232a", "#315b75"] },
 ];
 
 const sourceStarter = `/Title The week ideas took over campus
@@ -692,8 +702,8 @@ function SectionContent({
 
   if (type === "quote") {
     return (
-      <div className={`section-layout-quote flex h-full flex-col justify-between p-8 sm:p-10 ${content?.layoutVariant === "pull-quote" ? "bg-[#f2ecdf] text-[#25231f]" : content?.layoutVariant === "framed" ? "border-[10px] border-double border-[#25231f] bg-[#f8f5ed] text-[#25231f]" : "bg-[#a84e38] text-white"}`}>
-        <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.18em]">In their own words</Editable>
+      <div className={`section-layout-quote flex h-full flex-col justify-between p-8 sm:p-10 ${content?.layoutVariant === "pull-quote" ? "bg-[#f2ecdf] text-[#25231f]" : content?.layoutVariant === "framed" ? "border-4 border-double border-black/45 bg-[#f8f5ed] text-[#25231f]" : "bg-[#f8f5ed] text-[#25231f]"}`}>
+        <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#a14b32]">In their own words</Editable>
         <Editable as="h2" className={`my-10 font-serif italic leading-tight ${content?.layoutVariant === "pull-quote" ? "border-l-4 border-[#a84e38] pl-7 text-5xl" : "text-4xl"}`}>
           {content?.body ?? "“The university is not just where we learn. It is what we make together.”"}
         </Editable>
@@ -705,7 +715,7 @@ function SectionContent({
   if (type === "events") {
     const variant = content?.layoutVariant ?? "list";
     return (
-      <div className={`h-full p-7 sm:p-10 ${variant === "calendar" ? "bg-[#f2ecdf]" : variant === "timeline" ? "bg-[#202b27] text-[#f8f5ed]" : ""}`}>
+      <div className={`h-full p-7 sm:p-10 ${variant === "calendar" ? "bg-[#f2ecdf]" : ""}`}>
         <Editable as="h2" className="mb-6 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "This week"}</Editable>
         {content?.body ? (
           <div className={variant === "calendar" ? "grid gap-3 sm:grid-cols-2" : ""}><Editable as="p" className="whitespace-pre-line border-y border-black/30 py-6 font-serif text-xl leading-[1.8]">{content.body}</Editable></div>
@@ -718,10 +728,10 @@ function SectionContent({
           ["SAT 27", "Autumn societies fair", "Main Quad · 11:00 AM"],
         ].map(([date, title, place]) => (
           <div className={`grid gap-2 border-t py-5 sm:grid-cols-[70px_1fr] ${variant === "calendar" ? "rounded-sm border-[#302b25]/15 bg-white/65 px-4 shadow-sm" : variant === "timeline" ? "border-white/15" : "border-black/30"}`} key={title}>
-            <Editable as="span" className={`text-[9px] font-bold ${variant === "timeline" ? "text-[#e3b88e]" : "text-[#ef5a35]"}`}>{date}</Editable>
+            <Editable as="span" className="text-[9px] font-bold text-[#a14b32]">{date}</Editable>
             <div>
               <Editable as="h3" className="font-serif text-2xl leading-tight">{title}</Editable>
-              <Editable as="p" className={`mt-1 text-[9px] uppercase tracking-[0.12em] ${variant === "timeline" ? "text-white/55" : "text-black/45"}`}>{place}</Editable>
+            <Editable as="p" className="mt-1 text-[9px] uppercase tracking-[0.12em] text-black/45">{place}</Editable>
             </div>
           </div>
         ))}
@@ -733,7 +743,7 @@ function SectionContent({
 
   if (type === "gossip") {
     return (
-      <div className="h-full bg-[#efe8d8] p-7 sm:p-9">
+      <div className="h-full p-7 sm:p-9">
         <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Heard on the quad</Editable>
         <Editable as="h2" className="mt-5 font-serif text-4xl italic leading-none tracking-[-0.04em]">The club gossip corner</Editable>
         <div className="my-7 h-px bg-black/20" />
@@ -749,7 +759,7 @@ function SectionContent({
   if (type === "gallery") {
     const variant = content?.layoutVariant ?? "diptych";
     return (
-      <div className={`grid h-full gap-2 bg-[#eee8dc] p-2 ${variant === "feature" ? "sm:grid-cols-[1.6fr_1fr]" : variant === "filmstrip" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div className={`grid h-full gap-2 bg-[#f8f5ed] p-2 ${variant === "feature" ? "sm:grid-cols-[1.6fr_1fr]" : variant === "filmstrip" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <PhotoField label="Add club photo" storageKey={`${mediaKey}-a`} />
         <PhotoField label="Add event photo" storageKey={`${mediaKey}-b`} />
         {variant === "filmstrip" && <PhotoField label="Add third photo" storageKey={`${mediaKey}-c`} />}
@@ -781,7 +791,7 @@ function SectionContent({
     }
 
     return (
-      <div className={`group/notice relative flex h-full flex-col justify-between border p-6 sm:p-7 ${variant === "announcement" ? "border-[#304a3f] bg-[#e8ede4]" : variant === "classifieds" ? "border-dashed border-[#78684e] bg-[#f1eadb]" : "border-black bg-[#f8f5ed]"}`}>
+      <div className={`group/notice relative flex h-full flex-col justify-between border p-6 sm:p-7 ${variant === "announcement" ? "border-black/25 bg-[#f8f5ed]" : variant === "classifieds" ? "border-dashed border-black/35 bg-[#f8f5ed]" : "border-black bg-[#f8f5ed]"}`}>
         <div>
           <div className="flex items-center justify-between">
             <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
@@ -860,13 +870,13 @@ function SectionContent({
   if (type === "interview") {
     const variant = content?.layoutVariant ?? "feature";
     return (
-      <div className={`grid h-full ${variant === "profile" ? "bg-[#31473d] text-[#f8f5ed] md:grid-cols-2" : variant === "rapid-fire" ? "bg-[#f0e8da] text-[#25231f] md:grid-cols-[0.4fr_1.6fr]" : "bg-[#171714] text-[#f8f5ed] md:grid-cols-[0.65fr_1.35fr]"}`}>
-        <div className="flex flex-col justify-between border-b border-white/15 p-7 md:border-b-0 md:border-r sm:p-9">
+      <div className={`grid h-full bg-[#f8f5ed] text-[#25231f] ${variant === "profile" ? "md:grid-cols-2" : variant === "rapid-fire" ? "md:grid-cols-[0.4fr_1.6fr]" : "md:grid-cols-[0.65fr_1.35fr]"}`}>
+        <div className="flex flex-col justify-between border-b border-black/15 p-7 md:border-b-0 md:border-r sm:p-9">
           <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "Five questions"}</Editable>
           <Editable as="h2" className="mt-12 font-serif text-4xl leading-[0.95] tracking-[-0.04em]">{content?.title ?? "A conversation with someone shaping campus"}</Editable>
-          <Editable as="p" className="mt-7 text-[9px] uppercase tracking-[0.14em] text-white/40">{content?.byline ?? "Interview by the editorial team"}</Editable>
+          <Editable as="p" className="mt-7 text-[9px] uppercase tracking-[0.14em] text-black/45">{content?.byline ?? "Interview by the editorial team"}</Editable>
         </div>
-        <Editable as="p" className="whitespace-pre-line p-7 font-serif text-lg leading-[1.65] text-white/75 sm:p-9">
+        <Editable as="p" className="whitespace-pre-line p-7 font-serif text-lg leading-[1.65] text-black/75 sm:p-9">
           {content?.body ?? "Q — What idea are you carrying with you this semester?\n\nA — That the most useful work often begins as a conversation between people who see the same problem differently.\n\nQ — Where should students begin?\n\nA — With curiosity, and with one another."}
         </Editable>
       </div>
@@ -876,7 +886,7 @@ function SectionContent({
   if (type === "statistics") {
     const variant = content?.layoutVariant ?? "dashboard";
     return (
-      <div className={`h-full p-7 sm:p-9 ${variant === "hero-number" ? "bg-[#243a32] text-[#f8f5ed]" : variant === "comparison" ? "bg-[#e7e8e0]" : "bg-[#efe8d8]"}`}>
+      <div className={`h-full p-7 sm:p-9 ${variant === "comparison" ? "bg-[#f2ecdf]" : ""}`}>
         <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "By the numbers"}</Editable>
         <Editable as="h2" className="mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "A snapshot of campus"}</Editable>
         {content?.body ? (
@@ -906,7 +916,7 @@ function SectionContent({
   if (type === "recommendations") {
     const variant = content?.layoutVariant ?? "shortlist";
     return (
-      <div className={`h-full p-7 sm:p-9 ${variant === "shelf" ? "bg-[#e8ddc7]" : variant === "categories" ? "bg-[#e9eeea]" : ""}`}>
+      <div className={`h-full p-7 sm:p-9 ${variant === "shelf" ? "bg-[#f2ecdf]" : ""}`}>
         <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "The shortlist"}</Editable>
         <Editable as="h2" className="mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "Things worth your time"}</Editable>
         {content?.body ? <Editable as="p" className="mt-8 whitespace-pre-line border-y border-black/20 py-5 font-serif text-xl leading-[1.7]">{content.body}</Editable> : <div className="mt-8 divide-y divide-black/20 border-y border-black/20">{[["01", "Read", "A book to carry between lectures"], ["02", "Watch", "A film everyone will be discussing"], ["03", "Listen", "The conversation of the week"]].map(([number, kind, title]) => <div className={`grid grid-cols-[35px_65px_1fr] gap-3 py-5 ${variant === "shelf" ? "mx-1 my-2 border border-black/10 bg-white/55 px-4" : variant === "categories" ? "border-l-2 border-[#3e6a59] pl-4" : ""}`} key={number}><span className="text-[9px] font-bold text-[#ef5a35]">{number}</span><Editable as="span" className="text-[8px] font-bold uppercase tracking-[0.12em] text-black/40">{kind}</Editable><Editable as="p" className="font-serif text-lg leading-tight">{title}</Editable></div>)}</div>}
@@ -917,9 +927,9 @@ function SectionContent({
   if (type === "footer") {
     const variant = content?.layoutVariant ?? "sign-off";
     return (
-      <div className={`flex h-full flex-col justify-between border-t border-black p-7 sm:p-10 ${variant === "contact" ? "bg-[#e8ede4]" : variant === "subscribe" ? "items-center bg-[#202b27] text-center text-[#f8f5ed]" : ""}`}>
+      <div className={`flex h-full flex-col justify-between border-t border-black p-7 sm:p-10 ${variant === "subscribe" ? "items-center bg-[#f2ecdf] text-center" : variant === "contact" ? "bg-[#faf8f2]" : ""}`}>
         <Editable as="h2" className="font-serif text-4xl">{content?.title ?? "Until next week, stay curious."}</Editable>
-        <Editable as="p" className={`whitespace-pre-line text-[10px] uppercase tracking-[0.16em] ${variant === "subscribe" ? "text-white/65" : "text-black/50"}`}>
+        <Editable as="p" className="whitespace-pre-line text-[10px] uppercase tracking-[0.16em] text-black/50">
           {content?.body ?? (variant === "contact" ? "Write to the editorial desk · editor@university.edu\nFind us on campus · Student Union, Room 204" : variant === "subscribe" ? "Get the next edition in your inbox · Join the weekly campus dispatch" : "Published weekly by the University Editorial Guild · Distributed across campus")}
         </Editable>
       </div>
@@ -938,36 +948,36 @@ function SectionContent({
 
   if (type === "audio") {
     return (
-      <div className="flex h-full flex-col justify-between border-y border-black/15 bg-[#171714] p-7 text-white sm:p-9">
+      <div className="flex h-full flex-col justify-between border-y border-black/15 bg-[#f2ecdf] p-7 text-[#25231f] sm:p-9">
         <div>
           <div className="flex items-center justify-between">
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Campus Audio · Playlist</span>
-            <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.14em] text-white/50">
+            <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.14em] text-black/50">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ef5a35]" /> Live Audio
             </span>
           </div>
           <Editable as="h3" className="mt-3 font-serif text-3xl sm:text-4xl">
             {content?.title ?? "Tracks from the Library Basement"}
           </Editable>
-          <Editable as="p" className="mt-2 text-xs leading-relaxed text-white/60">
+          <Editable as="p" className="mt-2 text-xs leading-relaxed text-black/60">
             {content?.body ?? "Curated by the Campus Radio Society. Songs playing across study halls, rehearsal rooms, and dorm kitchens this week."}
           </Editable>
         </div>
-        <div className="mt-6 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="mt-6 flex items-center justify-between border-t border-black/15 pt-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-[#ef5a35] text-white">
+            <div className="grid h-10 w-10 place-items-center rounded-full border border-black/15 bg-[#f8f5ed] text-[#a14b32]">
               ▶
             </div>
             <div>
-              <Editable as="p" className="text-xs font-semibold text-white">
+              <Editable as="p" className="text-xs font-semibold text-black/80">
                 Track 01 · Late Autumn Reverie
               </Editable>
-              <Editable as="p" className="text-[10px] text-white/45">
+              <Editable as="p" className="text-[10px] text-black/45">
                 The Student Quartet · 3:42
               </Editable>
             </div>
           </div>
-          <span className="rounded-full border border-white/20 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/60">
+          <span className="rounded-full border border-black/15 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-black/55">
             Spotify / Apple Music
           </span>
         </div>
@@ -1030,7 +1040,7 @@ function SectionContent({
   }
 
   return (
-    <div className="flex h-full flex-col justify-between bg-[#171714] p-8 text-[#f8f5ed] sm:p-12">
+      <div className="flex h-full flex-col justify-between bg-[#f8f5ed] p-8 text-[#25231f] sm:p-12">
       <Editable as="h2" className="max-w-xl font-serif text-5xl leading-[0.92] tracking-[-0.045em]">
         {content?.title ?? "Made on campus, for everyone on campus."}
       </Editable>
@@ -1347,6 +1357,7 @@ export default function App() {
   const [variantLibraryType, setVariantLibraryType] = useState<SectionType | null>(null);
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
+  const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
   const [sourceMode, setSourceMode] = useState(false);
   const [sourceText, setSourceText] = useState(sourceStarter);
@@ -1444,6 +1455,14 @@ export default function App() {
   const editSessionRef = useRef(false);
   const palette = PALETTES.find((item) => item.id === paletteId) ?? PALETTES[0];
   const fontPair = FONT_PAIRS.find((item) => item.id === fontId) ?? FONT_PAIRS[0];
+  const activeDesignTemplate = DESIGN_TEMPLATES.find((template) => template.paletteId === paletteId && template.fontId === fontId);
+
+  const applyDesignTemplate = (template: (typeof DESIGN_TEMPLATES)[number]) => {
+    captureCheckpoint(`Before applying ${template.name}`);
+    setPaletteId(template.paletteId);
+    setFontId(template.fontId);
+    setTemplateChooserOpen(false);
+  };
 
   const { user } = useAuth();
   const isRemoteUpdateRef = useRef(false);
@@ -3223,6 +3242,11 @@ export default function App() {
         <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => setDesignOpen(false)}>
           <aside className="h-full w-full max-w-sm overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl dark:border-l dark:border-white/10 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#ef5a35]">Document design</p><h2 className="mt-2 font-serif text-4xl">Style the issue</h2></div><button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => setDesignOpen(false)} type="button">×</button></div>
+            <button className="mt-7 flex w-full items-center justify-between border border-black/15 bg-white/55 p-4 text-left transition hover:border-[#a14b32] dark:border-white/15 dark:bg-white/5" onClick={() => setTemplateChooserOpen((open) => !open)} type="button">
+              <span><span className="block text-[8px] font-bold uppercase tracking-[0.16em] text-[#a14b32]">Match Template</span><span className="mt-1 block font-serif text-xl">{activeDesignTemplate?.name ?? "Custom design"}</span><span className="mt-1 block text-[9px] text-black/45 dark:text-white/45">Apply a complete newsletter color and type system.</span></span>
+              <span aria-hidden="true" className={`ml-3 text-xl text-[#a14b32] transition-transform ${templateChooserOpen ? "rotate-90" : ""}`}>›</span>
+            </button>
+            {templateChooserOpen && <div className="mt-2 grid gap-2">{DESIGN_TEMPLATES.map((template) => <button className={`flex items-center justify-between border p-3 text-left transition ${activeDesignTemplate?.id === template.id ? "border-[#a14b32] bg-[#f2ecdf] dark:bg-white/10" : "border-black/10 hover:border-black/25 dark:border-white/10"}`} key={template.id} onClick={() => applyDesignTemplate(template)} type="button"><span className="min-w-0 pr-3"><span className="block font-serif text-base">{template.name}</span><span className="mt-1 block text-[9px] leading-relaxed text-black/50 dark:text-white/50">{template.description}</span></span><span aria-hidden="true" className="flex shrink-0 overflow-hidden rounded-full border border-black/10 dark:border-white/15">{template.colors.map((color) => <i className="h-5 w-5" key={color} style={{ background: color }} />)}</span></button>)}</div>}
             <p className="mb-4 mt-9 text-[9px] font-bold uppercase tracking-[0.14em] text-black/40 dark:text-white/40">Color palette</p>
             <div className="grid gap-2">
               {PALETTES.map((item) => <button className={`flex items-center gap-4 border p-3 text-left transition ${paletteId === item.id ? "border-black bg-white dark:border-white dark:bg-[#242421]" : "border-black/10 hover:bg-white/60 dark:border-white/10 dark:hover:bg-[#20201d]"}`} key={item.id} onClick={() => setPaletteId(item.id)} type="button"><span className="flex overflow-hidden rounded-full border border-black/10"><span className="h-7 w-7" style={{ background: item.accent }} /><span className="h-7 w-7" style={{ background: item.paper }} /><span className="h-7 w-7" style={{ background: item.ink }} /></span><span className="text-xs font-semibold">{item.name}</span></button>)}

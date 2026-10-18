@@ -371,14 +371,15 @@ button {
 
 .editor-theme .add-page-section {
   width: min(100% - 3rem, 50rem);
-  margin: 1rem auto 2rem;
+  margin: 1.1rem auto 2.4rem;
   border-color: color-mix(in srgb, var(--editor-ink) 16%, transparent);
-  border-radius: 0.75rem;
-  padding: 0.9rem;
+  border-radius: 0.2rem;
+  padding: 0.85rem 1rem;
   color: color-mix(in srgb, var(--editor-ink) 55%, transparent);
   font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: none;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--editor-paper) 96%, var(--editor-ink));
 }
 
 .editor-theme .add-page-section:hover {
@@ -615,7 +616,7 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
 .page {
   min-height: 1100px;
   margin-bottom: 3rem;
-  overflow: hidden;
+  overflow: visible;
   background: #f8f5ed;
   box-shadow: 0 18px 55px rgb(28 25 20 / 0.12);
 }
@@ -1255,7 +1256,7 @@ html[data-theme="dark"] .studio-action:hover {
 .add-page-section {
   display: block;
   width: calc(100% - 3rem);
-  margin: 1.5rem;
+  margin: 1.1rem auto 2.4rem;
   border: 1px dashed rgb(0 0 0 / 0.25);
   padding: 1rem;
   font-size: 9px;
@@ -1263,6 +1264,7 @@ html[data-theme="dark"] .studio-action:hover {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   transition: 150ms ease;
+  background: #f3f0e8;
 }
 
 .add-page-section:hover {
@@ -1663,6 +1665,55 @@ html[data-theme="dark"] .editor-theme .canvas-zoom-control {
 
 .builder-block[data-section-type="gallery"][data-layout-variant="filmstrip"] > :last-child .photo-field {
   min-height: 12rem;
+}
+
+/* Keep section variants within the selected newsletter template palette. */
+.builder-block[data-section-type="quote"] .section-layout-quote,
+.builder-block[data-section-type="events"] > :last-child,
+.builder-block[data-section-type="gossip"] > :last-child,
+.builder-block[data-section-type="interview"] > :last-child,
+.builder-block[data-section-type="statistics"] > :last-child,
+.builder-block[data-section-type="recommendations"] > :last-child,
+.builder-block[data-section-type="footer"] > :last-child,
+.builder-block[data-section-type="audio"] > :last-child,
+.builder-block[data-section-type="cover"] > :last-child {
+  color: var(--editor-ink);
+  background-color: var(--editor-paper);
+}
+
+.builder-block[data-section-type="quote"] .section-layout-quote {
+  border-color: color-mix(in srgb, var(--editor-ink) 42%, transparent);
+}
+
+.builder-block[data-section-type="gallery"] > :last-child {
+  background-color: var(--editor-paper);
+}
+
+.builder-block[data-section-type="statistics"] [class*="bg-[#"] {
+  color: var(--editor-ink);
+  background-color: color-mix(in srgb, var(--editor-paper) 82%, var(--editor-ink));
+}
+
+.builder-block[data-section-type="statistics"] [class*="text-white"],
+.builder-block[data-section-type="interview"] [class*="text-white"],
+.builder-block[data-section-type="audio"] [class*="text-white"],
+.builder-block[data-section-type="footer"] [class*="text-white"] {
+  color: color-mix(in srgb, var(--editor-ink) 68%, transparent);
+}
+
+.builder-block[data-section-type="interview"] [class*="border-white"],
+.builder-block[data-section-type="audio"] [class*="border-white"] {
+  border-color: color-mix(in srgb, var(--editor-ink) 16%, transparent);
+}
+
+.builder-block[data-section-type="audio"] [class*="bg-white/5"] {
+  background-color: color-mix(in srgb, var(--editor-ink) 5%, var(--editor-paper));
+}
+
+.builder-block [class*="text-[#ef5a35]"],
+.builder-block [class*="text-[#a14b32]"],
+.builder-block [class*="text-[#a24b35]"] {
+  color: var(--editor-accent);
 }
 
 @media (max-width: 640px) {

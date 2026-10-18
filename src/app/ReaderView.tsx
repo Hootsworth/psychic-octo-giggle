@@ -53,6 +53,7 @@ const PALETTES: Record<string, { accent: string; paper: string; ink: string; wor
   literary: { accent: "#7d5a87", paper: "#f7f1eb", ink: "#241b26", workspace: "#dfd8df" },
   academic: { accent: "#315b75", paper: "#f3f4f1", ink: "#17232a", workspace: "#d9dfe1" },
   monochrome: { accent: "#171714", paper: "#ffffff", ink: "#111111", workspace: "#ddddda" },
+  "rv-classic": { accent: "#D7AC54", paper: "#EBEBD3", ink: "#233039", workspace: "#deded0" },
 };
 
 const FONT_PAIRS: Record<string, { serif: string; sans: string }> = {
@@ -60,6 +61,7 @@ const FONT_PAIRS: Record<string, { serif: string; sans: string }> = {
   classic: { serif: "Georgia, serif", sans: "Arial, sans-serif" },
   modern: { serif: "Arial, sans-serif", sans: "Arial, sans-serif" },
   traditional: { serif: '"Times New Roman", serif', sans: "Helvetica, Arial, sans-serif" },
+  "rv-classic": { serif: '"Playfair Display", Georgia, serif', sans: '"Cantarell", "Helvetica Neue", Arial, sans-serif' },
 };
 
 export default function ReaderView() {
@@ -345,7 +347,7 @@ function ReaderSectionContent({
 
   if (type === "cover") {
     return (
-      <div className="grid h-full gap-8 p-7 sm:p-10 md:grid-cols-[1fr_2.15fr] md:p-14">
+      <div className="grid h-full gap-8 bg-[#f8f5ed] p-7 text-[#25231f] sm:p-10 md:grid-cols-[1fr_2.15fr] md:p-14">
         <div className="flex flex-col justify-between gap-10">
           <p className="reader-editable text-[10px] font-bold uppercase leading-relaxed tracking-[0.16em]">
             {content?.body ?? "Weekly notes, campus voices & everything in between"}
@@ -455,8 +457,8 @@ function ReaderSectionContent({
   if (type === "quote") {
     const variant = content?.layoutVariant ?? "poster";
     return (
-      <div className={`flex h-full flex-col justify-between p-8 sm:p-10 ${variant === "pull-quote" ? "bg-[#f2ecdf] text-[#25231f]" : variant === "framed" ? "border-[10px] border-double border-[#25231f] bg-[#f8f5ed] text-[#25231f]" : "bg-[#a84e38] text-white"}`}>
-        <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.18em]">In their own words</p>
+      <div className={`flex h-full flex-col justify-between p-8 sm:p-10 ${variant === "pull-quote" ? "bg-[#f2ecdf] text-[#25231f]" : variant === "framed" ? "border-4 border-double border-black/45 bg-[#f8f5ed] text-[#25231f]" : "bg-[#f8f5ed] text-[#25231f]"}`}>
+        <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.18em] text-[#a14b32]">In their own words</p>
         <h2 className={`reader-editable my-10 font-serif italic leading-tight ${variant === "pull-quote" ? "border-l-4 border-[#a84e38] pl-7 text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"}`}>
           {content?.body ?? "“The university is not just where we learn. It is what we make together.”"}
         </h2>
@@ -468,7 +470,7 @@ function ReaderSectionContent({
   if (type === "events") {
     const variant = content?.layoutVariant ?? "list";
     return (
-      <div className={`h-full p-7 sm:p-10 ${variant === "calendar" ? "bg-[#f2ecdf]" : variant === "timeline" ? "bg-[#202b27] text-[#f8f5ed]" : ""}`}>
+      <div className={`h-full p-7 sm:p-10 ${variant === "calendar" ? "bg-[#f2ecdf]" : ""}`}>
         <h2 className="reader-editable mb-6 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "This week"}</h2>
         {content?.body ? (
           <div className={variant === "calendar" ? "grid gap-3 sm:grid-cols-2" : ""}><p className="reader-editable whitespace-pre-line border-y border-black/30 py-6 font-serif text-xl leading-[1.8]">{content.body}</p></div>
@@ -480,11 +482,11 @@ function ReaderSectionContent({
           ["THU 25", "Women’s football: Home game", "University Field · 5:00 PM"],
           ["SAT 27", "Autumn societies fair", "Main Quad · 11:00 AM"],
         ].map(([date, title, place]) => (
-          <div className={`grid gap-2 border-t py-5 sm:grid-cols-[70px_1fr] ${variant === "calendar" ? "rounded-sm border-[#302b25]/15 bg-white/65 px-4 shadow-sm" : variant === "timeline" ? "border-white/15" : "border-black/30"}`} key={title}>
-            <span className={`text-[9px] font-bold ${variant === "timeline" ? "text-[#e3b88e]" : "text-[#ef5a35]"}`}>{date}</span>
+          <div className={`grid gap-2 border-t py-5 sm:grid-cols-[70px_1fr] ${variant === "calendar" ? "rounded-sm border-[#302b25]/15 bg-white/65 px-4" : "border-black/30"}`} key={title}>
+            <span className="text-[9px] font-bold text-[#a14b32]">{date}</span>
             <div>
               <h3 className="reader-editable font-serif text-2xl leading-tight">{title}</h3>
-              <p className={`reader-editable mt-1 text-[9px] uppercase tracking-[0.12em] ${variant === "timeline" ? "text-white/55" : "text-black/45"}`}>{place}</p>
+              <p className="reader-editable mt-1 text-[9px] uppercase tracking-[0.12em] text-black/45">{place}</p>
             </div>
           </div>
         ))}
@@ -497,13 +499,13 @@ function ReaderSectionContent({
   if (type === "interview") {
     const variant = content?.layoutVariant ?? "feature";
     return (
-      <div className={`grid h-full ${variant === "profile" ? "bg-[#31473d] text-[#f8f5ed] md:grid-cols-2" : variant === "rapid-fire" ? "bg-[#f0e8da] text-[#25231f] md:grid-cols-[0.4fr_1.6fr]" : "bg-[#171714] text-[#f8f5ed] md:grid-cols-[0.65fr_1.35fr]"}`}>
-        <div className="flex flex-col justify-between border-b border-white/15 p-7 md:border-b-0 md:border-r sm:p-9">
+      <div className={`grid h-full bg-[#f8f5ed] text-[#25231f] ${variant === "profile" ? "md:grid-cols-2" : variant === "rapid-fire" ? "md:grid-cols-[0.4fr_1.6fr]" : "md:grid-cols-[0.65fr_1.35fr]"}`}>
+        <div className="flex flex-col justify-between border-b border-black/15 p-7 md:border-b-0 md:border-r sm:p-9">
           <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "Five questions"}</p>
           <h2 className="reader-editable mt-12 font-serif text-3xl leading-[0.95] tracking-[-0.04em] sm:text-4xl">{content?.title ?? "A conversation with someone shaping campus"}</h2>
-          <p className="reader-editable mt-7 text-[9px] uppercase tracking-[0.14em] text-white/40">{content?.byline ?? "Interview by the editorial team"}</p>
+          <p className="reader-editable mt-7 text-[9px] uppercase tracking-[0.14em] text-black/45">{content?.byline ?? "Interview by the editorial team"}</p>
         </div>
-        <p className="reader-editable whitespace-pre-line p-7 font-serif text-lg leading-[1.65] text-white/75 sm:p-9">
+        <p className="reader-editable whitespace-pre-line p-7 font-serif text-lg leading-[1.65] text-black/75 sm:p-9">
           {content?.body ?? "Q — What idea are you carrying with you this semester?\n\nA — That the most useful work often begins as a conversation between people who see the same problem differently.\n\nQ — Where should students begin?\n\nA — With curiosity, and with one another."}
         </p>
       </div>
@@ -512,11 +514,11 @@ function ReaderSectionContent({
 
   if (type === "audio") {
     return (
-      <div className="flex h-full flex-col justify-between border-y border-black/15 bg-[#171714] p-7 text-white sm:p-9">
+      <div className="flex h-full flex-col justify-between border-y border-black/15 bg-[#f2ecdf] p-7 text-[#25231f] sm:p-9">
         <div>
           <div className="flex items-center justify-between">
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Campus Audio · Playlist</span>
-            <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.14em] text-white/50">
+            <span className="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.14em] text-black/50">
               <span className={`h-1.5 w-1.5 rounded-full bg-[#ef5a35] ${isPlayingAudio ? "animate-ping" : ""}`} />
               {isPlayingAudio ? "Now Playing" : "Campus Radio"}
             </span>
@@ -524,14 +526,14 @@ function ReaderSectionContent({
           <h3 className="reader-editable mt-3 font-serif text-3xl sm:text-4xl">
             {content?.title ?? "Tracks from the Library Basement"}
           </h3>
-          <p className="reader-editable mt-2 text-xs leading-relaxed text-white/60">
+          <p className="reader-editable mt-2 text-xs leading-relaxed text-black/60">
             {content?.body ?? "Curated by the Campus Radio Society. Songs playing across study halls, rehearsal rooms, and dorm kitchens this week."}
           </p>
         </div>
-        <div className="mt-6 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="mt-6 flex items-center justify-between border-t border-black/15 pt-4">
           <div className="flex items-center gap-3">
             <button
-              className="grid h-10 w-10 place-items-center rounded-full bg-[#ef5a35] text-white shadow-md transition hover:scale-105"
+              className="grid h-10 w-10 place-items-center rounded-full border border-black/15 bg-[#f8f5ed] text-[#a14b32] transition hover:scale-105"
               onClick={onAudioToggle}
               title={isPlayingAudio ? "Pause preview" : "Play preview"}
               type="button"
@@ -539,15 +541,15 @@ function ReaderSectionContent({
               {isPlayingAudio ? "❚❚" : "▶"}
             </button>
             <div>
-              <p className="text-xs font-semibold text-white">
+              <p className="text-xs font-semibold text-black/80">
                 Track 01 · Late Autumn Reverie
               </p>
-              <p className="text-[10px] text-white/45">
+              <p className="text-[10px] text-black/45">
                 The Student Quartet · 3:42
               </p>
             </div>
           </div>
-          <span className="rounded-full border border-white/20 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/60">
+          <span className="rounded-full border border-black/15 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-black/55">
             Spotify / Apple Music
           </span>
         </div>
@@ -630,7 +632,7 @@ function ReaderSectionContent({
     }
 
     return (
-      <div className={`flex h-full flex-col justify-between border p-6 sm:p-7 ${variant === "announcement" ? "border-[#304a3f] bg-[#e8ede4]" : variant === "classifieds" ? "border-dashed border-[#78684e] bg-[#f1eadb]" : "border-black bg-[#f8f5ed]"}`}>
+      <div className={`flex h-full flex-col justify-between border p-6 sm:p-7 ${variant === "announcement" ? "border-black/25 bg-[#f8f5ed]" : variant === "classifieds" ? "border-dashed border-black/35 bg-[#f8f5ed]" : "border-black bg-[#f8f5ed]"}`}>
         <div>
           <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">
             {content?.eyebrow ?? "Noticeboard"}
@@ -688,7 +690,7 @@ function ReaderSectionContent({
   if (type === "statistics") {
     const variant = content?.layoutVariant ?? "dashboard";
     return (
-      <div className={`h-full p-7 sm:p-9 ${variant === "hero-number" ? "bg-[#243a32] text-[#f8f5ed]" : variant === "comparison" ? "bg-[#e7e8e0]" : "bg-[#efe8d8]"}`}>
+      <div className={`h-full p-7 sm:p-9 ${variant === "comparison" ? "bg-[#f2ecdf]" : ""}`}>
         <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "By the numbers"}</p>
         <h2 className="reader-editable mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "A snapshot of campus"}</h2>
         {content?.body ? (
@@ -738,14 +740,14 @@ function ReaderSectionContent({
       "03 · Listen · The conversation of the week",
     ];
     return (
-      <div className={`h-full p-7 sm:p-9 ${variant === "shelf" ? "bg-[#e8ddc7]" : variant === "categories" ? "bg-[#e9eeea]" : ""}`}>
+      <div className={`h-full p-7 sm:p-9 ${variant === "shelf" ? "bg-[#f2ecdf]" : ""}`}>
         <p className="reader-editable text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">{content?.eyebrow ?? "The shortlist"}</p>
         <h2 className="reader-editable mt-4 font-serif text-4xl tracking-[-0.04em]">{content?.title ?? "Things worth your time"}</h2>
         <div className="mt-7 divide-y divide-black/20 border-y border-black/20">
           {picks.map((pick, index) => {
             const [kind, ...rest] = pick.split(" · ");
             return (
-              <div className={`grid gap-3 py-4 ${variant === "categories" ? "border-l-2 border-[#3e6a59] pl-4 sm:grid-cols-[100px_1fr]" : variant === "shelf" ? "mx-1 my-2 border border-black/10 bg-white/55 px-4 grid-cols-[34px_1fr] sm:grid-cols-[42px_90px_1fr]" : "grid-cols-[34px_1fr] sm:grid-cols-[42px_90px_1fr]"}`} key={`${pick}-${index}`}>
+              <div className={`grid gap-3 py-4 ${variant === "categories" ? "border-l-2 border-[#a14b32] pl-4 sm:grid-cols-[100px_1fr]" : variant === "shelf" ? "mx-1 my-2 border border-black/10 bg-white/55 px-4 grid-cols-[34px_1fr] sm:grid-cols-[42px_90px_1fr]" : "grid-cols-[34px_1fr] sm:grid-cols-[42px_90px_1fr]"}`} key={`${pick}-${index}`}>
                 {variant !== "categories" && <span className="font-mono text-[9px] font-bold text-[#a24b35]">{String(index + 1).padStart(2, "0")}</span>}
                 {variant === "categories" ? <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#a24b35]">{kind.split(" · ").pop()}</span> : <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-black/45">{kind.split(" · ").pop()}</span>}
                 <p className="reader-editable font-serif text-lg leading-tight">{rest.join(" · ") || pick}</p>
@@ -770,9 +772,9 @@ function ReaderSectionContent({
   if (type === "footer") {
     const variant = content?.layoutVariant ?? "sign-off";
     return (
-      <div className={`flex h-full flex-col justify-between border-t border-black p-7 sm:p-10 ${variant === "contact" ? "bg-[#e8ede4]" : variant === "subscribe" ? "items-center bg-[#202b27] text-center text-[#f8f5ed]" : ""}`}>
+      <div className={`flex h-full flex-col justify-between border-t border-black p-7 sm:p-10 ${variant === "contact" ? "bg-[#faf8f2]" : variant === "subscribe" ? "items-center bg-[#f2ecdf] text-center" : ""}`}>
         <h2 className="reader-editable font-serif text-4xl">{content?.title ?? "Until next week, stay curious."}</h2>
-        <p className={`reader-editable whitespace-pre-line text-[10px] uppercase tracking-[0.16em] ${variant === "subscribe" ? "text-white/65" : "text-black/50"}`}>
+        <p className="reader-editable whitespace-pre-line text-[10px] uppercase tracking-[0.16em] text-black/50">
           {content?.body ?? (variant === "contact" ? "Write to the editorial desk · editor@university.edu\nFind us on campus · Student Union, Room 204" : variant === "subscribe" ? "Get the next edition in your inbox · Join the weekly campus dispatch" : "Published weekly by the University Editorial Guild · Distributed across campus")}
         </p>
       </div>
