@@ -2847,20 +2847,21 @@ export default function App() {
           <button aria-label="Add section" className="editor-icon-button" onClick={() => setLibraryOpen(true)} title="Add section" type="button"><EditorIcon name="add" /></button>
           <details className="editor-more-menu relative">
             <summary className="editor-icon-button grid cursor-pointer list-none place-items-center" aria-label="More editor tools" title="More tools"><span className="text-base leading-none">···</span></summary>
-            <div className="editor-menu-popover absolute right-0 top-10 z-50 grid min-w-52 gap-1 rounded-xl border p-2 shadow-xl">
+            <div className="editor-menu-popover absolute right-0 top-10 z-50 grid min-w-56 gap-1 rounded-xl border p-2 shadow-xl">
               <div className="flex items-center justify-between px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">
                 <span>Status</span>
                 <span className="font-semibold text-[#ef5a35]">{issue.status}</span>
               </div>
-              <div className="grid grid-cols-3 gap-1 px-1 pb-1.5 mb-1 border-b border-black/10 dark:border-white/10">
+              <div className="grid gap-1.5 px-1 pb-2 mb-1 border-b border-black/10 dark:border-white/10">
                 {(["draft", "review", "published"] as const).map((s) => (
                   <button
                     key={s}
-                    className={`rounded py-1 text-[9px] uppercase font-bold tracking-wider transition ${issue.status === s ? "bg-[#ef5a35] text-white shadow-xs" : "bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"}`}
+                    className={`flex min-h-10 w-full items-center justify-between rounded-md px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition ${issue.status === s ? "bg-[#ef5a35] text-white shadow-xs" : "bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"}`}
                     onClick={() => setStatus(s)}
                     type="button"
                   >
-                    {s}
+                    <span>{s === "review" ? "In review" : s === "published" ? "Published" : "Draft"}</span>
+                    {issue.status === s && <span aria-hidden="true" className="text-sm leading-none">✓</span>}
                   </button>
                 ))}
               </div>
