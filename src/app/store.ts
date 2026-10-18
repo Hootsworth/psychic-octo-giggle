@@ -30,6 +30,7 @@ export type IssueDocument = {
   content: string[];
   paletteId: string;
   fontId: string;
+  freeformMode?: boolean;
   media: { key: string; value: string; meta?: Record<string, unknown> }[];
   comments?: unknown[];
   chatMessages?: unknown[];
@@ -41,6 +42,12 @@ const WORKSPACE_KEY = "iow-workspace-v1";
 const WORKSPACE_OWNER_KEY = "iow-workspace-owner-v1";
 const endpoint = `https://${projectId}.supabase.co/functions/v1/make-server-c2909e49`;
 let activeWorkspaceOwnerId: string | null = null;
+const issueRevisions = new Map<string, string | null>();
+
+class CloudRequestError extends Error {
+  status: number;
+  constructor(message: string, status: number) { super(message); this.status = status; }
+}
 
 export function activateWorkspaceOwner(ownerId: string | null) {
   // Issue records are shared by the newsroom. Switching auth users must not
@@ -90,7 +97,7 @@ async function cloudRequest<T>(path: string, init: RequestInit = {}): Promise<T 
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.error || `Cloud request failed (${response.status}).`);
+    throw new CloudRequestError(body?.error || `Cloud request failed (${response.status}).`, response.status);
   }
   return response.status === 204 ? null : await response.json() as T;
 }
@@ -127,29 +134,46 @@ export async function hydrateWorkspace(ownerId: string): Promise<Workspace> {
 }
 
 export async function loadIssueDocument(issueId: string): Promise<IssueDocument | null> {
-  const remote = await cloudRequest<IssueDocument>(`/issues/${encodeURIComponent(issueId)}`);
-  if (!remote) return null;
+  const remote = await cloudRequest<IssueDocument & { updatedAt?: string; revision?: string }>(`/issues/${encodeURIComponent(issueId)}`);
+  if (!remote) { issueRevisions.set(issueId, null); return null; }
+  issueRevisions.set(issueId, remote.revision ?? remote.updatedAt ?? null);
   remote.media?.forEach((entry) => {
-    localStorage.setItem(entry.key, entry.value);
-    if (entry.meta) localStorage.setItem(`${entry.key}-meta`, JSON.stringify(entry.meta));
+    try { localStorage.setItem(entry.key, entry.value); } catch { /* Cloud media remains available in the live editor even if local quota is exhausted. */ }
+    if (entry.meta) { try { localStorage.setItem(`${entry.key}-meta`, JSON.stringify(entry.meta)); } catch { /* Metadata can be fetched again with the cloud document. */ } }
   });
   localStorage.setItem(`iow-layout-${issueId}`, JSON.stringify(remote.pages));
   localStorage.setItem(`iow-content-${issueId}`, JSON.stringify(remote.content));
   localStorage.setItem(`iow-palette-${issueId}`, remote.paletteId);
   localStorage.setItem(`iow-font-${issueId}`, remote.fontId);
+  if (remote.freeformMode !== undefined) localStorage.setItem(`iow-freeform-${issueId}`, String(remote.freeformMode));
   if (remote.comments) localStorage.setItem(`iow-comments-${issueId}`, JSON.stringify(remote.comments));
   if (remote.chatMessages) localStorage.setItem(`iow-chat-${issueId}`, JSON.stringify(remote.chatMessages));
   return remote;
 }
 
 export async function saveIssueDocument(issueId: string, document: IssueDocument): Promise<void> {
-  const result = await cloudRequest<{ media?: IssueDocument["media"] }>(`/issues/${encodeURIComponent(issueId)}`, { method: "PUT", body: JSON.stringify(document) });
-  if (!result) throw new Error("Sign in to save this issue to the cloud. Your browser copy is still available.");
-  result?.media?.forEach((entry) => {
-    localStorage.setItem(entry.key, entry.value);
-    if (entry.meta) localStorage.setItem(`${entry.key}-meta`, JSON.stringify(entry.meta));
-  });
-  window.dispatchEvent(new CustomEvent("iow-issue-sync-success", { detail: { issueId } }));
+  const baseVersion = issueRevisions.has(issueId) ? issueRevisions.get(issueId) ?? null : null;
+  try {
+    const result = await cloudRequest<{ media?: IssueDocument["media"]; updatedAt?: string; revision?: string }>(`/issues/${encodeURIComponent(issueId)}`, { method: "PUT", body: JSON.stringify({ ...document, baseUpdatedAt: baseVersion, baseRevision: baseVersion }) });
+    if (!result) throw new Error("Sign in to save this issue to the cloud. Your browser copy is still available.");
+    if (result.revision || result.updatedAt) issueRevisions.set(issueId, result.revision ?? result.updatedAt ?? null);
+    result.media?.forEach((entry) => {
+      try { localStorage.setItem(entry.key, entry.value); } catch { /* Keep the live media in memory when the browser quota is full. */ }
+      if (entry.meta) { try { localStorage.setItem(`${entry.key}-meta`, JSON.stringify(entry.meta)); } catch { /* Cloud metadata remains authoritative even when browser quota is exhausted. */ } }
+    });
+    window.dispatchEvent(new CustomEvent("iow-issue-sync-success", { detail: { issueId } }));
+  } catch (error) {
+    if (error instanceof CloudRequestError && error.status === 409) {
+      try {
+        localStorage.setItem(`iow-conflict-draft-${issueId}`, JSON.stringify({
+          pages: document.pages, content: document.content, paletteId: document.paletteId, fontId: document.fontId,
+          mediaKeys: document.media.map(({ key, meta }) => ({ key, meta })), savedAt: new Date().toISOString(),
+        }));
+      } catch { /* The current editor session remains the recovery copy. */ }
+      window.dispatchEvent(new CustomEvent("iow-issue-sync-conflict", { detail: { issueId, message: error.message } }));
+    }
+    throw error;
+  }
 }
 
 let workspaceSaveTimer: ReturnType<typeof setTimeout> | null = null;

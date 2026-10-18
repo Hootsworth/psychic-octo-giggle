@@ -41,6 +41,8 @@ import EmailExportModal from "./components/EmailExportModal";
 
 const CAMPUS_IMAGE =
   "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1600";
+const unsyncedMedia = new Map<string, string>();
+const unsyncedMediaMeta = new Map<string, Record<string, unknown>>();
 
 type SectionType =
   | "cover"
@@ -63,13 +65,17 @@ type SectionType =
   | "poll"
   | "crossword"
   | "sudoku"
-  | "wordsearch";
+  | "wordsearch"
+  | "textBox"
+  | "shapeBox"
+  | "imageBox";
 
 type Section = {
   id: string;
   type: SectionType;
   width: number;
   height: "compact" | "regular" | "tall";
+  freeform?: { x: number; y: number; width: number; height: number };
   content?: {
     eyebrow?: string;
     title?: string;
@@ -89,6 +95,9 @@ type Section = {
     crossword?: CrosswordData;
     sudoku?: SudokuData;
     wordsearch?: WordSearchData;
+    shapeKind?: "rectangle" | "circle" | "line" | "quote";
+    fillColor?: string;
+    textSize?: string;
   };
 };
 
@@ -158,6 +167,9 @@ const SECTION_OPTIONS: { type: SectionType; name: string; description: string }[
   { type: "heading", name: "Section heading", description: "Large editorial title" },
   { type: "article", name: "Article", description: "Headline and body copy" },
   { type: "photo", name: "Campus photo", description: "Uploadable image and caption" },
+  { type: "imageBox", name: "Image box", description: "A freely sized image frame with crop controls" },
+  { type: "textBox", name: "Text box", description: "A simple editable text frame" },
+  { type: "shapeBox", name: "Shape", description: "Add a rectangle, circle, line, or quote panel" },
   { type: "poem", name: "Poetry", description: "Student poem with byline" },
   { type: "quote", name: "Pull quote", description: "Bold highlighted quotation" },
   { type: "events", name: "Events list", description: "Weekly dates and activities" },
@@ -390,18 +402,18 @@ function PhotoField({
   storageKey: string;
 }) {
   const [image, setImage] = useState(() => localStorage.getItem(storageKey) ?? initialImage);
-  const [meta, setMeta] = useState<{ position: string; alt: string }>(() => {
+  const [meta, setMeta] = useState<{ position?: string; x?: number; y?: number; zoom?: number; alt: string }>(() => {
     try {
       return JSON.parse(localStorage.getItem(`${storageKey}-meta`) ?? '{"position":"center","alt":"Campus scene"}');
     } catch {
-      return { position: "center", alt: "Campus scene" };
+      return { position: "center", x: 50, y: 50, zoom: 100, alt: "Campus scene" };
     }
   });
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handlePhotoUpdate = (event: Event) => {
-      const detail = (event as CustomEvent<{ storageKey: string; value?: string; meta?: { position: string; alt: string } }>).detail;
+      const detail = (event as CustomEvent<{ storageKey: string; value?: string; meta?: { position?: string; x?: number; y?: number; zoom?: number; alt: string } }>).detail;
       if (detail?.storageKey === storageKey) {
         if (detail.value !== undefined) setImage(detail.value);
         if (detail.meta !== undefined) setMeta(detail.meta);
@@ -411,37 +423,57 @@ function PhotoField({
     return () => window.removeEventListener("iow-photo-update", handlePhotoUpdate);
   }, [storageKey]);
 
-  const onFile = (event: ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const value = String(reader.result);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      let blob: Blob | null = null;
+      for (const quality of [0.84, 0.74, 0.64, 0.54]) {
+        blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+        if (blob && blob.size <= 2.5 * 1024 * 1024) break;
+      }
+      if (!blob) throw new Error("This browser could not process the selected image.");
+      const value = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read the selected image."));
+        reader.readAsDataURL(blob!);
+      });
       setImage(value);
+      unsyncedMedia.set(storageKey, value);
       try {
         localStorage.setItem(storageKey, value);
-        window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, value, broadcast: true } }));
-      } catch {
+      } catch { /* Upload directly from the in-memory copy below. */ }
+      window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, value, broadcast: true } }));
+    } catch (error) {
         dialog.alert({
-          title: "Image Too Large",
-          message: "This image exceeds local browser storage capacity. Try a smaller or compressed image.",
+          title: "Image Could Not Be Processed",
+          message: error instanceof Error ? error.message : "Try a different image file.",
           tone: "warning",
         });
-      }
-    };
-    reader.readAsDataURL(file);
+    } finally {
+      event.target.value = "";
+    }
   };
 
-  const updateMeta = (next: { position: string; alt: string }) => {
+  const updateMeta = (next: { position?: string; x?: number; y?: number; zoom?: number; alt: string }) => {
     setMeta(next);
-    localStorage.setItem(`${storageKey}-meta`, JSON.stringify(next));
+    unsyncedMediaMeta.set(storageKey, next);
+    try { localStorage.setItem(`${storageKey}-meta`, JSON.stringify(next)); } catch { /* Keep crop metadata in memory until the cloud save completes. */ }
     window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey, meta: next, broadcast: true } }));
   };
 
   return (
     <div className="photo-field group relative h-full min-h-52 overflow-hidden bg-[#d7d3c8]">
       {image ? (
-        <img alt={meta.alt} className="h-full w-full object-cover" src={image} style={{ objectPosition: meta.position }} />
+        <img alt={meta.alt} className="h-full w-full object-cover" src={image} style={{ objectPosition: meta.x !== undefined ? `${meta.x}% ${meta.y ?? 50}%` : meta.position, transform: `scale(${(meta.zoom ?? 100) / 100})` }} />
       ) : (
         <div className="photo-placeholder flex h-full min-h-52 items-center justify-center">
           <span className="bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.18em]">
@@ -463,7 +495,7 @@ function PhotoField({
           <EditorIcon name="camera" />
           <span>Library</span>
         </button>
-        {image && <button className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white" onClick={() => { const positions = ["center", "center top", "center bottom"]; updateMeta({ ...meta, position: positions[(positions.indexOf(meta.position) + 1) % positions.length] }); }} title="Cycle image focal point" type="button">Focus</button>}
+        {image && <details className="rounded-xl bg-[#f8f5ed]/95 p-2 text-[8px] shadow-md dark:bg-[#1f1e1b]/95"><summary className="cursor-pointer px-1 font-bold uppercase tracking-[0.12em]">Crop</summary><div className="grid w-36 gap-1.5 pt-2"><label className="grid grid-cols-[28px_1fr] items-center gap-1">X<input aria-label="Horizontal crop position" max="100" min="0" onChange={(event) => updateMeta({ ...meta, x: Number(event.target.value), y: meta.y ?? 50, zoom: meta.zoom ?? 100 })} type="range" value={meta.x ?? 50} /></label><label className="grid grid-cols-[28px_1fr] items-center gap-1">Y<input aria-label="Vertical crop position" max="100" min="0" onChange={(event) => updateMeta({ ...meta, x: meta.x ?? 50, y: Number(event.target.value), zoom: meta.zoom ?? 100 })} type="range" value={meta.y ?? 50} /></label><label className="grid grid-cols-[28px_1fr] items-center gap-1">Zoom<input aria-label="Image crop zoom" max="200" min="100" onChange={(event) => updateMeta({ ...meta, x: meta.x ?? 50, y: meta.y ?? 50, zoom: Number(event.target.value) })} type="range" value={meta.zoom ?? 100} /></label></div></details>}
         {image && (
           <button
             className="rounded-full bg-[#f8f5ed] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.12em] shadow-md hover:bg-[#ef5a35] hover:text-white dark:bg-[#1f1e1b] dark:text-[#f3f0e8] dark:hover:bg-[#ef5a35] dark:hover:text-white"
@@ -567,6 +599,16 @@ function SectionContent({
   onEditCrossword?: () => void;
 }) {
   const { type, content } = section;
+  if (type === "textBox") {
+    return <div className="flex h-full min-h-36 flex-col justify-center gap-3 border border-dashed border-black/20 p-6 sm:p-9"><Editable as="h2" className="font-serif text-3xl leading-tight">{content?.title ?? "Type a headline"}</Editable><Editable as="p" className="whitespace-pre-line text-sm leading-relaxed text-black/65">{content?.body ?? "Click here and start writing. Use the block controls to resize this text frame."}</Editable></div>;
+  }
+  if (type === "shapeBox") {
+    const shape = content?.shapeKind ?? "rectangle";
+    return <div className="grid h-full min-h-28 place-items-center p-6"><div className={`grid h-full min-h-24 w-full place-items-center border border-black/15 bg-[#eee9df] px-5 py-4 text-center ${shape === "circle" ? "rounded-full" : shape === "quote" ? "border-l-4 border-l-[#ef5a35] bg-transparent text-left" : ""} ${shape === "line" ? "min-h-0 h-px border-0 bg-black/70 p-0" : ""}`}>{shape !== "line" && <Editable as="p" className="font-serif text-xl">{content?.title ?? (shape === "quote" ? "Add a quotation" : "Shape")}</Editable>}</div></div>;
+  }
+  if (type === "imageBox") {
+    return <PhotoField label="Add image" storageKey={mediaKey} />;
+  }
   if (type === "cover") {
     return (
       <div className="grid h-full gap-8 p-7 sm:p-10 md:grid-cols-[1fr_2.15fr] md:p-14">
@@ -1065,6 +1107,9 @@ function BuilderBlock({
   onConfigureNoticeQr,
   onEditCrossword,
   onSetLayoutVariant,
+  freeform = false,
+  freeformRect,
+  onUpdateFreeform,
 }: {
   section: Section;
   bylineConvention: string;
@@ -1083,7 +1128,12 @@ function BuilderBlock({
   onConfigureNoticeQr?: (sectionId: string) => void;
   onEditCrossword?: (sectionId: string) => void;
   onSetLayoutVariant?: (sectionId: string, variant: string) => void;
+  freeform?: boolean;
+  freeformRect: { x: number; y: number; width: number; height: number };
+  onUpdateFreeform: (page: number, id: string, value: { x: number; y: number; width: number; height: number }) => void;
 }) {
+  const resizeDrag = useRef<{ axis: "x" | "y"; startX: number; startY: number; width: number; height: Section["height"] } | null>(null);
+  const freeformDrag = useRef<{ kind: "move" | "resize"; x: number; y: number; rect: typeof freeformRect; canvasWidth: number } | null>(null);
   const widthLabels: Record<number, string> = {
     4: "1/3 width (4 cols)",
     6: "1/2 width (6 cols)",
@@ -1108,7 +1158,7 @@ function BuilderBlock({
         event.preventDefault();
         onDrop(pageIndex, section.id);
       }}
-      style={{ gridColumn: `span ${section.width}` }}
+      style={freeform ? { position: "absolute", left: `${freeformRect.x}%`, top: freeformRect.y, width: `${freeformRect.width}%`, height: freeformRect.height, minHeight: 0, gridColumn: "auto" } : { gridColumn: `span ${section.width}` }}
     >
       {/* Top Left: Size & Dimension Pill Badge */}
       <div className={`editor-only pointer-events-none absolute left-3 top-2.5 z-20 items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 ${section.width <= 4 ? "hidden" : "hidden sm:flex"}`}>
@@ -1214,8 +1264,17 @@ function BuilderBlock({
         <button aria-label="Delete section" className="block-danger-action" onClick={() => onAction("delete", pageIndex, section.id)} title="Delete block" type="button">×</button>
       </div>
 
+      {freeform && <button
+        aria-label="Drag to move section"
+        className="editor-only absolute left-1/2 top-1 z-40 -translate-x-1/2 cursor-grab touch-none rounded-full border border-black/15 bg-[#f8f5ed]/95 px-3 py-1 text-[8px] font-bold uppercase tracking-wider opacity-0 shadow transition group-hover:opacity-100 active:cursor-grabbing dark:border-white/15 dark:bg-[#22221f]/95"
+        onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); const canvas = event.currentTarget.closest(".page-grid") as HTMLElement | null; freeformDrag.current = { kind: "move", x: event.clientX, y: event.clientY, rect: freeformRect, canvasWidth: canvas?.getBoundingClientRect().width ?? 700 }; }}
+        onPointerUp={(event) => { const drag = freeformDrag.current; freeformDrag.current = null; if (!drag) return; const bounds = event.currentTarget.closest(".page-grid")?.getBoundingClientRect(); if (!bounds) return; onUpdateFreeform(pageIndex, section.id, { ...drag.rect, x: Math.max(0, Math.min(100 - drag.rect.width, drag.rect.x + (event.clientX - drag.x) / drag.canvasWidth * 100)), y: Math.max(0, drag.rect.y + event.clientY - drag.y) }); }}
+        title="Drag this handle to move the block"
+        type="button"
+      >Move</button>}
+
       {/* Right Edge Interactive Width Resizer Handle (Safely inside block bounds) */}
-      <div className="editor-only pointer-events-auto absolute right-2 top-1/2 z-30 flex -translate-y-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 dark:border-white/20 dark:bg-[#1f1e1b]/95">
+      <div className={`editor-only pointer-events-auto absolute right-2 top-1/2 z-30 flex -translate-y-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 dark:border-white/20 dark:bg-[#1f1e1b]/95 ${freeform ? "hidden" : ""}`}>
         <button
           className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/70 hover:bg-[#ef5a35] hover:text-white disabled:pointer-events-none disabled:opacity-20 dark:text-white/70"
           disabled={section.width <= 4}
@@ -1240,7 +1299,7 @@ function BuilderBlock({
       </div>
 
       {/* Bottom Edge Interactive Height Resizer Handle (Safely inside block bounds) */}
-      <div className="editor-only pointer-events-auto absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 dark:border-white/20 dark:bg-[#1f1e1b]/95">
+      <div className={`editor-only pointer-events-auto absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center rounded-full border border-black/20 bg-white/95 p-0.5 opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 dark:border-white/20 dark:bg-[#1f1e1b]/95 ${freeform ? "hidden" : ""}`}>
         <button
           className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-black/70 hover:bg-[#ef5a35] hover:text-white disabled:pointer-events-none disabled:opacity-20 dark:text-white/70"
           disabled={section.height === "compact"}
@@ -1286,6 +1345,41 @@ function BuilderBlock({
         onEditCrossword={() => onEditCrossword?.(section.id)}
         section={section}
       />
+      <div
+        aria-label="Drag to resize section width"
+        className="editor-only absolute right-0 top-1/2 z-30 h-14 w-3 -translate-y-1/2 cursor-ew-resize touch-none rounded-l-full border border-black/15 bg-[#f8f5ed]/90 opacity-0 shadow-sm transition group-hover:opacity-100 dark:border-white/15 dark:bg-[#22221f]/90"
+        onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); resizeDrag.current = { axis: "x", startX: event.clientX, startY: event.clientY, width: section.width, height: section.height }; }}
+        onPointerUp={(event) => {
+          const start = resizeDrag.current; resizeDrag.current = null; if (!start) return;
+          const choices: Section["width"][] = [4, 6, 8, 12];
+          const pageWidth = event.currentTarget.closest(".page-grid")?.getBoundingClientRect().width ?? 100;
+          const next = Math.max(4, Math.min(12, start.width + Math.round((event.clientX - start.startX) / Math.max(24, pageWidth) * 12)));
+          const nearest = choices.reduce((best, value) => Math.abs(value - next) < Math.abs(best - next) ? value : best, choices[0]);
+          onAction("setWidth", pageIndex, section.id, nearest);
+        }}
+        title="Drag left or right to resize"
+      />
+      <div
+        aria-label="Drag to resize section height"
+        className="editor-only absolute bottom-0 left-1/2 z-30 h-3 w-14 -translate-x-1/2 cursor-ns-resize touch-none rounded-t-full border border-black/15 bg-[#f8f5ed]/90 opacity-0 shadow-sm transition group-hover:opacity-100 dark:border-white/15 dark:bg-[#22221f]/90"
+        onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); resizeDrag.current = { axis: "y", startX: event.clientX, startY: event.clientY, width: section.width, height: section.height }; }}
+        onPointerUp={(event) => {
+          const start = resizeDrag.current; resizeDrag.current = null; if (!start) return;
+          const choices: Section["height"][] = ["compact", "regular", "tall"];
+          const startIndex = choices.indexOf(start.height);
+          const nextIndex = Math.max(0, Math.min(2, startIndex + Math.round((event.clientY - start.startY) / 120)));
+          onAction("setHeight", pageIndex, section.id, choices[nextIndex]);
+        }}
+        title="Drag down to make taller or up to make shorter"
+      />
+      {freeform && <button
+        aria-label="Drag to resize section"
+        className="editor-only absolute bottom-0 right-0 z-40 grid h-6 w-6 cursor-nwse-resize touch-none place-items-center rounded-tl-lg border border-black/15 bg-[#f8f5ed]/95 text-[10px] font-bold opacity-0 shadow transition group-hover:opacity-100 dark:border-white/15 dark:bg-[#22221f]/95"
+        onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); const canvas = event.currentTarget.closest(".page-grid") as HTMLElement | null; freeformDrag.current = { kind: "resize", x: event.clientX, y: event.clientY, rect: freeformRect, canvasWidth: canvas?.getBoundingClientRect().width ?? 700 }; }}
+        onPointerUp={(event) => { const drag = freeformDrag.current; freeformDrag.current = null; if (!drag) return; onUpdateFreeform(pageIndex, section.id, { ...drag.rect, width: Math.max(12, Math.min(100 - drag.rect.x, drag.rect.width + (event.clientX - drag.x) / drag.canvasWidth * 100)), height: Math.max(90, drag.rect.height + event.clientY - drag.y) }); }}
+        title="Drag to resize this block"
+        type="button"
+      >↘</button>}
     </section>
   );
 }
@@ -1349,6 +1443,7 @@ export default function App() {
   });
   const [activePage, setActivePage] = useState(0);
   const [canvasZoom, setCanvasZoom] = useState(100);
+  const [freeformMode, setFreeformMode] = useState(() => localStorage.getItem(`iow-freeform-${issueId}`) === "true");
   const [pageOverviewOpen, setPageOverviewOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [articleLibraryOpen, setArticleLibraryOpen] = useState(false);
@@ -1364,10 +1459,12 @@ export default function App() {
   const [preview, setPreview] = useState(false);
   const [saved, setSaved] = useState(false);
   const [, setMediaRevision] = useState(0);
-  const [cloudSaveState, setCloudSaveState] = useState<"loading" | "saving" | "saved" | "offline">("loading");
+  const [cloudSaveState, setCloudSaveState] = useState<"loading" | "saving" | "saved" | "offline" | "conflict">("loading");
+  const [cloudConflictMessage, setCloudConflictMessage] = useState("");
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const dragged = useRef<{ page: number; id: string } | null>(null);
+  const draggedSectionType = useRef<SectionType | null>(null);
   const undoStack = useRef<string[]>([]);
   const redoStack = useRef<string[]>([]);
   const [canUndo, setCanUndo] = useState(false);
@@ -1479,11 +1576,17 @@ export default function App() {
     const handleError = (event: Event) => {
       if ((event as CustomEvent).detail?.issueId === issueId) setCloudSaveState("offline");
     };
+    const handleConflict = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.issueId === issueId) { setCloudSaveState("conflict"); setCloudConflictMessage(detail.message ?? "This issue changed in another session."); }
+    };
     window.addEventListener("iow-issue-sync-success", handleSuccess);
     window.addEventListener("iow-issue-sync-error", handleError);
+    window.addEventListener("iow-issue-sync-conflict", handleConflict);
     return () => {
       window.removeEventListener("iow-issue-sync-success", handleSuccess);
       window.removeEventListener("iow-issue-sync-error", handleError);
+      window.removeEventListener("iow-issue-sync-conflict", handleConflict);
     };
   }, [issueId]);
 
@@ -1504,11 +1607,14 @@ export default function App() {
       if (issueDocument) {
         isRemoteUpdateRef.current = true;
         issueDocument.media?.forEach((entry) => {
+          unsyncedMedia.set(entry.key, entry.value);
+          if (entry.meta) unsyncedMediaMeta.set(entry.key, entry.meta);
           window.dispatchEvent(new CustomEvent("iow-photo-update", { detail: { storageKey: entry.key, value: entry.value, meta: entry.meta, broadcast: false } }));
         });
         setPages(issueDocument.pages as Pages);
         setPaletteId(issueDocument.paletteId);
         setFontId(issueDocument.fontId);
+        setFreeformMode(issueDocument.freeformMode ?? false);
         setComments((issueDocument.comments ?? []) as EditorialComment[]);
         setChatMessages((issueDocument.chatMessages ?? []) as NewsroomMessage[]);
         window.setTimeout(() => {
@@ -1623,6 +1729,10 @@ export default function App() {
         setFontId(payload.data.font);
         localStorage.setItem(`iow-font-${issueId}`, payload.data.font);
       }
+      if (typeof payload.data.freeformMode === "boolean") {
+        setFreeformMode(payload.data.freeformMode);
+        localStorage.setItem(`iow-freeform-${issueId}`, String(payload.data.freeformMode));
+      }
       if (payload.data.media && typeof payload.data.media === "object") {
         Object.entries(payload.data.media).forEach(([key, val]) => {
           if (typeof val === "string") {
@@ -1655,11 +1765,12 @@ export default function App() {
       pages,
       palette: paletteId,
       font: fontId,
+      freeformMode,
       content,
       media: Object.fromEntries(Object.entries(collectMedia()).filter(([, value]) => !value.startsWith("data:image/"))),
       comments,
     };
-  }, [pages, paletteId, fontId, comments]);
+  }, [pages, paletteId, fontId, comments, freeformMode]);
 
   const handleRemoteComments = useCallback((newComments: EditorialComment[]) => {
     setComments(newComments);
@@ -1740,8 +1851,15 @@ export default function App() {
     const handlePhotoBroadcast = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       if (detail?.broadcast) {
+        if (typeof detail.value === "string" && detail.value.startsWith("data:image/")) unsyncedMedia.set(detail.storageKey, detail.value);
+        if (detail.meta) unsyncedMediaMeta.set(detail.storageKey, detail.meta);
         if (!isRemoteUpdateRef.current) syncMediaToPeersRef.current(detail.storageKey);
       } else if (!isRemoteUpdateRef.current) {
+        if (typeof detail?.value === "string") {
+          if (detail.value) unsyncedMedia.set(detail.storageKey, detail.value);
+          else unsyncedMedia.delete(detail.storageKey);
+        }
+        if (detail?.meta) unsyncedMediaMeta.set(detail.storageKey, detail.meta);
         scheduleIssueSaveRef.current();
       }
     };
@@ -1833,6 +1951,13 @@ export default function App() {
       broadcastDocChange("font", fontId);
     }
   }, [fontId, issueId, paletteId, broadcastDocChange]);
+
+  const isInitialFreeformMount = useRef(true);
+  useEffect(() => {
+    localStorage.setItem(`iow-freeform-${issueId}`, String(freeformMode));
+    if (isInitialFreeformMount.current) { isInitialFreeformMount.current = false; return; }
+    if (!isRemoteUpdateRef.current) broadcastDocChange("full", { freeformMode });
+  }, [freeformMode, issueId, broadcastDocChange]);
 
   useEffect(() => {
     localStorage.setItem(`iow-smart-flow-${issueId}`, String(smartFlow));
@@ -1958,6 +2083,7 @@ export default function App() {
       const key = localStorage.key(index);
       if (key?.startsWith(prefix) && !key.endsWith("-meta")) media[key] = localStorage.getItem(key) ?? "";
     }
+    unsyncedMedia.forEach((value, key) => { media[key] = value; });
     return media;
   };
 
@@ -1973,6 +2099,7 @@ export default function App() {
     const media = Object.entries(collectMedia()).map(([key, value]) => {
       let meta: Record<string, unknown> = {};
       try { meta = JSON.parse(localStorage.getItem(`${key}-meta`) ?? "{}"); } catch { /* Keep media when optional metadata is malformed. */ }
+      meta = { ...meta, ...(unsyncedMediaMeta.get(key) ?? {}) };
       return { key, value, meta };
     });
     const liveContent = Array.from(document.querySelectorAll<HTMLElement>("#pdf-document .editable")).map((element) => element.innerHTML);
@@ -1990,6 +2117,7 @@ export default function App() {
       content,
       paletteId,
       fontId,
+      freeformMode,
       media,
       comments: readArray(`iow-comments-${issueId}`),
       chatMessages: readArray(`iow-chat-${issueId}`),
@@ -1998,9 +2126,13 @@ export default function App() {
   syncMediaToPeersRef.current = (storageKey) => {
     setCloudSaveState("saving");
     void persistIssueNow().then(() => {
+      if (unsyncedMedia.has(storageKey)) {
+        if (unsyncedMedia.get(storageKey)?.startsWith("data:image/")) unsyncedMedia.delete(storageKey);
+      }
+      unsyncedMediaMeta.delete(storageKey);
       let meta: Record<string, unknown> = {};
       try { meta = JSON.parse(localStorage.getItem(`${storageKey}-meta`) ?? "{}"); } catch { /* Optional media metadata can be rebuilt by the next edit. */ }
-      broadcastDocChange("media", { storageKey, value: collectMedia()[storageKey], meta });
+      broadcastDocChange("media", { refresh: true, storageKey, meta });
     }).catch((error) => {
       window.dispatchEvent(new CustomEvent("iow-issue-sync-error", { detail: { issueId, error } }));
     });
@@ -2010,7 +2142,7 @@ export default function App() {
   useEffect(() => {
     if (!issueCloudLoadedRef.current || isRemoteUpdateRef.current) return;
     scheduleIssueSaveRef.current();
-  }, [pages, paletteId, fontId, comments, chatMessages]);
+  }, [pages, paletteId, fontId, comments, chatMessages, freeformMode]);
 
   const captureCheckpoint = (label: string) => {
     const snapshot: DocumentCheckpoint = {
@@ -2113,6 +2245,14 @@ export default function App() {
         : 12);
 
     const contentForType: Section["content"] = {};
+    if (type === "textBox") {
+      contentForType.title = "Type a headline";
+      contentForType.body = "Click here and start writing.";
+    }
+    if (type === "shapeBox") {
+      contentForType.title = "Add your text";
+      contentForType.shapeKind = "rectangle";
+    }
     if (type === "article") contentForType.articleLayout = articleTemplate?.id ?? "classic";
     if (layoutVariant) contentForType.layoutVariant = layoutVariant;
     if (type === "notice") {
@@ -2136,7 +2276,7 @@ export default function App() {
         id: `${type}-${Date.now()}`,
         type,
         width,
-        height: articleTemplate?.height ?? (type === "sudoku" || type === "crossword" ? "tall" : "regular"),
+        height: articleTemplate?.height ?? (type === "sudoku" || type === "crossword" ? "tall" : type === "textBox" || type === "shapeBox" ? "compact" : "regular"),
         content: contentForType,
       },
     ]);
@@ -2153,6 +2293,8 @@ export default function App() {
     setPageMenuOpen(false);
     window.setTimeout(() => document.querySelector(`#page-${pages.length + 1}`)?.scrollIntoView({ behavior: "smooth" }), 50);
   };
+
+  useEffect(() => { localStorage.setItem(`iow-freeform-${issueId}`, String(freeformMode)); }, [issueId, freeformMode]);
 
   const removePage = async (pageIndex: number) => {
     if (pages.length === 1) {
@@ -2254,6 +2396,27 @@ export default function App() {
   };
 
   const dropBlock = (targetPage: number, targetId: string) => {
+    const insertType = draggedSectionType.current;
+    if (insertType) {
+      const width = ["notice", "gossip"].includes(insertType) ? 4 : ["poem", "events", "timeline", "recommendations", "statistics", "sudoku", "wordsearch"].includes(insertType) ? 6 : 12;
+      const content: Section["content"] = insertType === "textBox" ? { title: "Type a headline", body: "Click here and start writing." } : insertType === "shapeBox" ? { title: "Add your text", shapeKind: "rectangle" } : {};
+      if (insertType === "article") content.articleLayout = "classic";
+      if (insertType === "crossword") content.crossword = DEFAULT_CAMPUS_MINI_CROSSWORD;
+      if (insertType === "sudoku") content.sudoku = DEFAULT_SUDOKU;
+      if (insertType === "wordsearch") content.wordsearch = DEFAULT_WORD_SEARCH;
+      const section: Section = { id: `${insertType}-${Date.now()}`, type: insertType, width, height: ["textBox", "shapeBox", "heading", "divider"].includes(insertType) ? "compact" : ["sudoku", "crossword"].includes(insertType) ? "tall" : "regular", content };
+      rememberLayout();
+      setPages((current) => current.map((items, pageIndex) => {
+        if (pageIndex !== targetPage) return items;
+        const index = items.findIndex((item) => item.id === targetId);
+        const next = [...items];
+        next.splice(index < 0 ? next.length : index, 0, section);
+        return next;
+      }) as Pages);
+      draggedSectionType.current = null;
+      setLibraryOpen(false);
+      return;
+    }
     const source = dragged.current;
     if (!source || (source.page === targetPage && source.id === targetId)) return;
     const moving = pages[source.page].find((item) => item.id === source.id);
@@ -2801,6 +2964,7 @@ export default function App() {
       interview: "Interview", statistics: "Statistics", timeline: "Timeline",
       recommendations: "Recommendations",
       audio: "Audio", poll: "Poll", crossword: "Crossword", sudoku: "Sudoku", wordsearch: "Word Search",
+      textBox: "Text", shapeBox: "Shape", imageBox: "Photo",
     };
     const output = pages.map((sections, pageIndex) => {
       const page = sections.map((section) => {
@@ -3040,11 +3204,12 @@ export default function App() {
             title="Save the current issue now"
             type="button"
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${cloudSaveState === "saved" ? "bg-[#3e6a59]" : cloudSaveState === "offline" ? "bg-[#ef5a35]" : "bg-[#c19639] animate-pulse"}`} />
-            <span>{cloudSaveState === "saved" ? "Cloud saved" : cloudSaveState === "offline" ? "Offline · local copy" : cloudSaveState === "saving" ? "Saving to cloud" : saved ? "Saved locally" : "Connecting"}</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${cloudSaveState === "saved" ? "bg-[#3e6a59]" : cloudSaveState === "offline" || cloudSaveState === "conflict" ? "bg-[#ef5a35]" : "bg-[#c19639] animate-pulse"}`} />
+            <span>{cloudSaveState === "conflict" ? "Sync conflict · local copy kept" : cloudSaveState === "saved" ? "Cloud saved" : cloudSaveState === "offline" ? "Offline · local copy" : cloudSaveState === "saving" ? "Saving to cloud" : saved ? "Saved locally" : "Connecting"}</span>
           </button>
 
           <button aria-label={sourceMode ? "Canvas mode" : "Writing mode"} className={`editor-icon-button ${sourceMode ? "is-active" : ""}`} onClick={() => setSourceMode(!sourceMode)} title={sourceMode ? "Canvas mode" : "Writing mode"} type="button"><EditorIcon name="write" /></button>
+          <button aria-label={freeformMode ? "Switch to flow layout" : "Switch to freeform layout"} className={`editor-icon-button hidden sm:grid ${freeformMode ? "is-active" : ""}`} onClick={() => setFreeformMode((value) => !value)} title={freeformMode ? "Switch to flow layout" : "Freeform canvas: drag and resize blocks"} type="button"><span className="text-[10px] font-bold">{freeformMode ? "XY" : "↗"}</span></button>
           <button aria-label="Text formatting" className={`editor-icon-button hidden sm:grid ${formatOpen ? "is-active" : ""}`} onClick={() => setFormatOpen(!formatOpen)} title="Text formatting" type="button"><EditorIcon name="type" /></button>
           <div className="editor-history-controls hidden xl:flex items-center gap-0.5 border-l border-black/10 pl-1.5 dark:border-white/10">
             <button aria-label="Undo layout change" className="editor-icon-button disabled:opacity-25 disabled:pointer-events-none" disabled={!canUndo} onClick={undo} title="Undo layout change (⌘Z)" type="button"><EditorIcon name="undo" /></button>
@@ -3096,6 +3261,7 @@ export default function App() {
           </button>
         </div>
       </header>
+      {cloudSaveState === "conflict" && <div className="editor-only sticky top-14 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[#a14b32]/20 bg-[#f3e6dc] px-4 py-3 text-xs text-[#5d3025] shadow-sm"><span><strong>Another editor saved first.</strong> {cloudConflictMessage} Your work is still open here, and a recovery snapshot was saved on this device. Copy any unsynced text before reloading.</span><button className="shrink-0 rounded-full border border-[#a14b32]/30 px-3 py-1.5 font-bold" onClick={() => window.location.reload()} type="button">Load latest version</button></div>}
 
       {formatOpen && (
         <div className="editor-only fixed right-4 top-14 z-40 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1 rounded-xl border border-black/15 bg-[#f8f5ed]/95 p-2 shadow-xl backdrop-blur-md dark:border-white/15 dark:bg-[#1a1916]/95 dark:text-[#f3f0e8]">
@@ -3287,8 +3453,11 @@ export default function App() {
                 {SECTION_OPTIONS.map((option) => (
                   <button
                     className="section-picker-card group flex items-center justify-between border border-black/15 bg-white/70 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
+                    draggable
                     key={option.type}
                     onClick={() => option.type === "article" ? setArticleLibraryOpen(true) : SECTION_LAYOUTS[option.type] ? setVariantLibraryType(option.type) : addSection(option.type)}
+                    onDragStart={(event) => { draggedSectionType.current = option.type; event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("text/plain", option.type); }}
+                    onDragEnd={() => { draggedSectionType.current = null; }}
                     type="button"
                   >
                     <span>
@@ -3684,7 +3853,15 @@ export default function App() {
             onMouseUp={captureCanvasSelection}
           >
           <MultiplayerCursors cursors={cursors} />
-          {pages.map((sections, pageIndex) => (
+          {pages.map((sections, pageIndex) => {
+            let fallbackY = 12;
+            const freeformRects = sections.map((section) => {
+              const defaultHeight = section.height === "tall" ? 480 : section.height === "compact" ? 190 : 330;
+              const rect = section.freeform ?? { x: 4, y: fallbackY, width: 92, height: defaultHeight };
+              fallbackY = Math.max(fallbackY, rect.y + rect.height + 18);
+              return rect;
+            });
+            return (
             <article
               className="page relative transition-shadow"
               id={`page-${pageIndex + 1}`}
@@ -3775,13 +3952,19 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <div className="page-grid">
-                {sections.map((section) => (
+              <div className={`page-grid ${freeformMode ? "page-grid-freeform" : ""}`} style={freeformMode ? { minHeight: Math.max(1100, fallbackY + 24) } : undefined} onDragOver={(event) => { if (draggedSectionType.current) event.preventDefault(); }} onDrop={(event) => { if (draggedSectionType.current) { event.preventDefault(); dropBlock(pageIndex, ""); } }}>
+                {sections.map((section, sectionIndex) => (
                   <BuilderBlock
                     bylineConvention={styleGuide.bylineConvention}
                     isCoverPhoto={section.id === "campus-photo"}
                     issueId={issueId}
                     key={section.id}
+                    freeform={freeformMode}
+                    freeformRect={freeformRects[sectionIndex]}
+                    onUpdateFreeform={(targetPage, id, value) => {
+                      rememberLayout();
+                      setPages((current) => current.map((items, index) => index === targetPage ? items.map((item) => item.id === id ? { ...item, freeform: value } : item) : items) as Pages);
+                    }}
                     onAi={rewriteSection}
                     onAction={blockAction}
                     onConfigureNoticeQr={(id) => setNoticeQrModalSectionId(id)}
@@ -3832,7 +4015,7 @@ export default function App() {
                 + Add section to page {pageIndex + 1}
               </button>
             </article>
-          ))}
+          ); })}
           <button className="add-page-section editor-only bg-[#f8f5ed]" onClick={() => setPageMenuOpen(true)} type="button">+ Add another page</button>
           </div>
         </div>

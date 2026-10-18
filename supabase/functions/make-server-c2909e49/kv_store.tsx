@@ -29,6 +29,25 @@ export const set = async (key: string, value: any): Promise<void> => {
   }
 };
 
+// Atomically replace a JSON value only if its revision still matches the one
+// the editor loaded. A null expected revision means the row must not exist.
+export const setIfVersion = async (key: string, field: "updatedAt" | "revision", expectedVersion: string | null, value: any): Promise<boolean> => {
+  const supabase = client();
+  if (expectedVersion === null) {
+    const { error } = await supabase.from("kv_store_c2909e49").insert({ key, value });
+    if (!error) return true;
+    if (error.code === "23505") return false;
+    throw new Error(error.message);
+  }
+  const { data, error } = await supabase.from("kv_store_c2909e49")
+    .update({ value })
+    .eq("key", key)
+    .filter(`value->>${field}`, "eq", expectedVersion)
+    .select("key");
+  if (error) throw new Error(error.message);
+  return Boolean(data?.length);
+};
+
 // Get retrieves a key-value pair from the database.
 export const get = async (key: string): Promise<any> => {
   const supabase = client()

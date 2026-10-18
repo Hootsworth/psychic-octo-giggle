@@ -16,6 +16,7 @@ interface Section {
   type: string;
   width: number;
   height: string;
+  freeform?: { x: number; y: number; width: number; height: number };
   content?: {
     eyebrow?: string;
     title?: string;
@@ -34,6 +35,7 @@ interface Section {
     crossword?: CrosswordData;
     sudoku?: SudokuData;
     wordsearch?: WordSearchData;
+    shapeKind?: "rectangle" | "circle" | "line" | "quote";
   };
 }
 
@@ -122,6 +124,7 @@ export default function ReaderView() {
   const palette = PALETTES[paletteId] ?? PALETTES.campus;
   const fontPair = FONT_PAIRS[fontId] ?? FONT_PAIRS.newsreader;
   const newspaper = pages[0]?.[0]?.id === "paper-masthead";
+  const freeformMode = remoteDocument?.freeformMode ?? localStorage.getItem(`iow-freeform-${issueId}`) === "true";
   const masthead = pages[0]?.find((section) => section.id === "paper-masthead")?.content;
 
   // Stored content
@@ -257,7 +260,15 @@ export default function ReaderView() {
       {/* Main Reading Container */}
       <main className="mx-auto max-w-[940px] px-3 py-8 sm:px-6 md:py-14">
         <div id="reader-document">
-          {pages.map((sections, pageIndex) => (
+          {pages.map((sections, pageIndex) => {
+            let fallbackY = 12;
+            const freeformRects = sections.map((section) => {
+              const defaultHeight = section.height === "tall" ? 480 : section.height === "compact" ? 190 : 330;
+              const rect = section.freeform ?? { x: 4, y: fallbackY, width: 92, height: defaultHeight };
+              fallbackY = Math.max(fallbackY, rect.y + rect.height + 18);
+              return rect;
+            });
+            return (
             <article
               className="page mb-10 overflow-hidden bg-[#f8f5ed] shadow-xl"
               key={pageIndex}
@@ -285,14 +296,14 @@ export default function ReaderView() {
               )}
 
               {/* Page Grid */}
-              <div className="page-grid">
-                {sections.map((section) => (
+              <div className={`page-grid ${freeformMode ? "page-grid-freeform" : ""}`} style={freeformMode ? { minHeight: Math.max(1100, fallbackY + 24) } : undefined}>
+                {sections.map((section, sectionIndex) => (
                   <div
                     className={`builder-block height-${section.height}`}
                     data-section-type={section.type}
                     data-layout-variant={section.content?.layoutVariant ?? SECTION_LAYOUT_DEFAULTS[section.type]}
                     key={section.id}
-                    style={{ gridColumn: `span ${section.width}` }}
+                    style={freeformMode ? { position: "absolute", left: `${freeformRects[sectionIndex].x}%`, top: freeformRects[sectionIndex].y, width: `${freeformRects[sectionIndex].width}%`, height: freeformRects[sectionIndex].height, minHeight: 0 } : { gridColumn: `span ${section.width}` }}
                   >
                     <ReaderSectionContent
                       isPlayingAudio={isPlayingAudio}
@@ -300,13 +311,13 @@ export default function ReaderView() {
                       onVote={(opt) => setPollVoted(opt)}
                       pollVoted={pollVoted}
                       section={section}
-                      storageKey={`photo-${issueId}-${section.id}`}
+                      storageKey={`iow-media-${issueId}-${section.id}`}
                     />
                   </div>
                 ))}
               </div>
             </article>
-          ))}
+          ); })}
         </div>
 
         {/* Reader Footer & Newsletter Subscription */}
@@ -363,6 +374,15 @@ function ReaderSectionContent({
 }) {
   const { type, content } = section;
   const storedPhoto = localStorage.getItem(storageKey);
+  let photoMeta: { x?: number; y?: number; position?: string; zoom?: number } = {};
+  try { photoMeta = JSON.parse(localStorage.getItem(`${storageKey}-meta`) ?? "{}"); } catch { /* Center the image when crop data cannot be read. */ }
+
+  if (type === "textBox") return <div className="flex h-full flex-col justify-center gap-3 border border-black/15 p-6 sm:p-9"><h2 className="reader-editable font-serif text-3xl leading-tight">{content?.title ?? "Text"}</h2><p className="reader-editable whitespace-pre-line text-sm leading-relaxed">{content?.body ?? ""}</p></div>;
+  if (type === "shapeBox") {
+    const shape = content?.shapeKind ?? "rectangle";
+    return <div className="grid h-full min-h-24 place-items-center p-6"><div className={`grid h-full min-h-24 w-full place-items-center border border-black/15 bg-[#eee9df] px-5 py-4 text-center ${shape === "circle" ? "rounded-full" : shape === "quote" ? "border-l-4 border-l-[#ef5a35] bg-transparent text-left" : ""} ${shape === "line" ? "min-h-0 h-px border-0 bg-black/70 p-0" : ""}`}>{shape !== "line" && <p className="reader-editable font-serif text-xl">{content?.title ?? ""}</p>}</div></div>;
+  }
+  if (type === "imageBox") return <div className="relative h-full min-h-24 overflow-hidden bg-[#e8e5de]">{storedPhoto && <img alt={content?.body ?? "Editorial photograph"} className="h-full w-full object-cover" src={storedPhoto} style={{ objectPosition: photoMeta.x !== undefined ? `${photoMeta.x}% ${photoMeta.y ?? 50}%` : photoMeta.position, transform: `scale(${(photoMeta.zoom ?? 100) / 100})` }} />}</div>;
 
   if (type === "cover") {
     return (
@@ -429,6 +449,7 @@ function ReaderSectionContent({
             alt={content?.body ?? "Campus visual"}
             className="h-full w-full object-cover"
             src={storedPhoto || CAMPUS_IMAGE}
+            style={{ objectPosition: photoMeta.x !== undefined ? `${photoMeta.x}% ${photoMeta.y ?? 50}%` : photoMeta.position, transform: `scale(${(photoMeta.zoom ?? 100) / 100})` }}
           />
         </div>
         <p className="reader-editable px-5 py-3 text-[9px] uppercase tracking-[0.13em] text-black/50">

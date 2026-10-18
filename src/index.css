@@ -627,6 +627,17 @@ html[data-theme="dark"] .editor-theme .editor-bar option {
   padding-top: 1.5rem;
 }
 
+.page-grid-freeform {
+  position: relative;
+  display: block;
+  overflow: visible;
+}
+
+.page-grid-freeform > .builder-block {
+  margin: 0;
+  overflow: visible;
+}
+
 .builder-block {
   position: relative;
   min-width: 0;

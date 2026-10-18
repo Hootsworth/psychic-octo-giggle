@@ -1,6 +1,6 @@
 export type TemplateSection = {
   id: string;
-  type: "cover" | "heading" | "article" | "photo" | "poem" | "quote" | "events" | "gossip" | "gallery" | "notice" | "divider" | "footer" | "interview" | "statistics" | "timeline" | "recommendations" | "audio" | "poll" | "crossword" | "sudoku" | "wordsearch";
+  type: "cover" | "heading" | "article" | "photo" | "poem" | "quote" | "events" | "gossip" | "gallery" | "notice" | "divider" | "footer" | "interview" | "statistics" | "timeline" | "recommendations" | "audio" | "poll" | "crossword" | "sudoku" | "wordsearch" | "textBox" | "shapeBox" | "imageBox";
   width: number;
   height: "compact" | "regular" | "tall";
   content?: object;

@@ -39,7 +39,7 @@ async function signedMedia(media: any[] = []) {
 }
 
 async function saveMedia(userId: string, issueId: string, incoming: any[] = [], previous: any[] = []) {
-  if (!incoming.length && !previous.length) return [];
+  if (!incoming.length && !previous.length) return { media: [], removed: [] };
   const storage = admin().storage.from(ISSUE_MEDIA_BUCKET);
   const { data: bucket } = await admin().storage.getBucket(ISSUE_MEDIA_BUCKET);
   const hasImageUploads = incoming.some((entry) => typeof entry?.value === "string" && entry.value.startsWith("data:image/"));
@@ -49,6 +49,7 @@ async function saveMedia(userId: string, issueId: string, incoming: any[] = [], 
   }
   const oldByKey = new Map(previous.map((entry) => [entry.key, entry]));
   const saved = [];
+  const uploaded = [];
   for (const entry of incoming) {
     if (!entry || typeof entry.key !== "string") continue;
     if (typeof entry.value === "string" && entry.value.startsWith("data:image/")) {
@@ -57,9 +58,10 @@ async function saveMedia(userId: string, issueId: string, incoming: any[] = [], 
       const binary = Uint8Array.from(atob(match[2]), (character) => character.charCodeAt(0));
       if (binary.byteLength > 8 * 1024 * 1024) throw new Error("Issue images must be 8 MB or smaller.");
       const extension = match[1].split("/")[1].replace("jpeg", "jpg").replace(/[^a-z0-9]/gi, "");
-      const path = `${userId}/${issueId}/${encodeURIComponent(entry.key)}.${extension}`;
+      const path = `${userId}/${issueId}/${encodeURIComponent(entry.key)}-${crypto.randomUUID()}.${extension}`;
       const { error } = await storage.upload(path, binary, { contentType: match[1], upsert: true });
       if (error) throw error;
+      uploaded.push(path);
       saved.push({ key: entry.key, path, meta: entry.meta ?? {} });
       continue;
     }
@@ -78,11 +80,7 @@ async function saveMedia(userId: string, issueId: string, incoming: any[] = [], 
   }
   const retained = new Set(saved.map((entry) => entry.path));
   const removed = previous.filter((entry) => !retained.has(entry.path)).map((entry) => entry.path);
-  if (removed.length && bucket) {
-    const { error } = await storage.remove(removed);
-    if (error) throw error;
-  }
-  return saved;
+  return { media: saved, removed, uploaded };
 }
 
 function issueKey(userId: string, issueId: string) {
@@ -341,20 +339,33 @@ registerRoute("PUT", "/issues/:issueId", async (c) => {
     await ensureSharedWorkspace();
     const key = sharedIssueKey(issueId);
     const previous = await kv.get(key);
-    const media = await saveMedia(user.id, issueId, Array.isArray(value.media) ? value.media : [], previous?.media ?? []);
+    const mediaResult = await saveMedia(user.id, issueId, Array.isArray(value.media) ? value.media : [], previous?.media ?? []);
     const updatedAt = new Date().toISOString();
-    await kv.set(key, {
+    const revision = crypto.randomUUID();
+    const nextDocument = {
       issueId,
       pages: value.pages,
       content: value.content,
       paletteId: value.paletteId,
       fontId: value.fontId,
-      media,
+      freeformMode: value.freeformMode === true,
+      media: mediaResult.media,
       comments: Array.isArray(value.comments) ? value.comments : [],
       chatMessages: Array.isArray(value.chatMessages) ? value.chatMessages : [],
       updatedAt,
-    });
-    return c.json({ ok: true, updatedAt, media: await signedMedia(media) });
+      revision,
+    };
+    const usesRevision = typeof previous?.revision === "string";
+    const expectedVersion = usesRevision
+      ? (typeof value.baseRevision === "string" ? value.baseRevision : null)
+      : (typeof value.baseUpdatedAt === "string" ? value.baseUpdatedAt : null);
+    const didSave = await kv.setIfVersion(key, usesRevision ? "revision" : "updatedAt", expectedVersion, nextDocument);
+    if (!didSave) {
+      if (mediaResult.uploaded.length) await admin().storage.from(ISSUE_MEDIA_BUCKET).remove(mediaResult.uploaded);
+      return c.json({ error: "This issue changed in another session. Your local edits are preserved; reload the latest issue before saving again." }, 409);
+    }
+    if (mediaResult.removed.length) await admin().storage.from(ISSUE_MEDIA_BUCKET).remove(mediaResult.removed);
+    return c.json({ ok: true, updatedAt, revision, media: await signedMedia(mediaResult.media) });
   } catch (error: any) {
     return c.json({ error: error.message ?? "Could not save issue." }, 500);
   }
