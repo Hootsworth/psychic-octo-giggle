@@ -417,7 +417,25 @@ export default function Dashboard() {
               <button className="text-3xl text-black/40 hover:text-black" onClick={() => setTemplateOpen(false)} type="button">×</button>
             </div>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {availableTemplates.filter((template) => template.id === "daily-newspaper").map((template) => (
+                <button className="group overflow-hidden border-2 border-[#20201d] bg-[#fbf8ef] text-left transition hover:-translate-y-1 hover:shadow-xl sm:col-span-2 lg:col-span-3" key={template.id} onClick={() => createIssue(template)} type="button">
+                  <div className="grid gap-5 p-5 sm:grid-cols-[1.3fr_1fr] sm:p-7">
+                    <div className="border-b-4 border-double border-[#20201d] pb-4 text-center">
+                      <p className="border-b border-[#20201d]/30 pb-2 text-[8px] font-bold uppercase tracking-[0.2em]">A separate design mode · editable issue</p>
+                      <p className="mt-4 font-serif text-4xl font-black uppercase leading-none tracking-[-0.07em] sm:text-6xl">The Campus<br/>Gazette</p>
+                      <p className="mt-3 border-t border-[#20201d]/30 pt-2 font-serif text-[9px] uppercase tracking-[0.12em]">Vol. 01 · No. 01 <span className="px-2">◆</span> Your university, in print</p>
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.18em]" style={{ color: template.accent }}>{template.category}</p>
+                      <h3 className="mt-2 font-serif text-3xl font-bold leading-[0.95] sm:text-4xl">A true newspaper layout, built for your stories.</h3>
+                      <p className="mt-3 max-w-xl text-[10px] leading-relaxed text-black/55">{template.description} Starts as a separate edition; your existing newsletter mode and issues stay as they are.</p>
+                      <span className="mt-4 text-[9px] font-bold uppercase tracking-[0.12em]">Open newspaper mode →</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
               {availableTemplates.map((template) => (
+                template.id === "daily-newspaper" ? null : (
                 <button
                   className={`group overflow-hidden border bg-[#f8f5ed] text-left transition hover:-translate-y-1 hover:border-[#ef5a35] hover:shadow-xl ${template.id === "blank" ? "border-dashed border-black/30" : "border-black/10"}`}
                   key={template.id}
@@ -443,6 +461,7 @@ export default function Dashboard() {
                     <p className="mt-2 text-[10px] leading-relaxed text-black/45">{template.description}</p>
                   </div>
                 </button>
+                )
               ))}
             </div>
           </div>

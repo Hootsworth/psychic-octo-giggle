@@ -431,6 +431,17 @@ function PhotoField({
 }
 
 function PageHeader({ page, total }: { page: number; total: number }) {
+  const newspaper = typeof window !== "undefined" && window.location.pathname.includes("/editor/") && (() => {
+    const issueId = window.location.pathname.split("/").pop();
+    try { return JSON.parse(localStorage.getItem(`iow-layout-${issueId}`) ?? "[]")[0]?.[0]?.id === "paper-masthead"; } catch { return false; }
+  })();
+  if (newspaper) return (
+    <div className="mx-6 border-b-4 border-double border-black px-1 pb-3 pt-6 sm:mx-10 md:mx-14">
+      <div className="flex items-center justify-between border-b border-black/40 pb-2 text-[8px] font-bold uppercase tracking-[0.16em]"><span>Independent student press</span><span>Vol. 01 · No. {String(page).padStart(2, "0")}</span><span>University edition</span></div>
+      <div className="py-4 text-center"><p className="font-serif text-[clamp(3.1rem,8vw,6rem)] font-black uppercase leading-[0.78] tracking-[-0.08em]">The Campus Gazette</p><p className="mt-3 font-serif text-[9px] uppercase tracking-[0.2em]">News · Opinion · Arts · Campus life</p></div>
+      <div className="flex justify-between border-t border-black/40 pt-2 font-serif text-[9px] uppercase tracking-[0.1em]"><span>Reporting from campus</span><span>Edition {String(page).padStart(2, "0")} of {String(total).padStart(2, "0")}</span></div>
+    </div>
+  );
   return (
     <div className="mx-6 flex items-end justify-between border-b border-black pb-3 pt-7 sm:mx-10 md:mx-14 dark:border-white/20">
       <BrandLogo className="h-14 w-28 object-left" />

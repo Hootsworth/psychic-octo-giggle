@@ -17,6 +17,38 @@ export type NewsletterTemplate = {
 
 export const newsletterTemplates: NewsletterTemplate[] = [
   {
+    id: "daily-newspaper",
+    name: "Newspaper Edition",
+    description: "A traditional broadsheet layout with masthead, front-page lead, news columns, and a classifieds strip.",
+    category: "Newspaper mode",
+    accent: "#20201d",
+    preview: "editorial",
+    pages: [
+      [
+        { id: "paper-masthead", type: "cover", width: 12, height: "regular" },
+        { id: "paper-lead-photo", type: "photo", width: 12, height: "tall" },
+        { id: "paper-lead-story", type: "article", width: 8, height: "tall" },
+        { id: "paper-quick-briefs", type: "notice", width: 4, height: "tall" },
+        { id: "paper-front-quote", type: "quote", width: 12, height: "compact" },
+      ],
+      [
+        { id: "paper-news-heading", type: "heading", width: 12, height: "compact" },
+        { id: "paper-campus-news", type: "article", width: 6, height: "tall" },
+        { id: "paper-community-news", type: "article", width: 6, height: "tall" },
+        { id: "paper-interview", type: "interview", width: 8, height: "regular" },
+        { id: "paper-by-numbers", type: "statistics", width: 4, height: "regular" },
+      ],
+      [
+        { id: "paper-weekend-heading", type: "heading", width: 12, height: "compact" },
+        { id: "paper-events", type: "events", width: 8, height: "tall" },
+        { id: "paper-notices", type: "notice", width: 4, height: "tall" },
+        { id: "paper-opinion", type: "article", width: 8, height: "regular" },
+        { id: "paper-crossword", type: "poem", width: 4, height: "regular" },
+        { id: "paper-footer", type: "footer", width: 12, height: "compact" },
+      ],
+    ],
+  },
+  {
     id: "campus-weekly",
     name: "Campus Weekly",
     description: "A balanced issue for news, student voices, events, and photographs.",
