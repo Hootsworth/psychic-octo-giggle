@@ -72,6 +72,7 @@ type Section = {
     title?: string;
     byline?: string;
     body?: string;
+    articleLayout?: ArticleLayout;
     noticeDetails?: string;
     qrUrl?: string;
     qrEnabled?: boolean;
@@ -83,6 +84,27 @@ type Section = {
     wordsearch?: WordSearchData;
   };
 };
+
+type ArticleLayout = "classic" | "compact" | "hero" | "image-left" | "image-right" | "photo-essay";
+
+type ArticleTemplate = {
+  id: ArticleLayout;
+  name: string;
+  description: string;
+  size: string;
+  width: Section["width"];
+  height: Section["height"];
+  imageCount: number;
+};
+
+const ARTICLE_TEMPLATES: ArticleTemplate[] = [
+  { id: "classic", name: "Classic column", description: "A quiet two-column feature with room to read.", size: "Full · Regular", width: 12, height: "regular", imageCount: 0 },
+  { id: "compact", name: "Short read", description: "A narrow, quick-reading brief for smaller stories.", size: "2/3 · Regular", width: 8, height: "regular", imageCount: 0 },
+  { id: "hero", name: "Photo lead", description: "A wide image opens the story above its headline.", size: "Full · Tall", width: 12, height: "tall", imageCount: 1 },
+  { id: "image-left", name: "Image on left", description: "A portrait image paired with the story text.", size: "Full · Tall", width: 12, height: "tall", imageCount: 1 },
+  { id: "image-right", name: "Image on right", description: "An offset image balances the editorial column.", size: "Full · Tall", width: 12, height: "tall", imageCount: 1 },
+  { id: "photo-essay", name: "Photo essay", description: "Two images introduce one shared feature.", size: "Full · Tall", width: 12, height: "tall", imageCount: 2 },
+];
 
 type Pages = Section[][];
 type PagePresetKind =
@@ -513,23 +535,71 @@ function SectionContent({
   }
 
   if (type === "article") {
+    const layout = content?.articleLayout ?? "classic";
+    const kicker = (
+      <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#a14b32]">
+        {content?.eyebrow ?? "Feature · Campus life"}
+      </Editable>
+    );
+    const headline = (
+      <Editable as="h2" className="mt-3 font-serif text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">
+        {content?.title ?? "A new week, a blank page."}
+      </Editable>
+    );
+    const byline = (
+      <Editable as="p" className="mt-4 text-[9px] font-semibold uppercase tracking-[0.13em] text-black/50 dark:text-white/55">
+        {content?.byline ?? bylineConvention ?? "By the editorial team"}
+      </Editable>
+    );
+    const story = (
+      <Editable as="p" className="drop-cap whitespace-pre-line font-serif text-base leading-[1.75] text-black/75 dark:text-white/75 sm:text-lg">
+        {content?.body ?? "The campus feels different in September. New notebooks, old buildings, and the pleasant sense that anything might happen. This space belongs to the students filling it—with questions, stories, plans, and ideas."}
+      </Editable>
+    );
+
+    if (layout === "hero") {
+      return (
+        <article className="h-full bg-[#f8f5ed] dark:bg-[#1a1916]">
+          <div className="h-52 sm:h-64"><PhotoField label="Add lead image" storageKey={mediaKey} /></div>
+          <div className="mx-auto max-w-3xl px-7 py-7 sm:px-12 sm:py-9">{kicker}{headline}{byline}<div className="mt-6">{story}</div></div>
+        </article>
+      );
+    }
+
+    if (layout === "image-left" || layout === "image-right") {
+      return (
+        <article className="grid h-full bg-[#f8f5ed] dark:bg-[#1a1916] md:grid-cols-2">
+          <div className={`min-h-64 ${layout === "image-right" ? "md:order-2" : ""}`}><PhotoField label="Add story image" storageKey={mediaKey} /></div>
+          <div className="flex flex-col justify-center p-7 sm:p-10">{kicker}{headline}{byline}<div className="mt-6">{story}</div></div>
+        </article>
+      );
+    }
+
+    if (layout === "photo-essay") {
+      return (
+        <article className="h-full bg-[#f8f5ed] p-5 dark:bg-[#1a1916] sm:p-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
+            <div className="h-36 sm:h-52"><PhotoField label="Add first image" storageKey={mediaKey} /></div>
+            <div className="h-36 sm:h-52"><PhotoField label="Add second image" storageKey={`${mediaKey}-2`} /></div>
+          </div>
+          <div className="mx-auto max-w-3xl py-6 sm:py-8">{kicker}{headline}{byline}<div className="mt-5">{story}</div></div>
+        </article>
+      );
+    }
+
+    if (layout === "compact") {
+      return (
+        <article className="h-full border-l-2 border-[#a14b32] bg-[#f8f5ed] px-6 py-7 dark:bg-[#1a1916] sm:px-8">
+          {kicker}{headline}<div className="mt-4">{story}</div>{byline}
+        </article>
+      );
+    }
+
     return (
-      <div className="grid h-full bg-[#f8f5ed] md:grid-cols-[0.8fr_1.2fr]">
-        <div className="bg-[#ef5a35] p-7 text-white sm:p-10">
-          <Editable as="p" className="text-[9px] font-bold uppercase tracking-[0.18em]">{content?.eyebrow ?? "Feature"}</Editable>
-          <Editable as="h2" className="mt-12 font-serif text-4xl leading-[0.95] tracking-[-0.04em]">
-            {content?.title ?? "A new week, a blank page."}
-          </Editable>
-        </div>
-        <div className="p-7 sm:p-10">
-          <Editable as="p" className="drop-cap whitespace-pre-line font-serif text-lg leading-[1.7] text-black/80">
-            {content?.body ?? "The campus feels different in September. New notebooks, old buildings, and the pleasant sense that anything might happen. This space belongs to the students filling it—with questions, stories, plans, and ideas."}
-          </Editable>
-          <Editable as="p" className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em]">
-            {bylineConvention ?? "By the editorial team"}
-          </Editable>
-        </div>
-      </div>
+      <article className="grid h-full bg-[#f8f5ed] dark:bg-[#1a1916] md:grid-cols-[0.9fr_1.1fr]">
+        <div className="flex flex-col justify-center border-b border-black/10 p-7 dark:border-white/10 sm:p-10 md:border-b-0 md:border-r">{kicker}{headline}{byline}</div>
+        <div className="flex items-center p-7 sm:p-10"><div>{story}</div></div>
+      </article>
     );
   }
 
@@ -1782,7 +1852,7 @@ export default function App() {
     setPages((current) => current.map((sections, index) => (index === page ? updater(sections) : sections)) as Pages);
   };
 
-  const addSection = (type: SectionType) => {
+  const addSection = (type: SectionType, articleLayout?: ArticleLayout) => {
     if (type === "crossword") {
       dialog.alert({
         title: "Crossword — Coming Soon",
@@ -1792,7 +1862,10 @@ export default function App() {
       return;
     }
 
-    const width =
+    const articleTemplate = type === "article"
+      ? ARTICLE_TEMPLATES.find((template) => template.id === (articleLayout ?? "classic"))
+      : undefined;
+    const width = articleTemplate?.width ?? (
       type === "notice" || type === "gossip"
         ? 4
         : type === "poem" ||
@@ -1804,9 +1877,10 @@ export default function App() {
           type === "sudoku" ||
           type === "wordsearch"
         ? 6
-        : 12;
+        : 12);
 
     const contentForType: Section["content"] = {};
+    if (type === "article") contentForType.articleLayout = articleTemplate?.id ?? "classic";
     if (type === "notice") {
       contentForType.eyebrow = "Noticeboard";
       contentForType.title = "Submit your work";
@@ -1827,11 +1901,12 @@ export default function App() {
         id: `${type}-${Date.now()}`,
         type,
         width,
-        height: type === "sudoku" ? "tall" : "regular",
+        height: articleTemplate?.height ?? (type === "sudoku" ? "tall" : "regular"),
         content: contentForType,
       },
     ]);
     setLibraryOpen(false);
+    setArticleLibraryOpen(false);
     window.setTimeout(() => document.querySelector(`#page-${activePage + 1}`)?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
 
@@ -2893,38 +2968,69 @@ export default function App() {
       </button>
 
       {libraryOpen && (
-        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => setLibraryOpen(false)}>
+        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => { setLibraryOpen(false); setArticleLibraryOpen(false); }}>
           <aside className="h-full w-full max-w-md overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl dark:border-l dark:border-white/10 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
             <div className="mb-7 flex items-start justify-between">
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Page {activePage + 1}</p>
-                <h2 className="mt-2 font-serif text-4xl tracking-[-0.04em]">Add a section</h2>
+                {articleLibraryOpen && <button className="mb-2 mt-3 text-[9px] font-bold uppercase tracking-[0.12em] text-black/50 hover:text-[#a14b32] dark:text-white/55" onClick={() => setArticleLibraryOpen(false)} type="button">← All sections</button>}
+                <h2 className="mt-2 font-serif text-4xl tracking-[-0.04em]">{articleLibraryOpen ? "Article layouts" : "Add a section"}</h2>
               </div>
-              <button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => setLibraryOpen(false)} type="button">×</button>
+              <button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => { setLibraryOpen(false); setArticleLibraryOpen(false); }} type="button">×</button>
             </div>
             <p className="mb-6 text-xs leading-relaxed text-black/55 dark:text-[#f3f0e8]/60">
-              Pick a ready-made block. Once added, use its controls to move, resize, duplicate, or remove it.
+              {articleLibraryOpen
+                ? "Choose a page-ready format. Add or change photographs from the image controls inside each article."
+                : "Pick a ready-made block. Once added, use its controls to move, resize, duplicate, or remove it."}
             </p>
-            <div className="grid gap-2">
-              {SECTION_OPTIONS.map((option) => (
-                <button
-                  className="section-picker-card group flex items-center justify-between border border-black/15 bg-white/70 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
-                  key={option.type}
-                  onClick={() => addSection(option.type)}
-                  type="button"
-                >
-                  <span>
-                    <span className="block font-serif text-xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">
-                      {option.name}
+            {articleLibraryOpen ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {ARTICLE_TEMPLATES.map((template) => (
+                  <button
+                    className="section-picker-card group overflow-hidden border border-black/15 bg-white/70 text-left transition hover:border-[#a14b32] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#c9856c] dark:hover:bg-[#2e2d29]"
+                    key={template.id}
+                    onClick={() => addSection("article", template.id)}
+                    type="button"
+                  >
+                    <span aria-hidden="true" className="block border-b border-black/10 bg-[#eee8dc] p-3 dark:border-white/10 dark:bg-[#302e29]">
+                      <span className="flex h-24 gap-2 overflow-hidden border border-black/10 bg-[#f8f5ed] p-2 dark:border-white/10 dark:bg-[#1a1916]">
+                        {template.id === "hero" && <span className="h-8 w-full shrink-0 bg-[#c9b69c] dark:bg-[#766654]" />}
+                        {(template.id === "image-left" || template.id === "image-right") && <>
+                          <span className={`w-2/5 bg-[#c9b69c] dark:bg-[#766654] ${template.id === "image-right" ? "order-2" : ""}`} />
+                          <span className="flex flex-1 flex-col gap-2 py-1"><i className="h-1.5 w-2/3 bg-[#a14b32]/70"/><i className="h-2 w-full bg-black/60 dark:bg-white/60"/><i className="h-1 w-4/5 bg-black/20 dark:bg-white/25"/><i className="h-1 w-full bg-black/20 dark:bg-white/25"/><i className="h-1 w-3/4 bg-black/20 dark:bg-white/25"/></span>
+                        </>}
+                        {template.id === "photo-essay" && <span className="flex w-full gap-1"><i className="w-1/2 bg-[#c9b69c] dark:bg-[#766654]"/><i className="w-1/2 bg-[#b8aa97] dark:bg-[#675d50]"/></span>}
+                        {(template.id === "classic" || template.id === "compact") && <span className="flex w-full gap-3"><i className="w-2/5 border-r border-black/10 dark:border-white/10"><b className="mt-2 block h-1.5 w-1/2 bg-[#a14b32]/70"/><b className="mt-2 block h-3 w-4/5 bg-black/60 dark:bg-white/60"/></i><i className="flex flex-1 flex-col justify-center gap-2"><b className="h-1 w-full bg-black/20 dark:bg-white/25"/><b className="h-1 w-full bg-black/20 dark:bg-white/25"/><b className="h-1 w-4/5 bg-black/20 dark:bg-white/25"/></i></span>}
+                      </span>
                     </span>
-                    <span className="mt-1 block text-[10px] text-black/60 dark:text-[#f3f0e8]/65">
-                      {option.description}
+                    <span className="block p-4">
+                      <span className="block font-serif text-xl text-[#171714] dark:text-[#f3f0e8]">{template.name}</span>
+                      <span className="mt-1 block min-h-8 text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{template.description}</span>
+                      <span className="mt-3 flex items-center justify-between border-t border-black/10 pt-3 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8d4933] dark:border-white/10 dark:text-[#d59a82]">
+                        <span>{template.imageCount === 0 ? "Text only" : `${template.imageCount} photo${template.imageCount > 1 ? "s" : ""}`}</span><span>{template.size}</span>
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xl text-[#ef5a35] transition-transform group-hover:translate-x-1">+</span>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {SECTION_OPTIONS.map((option) => (
+                  <button
+                    className="section-picker-card group flex items-center justify-between border border-black/15 bg-white/70 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
+                    key={option.type}
+                    onClick={() => option.type === "article" ? setArticleLibraryOpen(true) : addSection(option.type)}
+                    type="button"
+                  >
+                    <span>
+                      <span className="block font-serif text-xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{option.name}</span>
+                      <span className="mt-1 block text-[10px] text-black/60 dark:text-[#f3f0e8]/65">{option.type === "article" ? "Choose from six editorial layouts" : option.description}</span>
+                    </span>
+                    <span className="text-xl text-[#ef5a35] transition-transform group-hover:translate-x-1">{option.type === "article" ? "›" : "+"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </aside>
         </div>
       )}

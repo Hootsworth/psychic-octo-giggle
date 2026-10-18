@@ -6,6 +6,7 @@ import Publishing from "./Publishing";
 import Settings from "./Settings";
 import Auth from "./Auth";
 import ReaderView from "./ReaderView";
+import ReleaseNotes from "./ReleaseNotes";
 import { ProtectedLayout, PublicOnly } from "./AuthContext";
 
 function RouteErrorBoundary() {
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
       { path: "/editor/:issueId", Component: Editor },
       { path: "/publishing", Component: Publishing },
       { path: "/settings", Component: Settings },
+      { path: "/release-notes", Component: ReleaseNotes },
     ],
   },
   { path: "*", element: <Navigate replace to="/" /> },

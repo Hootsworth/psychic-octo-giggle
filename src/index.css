@@ -1390,6 +1390,213 @@ html[data-theme="dark"] .studio-action:hover {
   }
 }
 
+/* Flat print-desk finish for the editor chrome. */
+.editor-theme .editor-bar {
+  border-color: rgb(41 38 32 / 0.16);
+  background: #f3f0e8;
+  backdrop-filter: none;
+}
+
+html[data-theme="dark"] .editor-theme .editor-bar {
+  border-color: rgb(243 240 232 / 0.16);
+  background: #201f1c;
+}
+
+.editor-theme .editor-icon-button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+}
+
+.editor-theme .editor-icon-button:hover,
+.editor-theme .editor-icon-button.is-active {
+  border-color: color-mix(in srgb, var(--editor-accent) 35%, transparent);
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 7%, var(--editor-paper));
+}
+
+html[data-theme="dark"] .editor-theme .editor-icon-button:hover,
+html[data-theme="dark"] .editor-theme .editor-icon-button.is-active {
+  border-color: color-mix(in srgb, var(--editor-accent) 42%, transparent);
+  color: #ffad95;
+  background: color-mix(in srgb, var(--editor-accent) 13%, #201f1c);
+}
+
+.editor-theme .editor-page-nav {
+  gap: 0;
+  border: 0;
+  border-left: 1px solid rgb(41 38 32 / 0.16);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0 0.5rem;
+}
+
+.editor-theme .editor-page-nav a {
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0.55rem 0.7rem;
+}
+
+.editor-theme .editor-page-nav a.bg-white {
+  border-bottom-color: var(--editor-accent);
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .editor-theme .editor-page-nav {
+  border-left-color: rgb(243 240 232 / 0.16);
+}
+
+html[data-theme="dark"] .editor-theme .editor-page-nav a.bg-white {
+  background: transparent;
+}
+
+.editor-menu-popover {
+  border-radius: 0.35rem;
+  box-shadow: 0 4px 12px rgb(23 23 20 / 0.12);
+}
+
+.editor-menu-popover button {
+  border-radius: 0.2rem;
+}
+
+.editor-theme .editor-export-button {
+  border-radius: 0.25rem;
+  background: #302e29;
+  box-shadow: none;
+  transition: background-color 120ms ease;
+}
+
+.editor-theme .editor-export-button:hover {
+  background: var(--editor-accent);
+  transform: none;
+}
+
+.editor-theme .editor-bar button[aria-label="Share edition"] {
+  border-radius: 0.25rem;
+  box-shadow: none;
+}
+
+.editor-theme .page {
+  border: 1px solid rgb(42 39 33 / 0.12);
+  border-radius: 0;
+  box-shadow: 0 2px 5px rgb(35 32 25 / 0.08);
+}
+
+html[data-theme="dark"] .editor-theme .page {
+  border-color: rgb(255 255 255 / 0.08);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.24);
+}
+
+.editor-theme .block-controls,
+.editor-theme .page-controls {
+  border-radius: 0.3rem;
+  box-shadow: 0 1px 4px rgb(31 28 23 / 0.10);
+  backdrop-filter: none;
+}
+
+.editor-theme .block-controls {
+  background: var(--editor-paper);
+}
+
+.editor-theme .page-controls {
+  background: var(--editor-paper);
+}
+
+html[data-theme="dark"] .editor-theme .block-controls,
+html[data-theme="dark"] .editor-theme .page-controls {
+  background: var(--editor-paper);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 0.24);
+}
+
+.editor-theme .block-controls button:not(.h-5):not(.w-auto),
+.editor-theme .block-controls .drag-handle {
+  height: 27px;
+  border-radius: 0;
+}
+
+.editor-theme .block-controls button:not(.h-5):not(.w-auto):hover {
+  color: var(--editor-accent);
+  background: color-mix(in srgb, var(--editor-accent) 8%, var(--editor-paper));
+}
+
+.editor-theme .page-control-button,
+.editor-theme .page-control-duplicate,
+.editor-theme .page-control-delete {
+  border-radius: 0.2rem;
+}
+
+.editor-theme .page-controls .page-control-duplicate {
+  color: #b3462d;
+  background: transparent;
+}
+
+.editor-theme .page-controls .page-control-duplicate:hover {
+  color: white;
+  background: #a8432d;
+}
+
+.editor-theme .page-controls .page-control-delete:hover {
+  color: white;
+  background: #b94339;
+}
+
+.editor-theme .page-overview {
+  border-radius: 0;
+  border-color: rgb(41 38 32 / 0.16);
+  background: #eeebe3;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+html[data-theme="dark"] .editor-theme .page-overview {
+  border-color: rgb(243 240 232 / 0.14);
+  background: #252420;
+  box-shadow: none;
+}
+
+.editor-theme .page-overview-card {
+  border-radius: 0.15rem;
+  background: transparent;
+}
+
+.editor-theme .page-overview-card.is-active {
+  border-color: color-mix(in srgb, var(--editor-accent) 70%, transparent);
+  border-left-width: 3px;
+  border-left-color: var(--editor-accent);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--editor-paper) 72%, transparent);
+}
+
+html[data-theme="dark"] .editor-theme .page-overview-card.is-active {
+  background: color-mix(in srgb, var(--editor-paper) 84%, transparent);
+}
+
+.editor-theme .page-thumbnail {
+  border-radius: 0;
+}
+
+.editor-theme .canvas-zoom-control {
+  border-radius: 0.3rem;
+  border-color: rgb(41 38 32 / 0.18);
+  background: #f3f0e8;
+  box-shadow: 0 1px 5px rgb(35 32 25 / 0.10);
+  backdrop-filter: none;
+}
+
+html[data-theme="dark"] .editor-theme .canvas-zoom-control {
+  border-color: rgb(243 240 232 / 0.16);
+  background: #252420;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.24);
+}
+
+.editor-theme .zoom-button,
+.editor-theme .zoom-value,
+.editor-theme .editor-overview-toggle {
+  border-radius: 0.2rem;
+}
+
 .editor-theme #pdf-document h1,
 .editor-theme #pdf-document h2,
 .editor-theme #pdf-document h3 {

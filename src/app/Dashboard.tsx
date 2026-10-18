@@ -13,6 +13,7 @@ import {
 import { cloneTemplatePages, loadCustomTemplates, newsletterTemplates, type NewsletterTemplate } from "./templates";
 import { useAuth } from "./AuthContext";
 import BrandLogo from "./BrandLogo";
+import { hasUnreadReleaseNotes } from "./ReleaseNotes";
 import { dialog } from "./components/ModalDialog";
 
 const colors = ["#ef5a35", "#3e6a59", "#7d5a87", "#c19639", "#315b75"];
@@ -242,6 +243,14 @@ export default function Dashboard() {
         </div>
       </nav>
       <div className="border-t border-white/10 p-5 text-[10px] text-white/40">
+        <Link
+          className="mb-2 flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white/60 hover:bg-white/5 hover:text-white"
+          onClick={onClose}
+          to="/release-notes"
+        >
+          Release notes
+          {hasUnreadReleaseNotes() && <span className="rounded-full bg-[#ef5a35] px-1.5 py-0.5 text-[7px] text-white">NEW</span>}
+        </Link>
         <Link
           className="mb-2 block rounded-lg border border-white/10 px-3 py-2.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-white/60 hover:bg-white/5 hover:text-white"
           onClick={onClose}
