@@ -1344,6 +1344,7 @@ export default function App() {
   const [pageOverviewOpen, setPageOverviewOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [articleLibraryOpen, setArticleLibraryOpen] = useState(false);
+  const [variantLibraryType, setVariantLibraryType] = useState<SectionType | null>(null);
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
@@ -1944,7 +1945,7 @@ export default function App() {
     setPages((current) => current.map((sections, index) => (index === page ? updater(sections) : sections)) as Pages);
   };
 
-  const addSection = (type: SectionType, articleLayout?: ArticleLayout) => {
+  const addSection = (type: SectionType, articleLayout?: ArticleLayout, layoutVariant?: string) => {
     const articleTemplate = type === "article"
       ? ARTICLE_TEMPLATES.find((template) => template.id === (articleLayout ?? "classic"))
       : undefined;
@@ -1966,6 +1967,7 @@ export default function App() {
 
     const contentForType: Section["content"] = {};
     if (type === "article") contentForType.articleLayout = articleTemplate?.id ?? "classic";
+    if (layoutVariant) contentForType.layoutVariant = layoutVariant;
     if (type === "notice") {
       contentForType.eyebrow = "Noticeboard";
       contentForType.title = "Submit your work";
@@ -1993,6 +1995,7 @@ export default function App() {
     ]);
     setLibraryOpen(false);
     setArticleLibraryOpen(false);
+    setVariantLibraryType(null);
     window.setTimeout(() => document.querySelector(`#page-${activePage + 1}`)?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
 
@@ -3055,20 +3058,22 @@ export default function App() {
       </button>
 
       {libraryOpen && (
-        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => { setLibraryOpen(false); setArticleLibraryOpen(false); }}>
+        <div className="editor-only fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs" onMouseDown={() => { setLibraryOpen(false); setArticleLibraryOpen(false); setVariantLibraryType(null); }}>
           <aside className="h-full w-full max-w-md overflow-y-auto bg-[#f8f5ed] p-6 shadow-2xl dark:border-l dark:border-white/10 dark:bg-[#1a1916] dark:text-[#f3f0e8]" onMouseDown={(event) => event.stopPropagation()}>
             <div className="mb-7 flex items-start justify-between">
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Page {activePage + 1}</p>
-                {articleLibraryOpen && <button className="mb-2 mt-3 text-[9px] font-bold uppercase tracking-[0.12em] text-black/50 hover:text-[#a14b32] dark:text-white/55" onClick={() => setArticleLibraryOpen(false)} type="button">← All sections</button>}
-                <h2 className="mt-2 font-serif text-4xl tracking-[-0.04em]">{articleLibraryOpen ? "Article layouts" : "Add a section"}</h2>
+                {(articleLibraryOpen || variantLibraryType) && <button className="mb-2 mt-3 text-[9px] font-bold uppercase tracking-[0.12em] text-black/50 hover:text-[#a14b32] dark:text-white/55" onClick={() => { setArticleLibraryOpen(false); setVariantLibraryType(null); }} type="button">← All sections</button>}
+                <h2 className="mt-2 font-serif text-4xl tracking-[-0.04em]">{articleLibraryOpen ? "Article layouts" : variantLibraryType ? `${SECTION_OPTIONS.find((option) => option.type === variantLibraryType)?.name ?? "Section"} layouts` : "Add a section"}</h2>
               </div>
               <button className="text-2xl text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white" onClick={() => { setLibraryOpen(false); setArticleLibraryOpen(false); }} type="button">×</button>
             </div>
             <p className="mb-6 text-xs leading-relaxed text-black/55 dark:text-[#f3f0e8]/60">
               {articleLibraryOpen
                 ? "Choose a page-ready format. Add or change photographs from the image controls inside each article."
-                : "Pick a ready-made block. Once added, use its controls to move, resize, duplicate, or remove it."}
+                : variantLibraryType
+                ? "Choose a visual arrangement. You can change it any time from the section controls."
+                : "Pick a ready-made block. Sections with an arrow open a layout chooser; plus adds the section right away."}
             </p>
             {articleLibraryOpen ? (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -3100,20 +3105,49 @@ export default function App() {
                   </button>
                 ))}
               </div>
+            ) : variantLibraryType ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SECTION_LAYOUTS[variantLibraryType]?.map((layout, index) => (
+                  <button
+                    className="section-picker-card group overflow-hidden border border-black/15 bg-white/70 text-left transition hover:border-[#a14b32] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#c9856c] dark:hover:bg-[#2e2d29]"
+                    key={layout.id}
+                    onClick={() => addSection(variantLibraryType, undefined, layout.id)}
+                    type="button"
+                  >
+                    <span aria-hidden="true" className="block border-b border-black/10 bg-[#eee8dc] p-3 dark:border-white/10 dark:bg-[#302e29]">
+                      <span className="flex h-24 items-center justify-center gap-2 overflow-hidden border border-black/10 bg-[#f8f5ed] p-3 dark:border-white/10 dark:bg-[#1a1916]">
+                        <span className="flex h-full w-full flex-col justify-center gap-2">
+                          <i className="h-1.5 w-1/3 bg-[#a14b32]/70" />
+                          <i className={`h-3 ${index === 1 ? "w-4/5" : "w-2/3"} bg-black/60 dark:bg-white/60`} />
+                          <i className="h-1 w-full bg-black/20 dark:bg-white/25" />
+                          <i className="h-1 w-4/5 bg-black/20 dark:bg-white/25" />
+                          {index === 2 && <i className="h-3 w-1/2 self-end bg-[#c9b69c] dark:bg-[#766654]" />}
+                        </span>
+                        {index === 1 && <span className="grid h-full w-1/3 place-items-center border-l border-black/10 pl-2 dark:border-white/10"><i className="h-10 w-full bg-[#c9b69c] dark:bg-[#766654]" /></span>}
+                      </span>
+                    </span>
+                    <span className="block p-4">
+                      <span className="block font-serif text-xl text-[#171714] dark:text-[#f3f0e8]">{layout.label}</span>
+                      <span className="mt-1 block min-h-8 text-[10px] leading-relaxed text-black/60 dark:text-[#f3f0e8]/65">{layout.id === "calendar" ? "Arrange dates in a compact, scannable grid." : layout.id === "timeline" ? "Give entries a clear chronological rhythm." : layout.id === "poster" ? "Let one vivid quotation command the page." : layout.id === "filmstrip" ? "Present images in a cinematic horizontal run." : `A considered ${layout.label.toLowerCase()} arrangement for your ${SECTION_OPTIONS.find((option) => option.type === variantLibraryType)?.name.toLowerCase()}.`}</span>
+                      <span className="mt-3 block border-t border-black/10 pt-3 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8d4933] dark:border-white/10 dark:text-[#d59a82]">Add this layout <span aria-hidden="true">→</span></span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="grid gap-2">
                 {SECTION_OPTIONS.map((option) => (
                   <button
                     className="section-picker-card group flex items-center justify-between border border-black/15 bg-white/70 p-4 text-left transition hover:border-[#ef5a35] hover:bg-white dark:border-white/15 dark:bg-[#242320] dark:hover:border-[#ef5a35] dark:hover:bg-[#2e2d29]"
                     key={option.type}
-                    onClick={() => option.type === "article" ? setArticleLibraryOpen(true) : addSection(option.type)}
+                    onClick={() => option.type === "article" ? setArticleLibraryOpen(true) : SECTION_LAYOUTS[option.type] ? setVariantLibraryType(option.type) : addSection(option.type)}
                     type="button"
                   >
                     <span>
                       <span className="block font-serif text-xl text-[#171714] transition-colors group-hover:text-[#ef5a35] dark:text-[#f3f0e8] dark:group-hover:text-[#ef5a35]">{option.name}</span>
-                      <span className="mt-1 block text-[10px] text-black/60 dark:text-[#f3f0e8]/65">{option.type === "article" ? "Choose from six editorial layouts" : option.description}</span>
+                      <span className="mt-1 block text-[10px] text-black/60 dark:text-[#f3f0e8]/65">{option.type === "article" ? "Choose from six editorial layouts" : SECTION_LAYOUTS[option.type] ? `Choose from ${SECTION_LAYOUTS[option.type]?.length} visual layouts` : option.description}</span>
                     </span>
-                    <span className="text-xl text-[#ef5a35] transition-transform group-hover:translate-x-1">{option.type === "article" ? "›" : "+"}</span>
+                    <span className="text-xl text-[#ef5a35] transition-transform group-hover:translate-x-1">{option.type === "article" || SECTION_LAYOUTS[option.type] ? "›" : "+"}</span>
                   </button>
                 ))}
               </div>
