@@ -24,23 +24,34 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   activateWorkspaceOwner(user?.id ?? null);
   const [workspace, setWorkspace] = useState<Workspace>(() => loadWorkspace(user?.id ?? null));
+  const [workspaceReady, setWorkspaceReady] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<"loading" | "saved" | "offline">("loading");
 
   useEffect(() => {
     if (!user?.id) return;
+    let active = true;
+    setWorkspaceReady(false);
     const handleWorkspaceChange = () => {
       setWorkspace(loadWorkspace());
     };
-    const handleSyncSuccess = () => setCloudStatus("saved");
-    const handleSyncError = () => setCloudStatus("offline");
+    const handleSyncSuccess = () => { if (active) setCloudStatus("saved"); };
+    const handleSyncError = () => { if (active) setCloudStatus("offline"); };
     window.addEventListener("iow-workspace-change", handleWorkspaceChange);
     window.addEventListener("iow-workspace-sync-success", handleSyncSuccess);
     window.addEventListener("iow-workspace-sync-error", handleSyncError);
     hydrateWorkspace(user.id).then((remote) => {
+      if (!active) return;
       setWorkspace(remote);
       setCloudStatus("saved");
-    }).catch(() => setCloudStatus("offline"));
+    }).catch(() => {
+      if (!active) return;
+      setWorkspace(loadWorkspace(user.id));
+      setCloudStatus("offline");
+    }).finally(() => {
+      if (active) setWorkspaceReady(true);
+    });
     return () => {
+      active = false;
       window.removeEventListener("iow-workspace-change", handleWorkspaceChange);
       window.removeEventListener("iow-workspace-sync-success", handleSyncSuccess);
       window.removeEventListener("iow-workspace-sync-error", handleSyncError);
@@ -55,6 +66,7 @@ export default function Dashboard() {
   const availableTemplates = [...newsletterTemplates, ...loadCustomTemplates()];
 
   const commit = (next: Workspace) => {
+    if (!workspaceReady) return;
     setWorkspace(next);
     saveWorkspace(next);
   };
@@ -247,12 +259,13 @@ export default function Dashboard() {
         <div className="mt-3 flex gap-2 px-3">
           <input
             className="min-w-0 flex-1 border-b border-white/20 bg-transparent py-2 text-xs text-white outline-none placeholder:text-white/25"
+            disabled={!workspaceReady}
             onChange={(event) => setFolderName(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && createFolder()}
             placeholder="New folder"
             value={folderName}
           />
-          <button className="text-lg text-[#ef5a35]" onClick={createFolder} type="button">+</button>
+          <button className="text-lg text-[#ef5a35] disabled:opacity-40" disabled={!workspaceReady} onClick={createFolder} type="button">+</button>
         </div>
       </nav>
       <div className="border-t border-white/10 p-5 text-[10px] text-white/40">
@@ -362,13 +375,21 @@ export default function Dashboard() {
             />
           </label>
           <div className="flex items-center gap-2">
-            <button className="rounded-full bg-[#ef5a35] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#171714]" onClick={() => setTemplateOpen(true)} type="button">
+            <button className="rounded-full bg-[#ef5a35] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white hover:bg-[#171714] disabled:cursor-wait disabled:opacity-50" disabled={!workspaceReady} onClick={() => setTemplateOpen(true)} type="button">
               New newsletter
             </button>
           </div>
         </header>
 
         <div className="p-5 sm:p-8 lg:p-12">
+          {!workspaceReady ? (
+            <div className="grid min-h-72 place-items-center border border-black/10 bg-white/25 text-center">
+              <div>
+                <p className="font-serif text-3xl">Opening the newsroom</p>
+                <p className="mt-2 text-xs text-black/45">Loading the shared publication and its issues…</p>
+              </div>
+            </div>
+          ) : <>
           <div className="mb-9 flex flex-wrap items-end justify-between gap-5">
             <div>
               <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#ef5a35]">Editorial dashboard</p>
@@ -424,6 +445,7 @@ export default function Dashboard() {
               <button className="mt-6 rounded-full bg-[#171714] px-5 py-2.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white" onClick={() => setTemplateOpen(true)} type="button">Create newsletter</button>
             </div>
           )}
+          </>}
         </div>
       </main>
 

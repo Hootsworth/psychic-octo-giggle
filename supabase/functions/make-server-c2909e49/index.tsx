@@ -7,7 +7,11 @@ const app = new Hono();
 
 const API_PREFIX = "/make-server-c2909e49";
 const ISSUE_MEDIA_BUCKET = "newsletter-issue-media";
+const SHARED_WORKSPACE_KEY = "workspace:shared";
+const SHARED_PUBLISHING_KEY = "publishing:shared";
 const admin = () => createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+let sharedWorkspaceMigration: Promise<any> | null = null;
+let sharedPublishingMigration: Promise<any> | null = null;
 
 function registerRoute(method: "GET" | "POST" | "PUT" | "DELETE", path: string, handler: any) {
   app.on(method, path, handler);
@@ -85,6 +89,149 @@ function issueKey(userId: string, issueId: string) {
   return `issue:${userId}:${issueId}`;
 }
 
+function sharedIssueKey(issueId: string) {
+  return `issue:shared:${issueId}`;
+}
+
+async function ensureSharedWorkspace() {
+  const existing = await kv.get(SHARED_WORKSPACE_KEY);
+  if (existing && Array.isArray(existing.issues) && Array.isArray(existing.folders) && existing.migrationVersion >= 2) return existing;
+  if (sharedWorkspaceMigration) return await sharedWorkspaceMigration;
+
+  sharedWorkspaceMigration = (async () => {
+    if (existing && Array.isArray(existing.issues) && Array.isArray(existing.folders)) {
+      const legacyDocuments = await kv.getEntriesByPrefix("issue:");
+      const issueMap = new Map<string, any>(existing.issues.map((issue: any) => [issue.id, issue]));
+      const bestDocuments = new Map<string, { document: any; stamp: number }>();
+
+      for (const entry of legacyDocuments) {
+        const match = entry.key.match(/^issue:([^:]+):(.+)$/);
+        if (!match || match[1] === "shared" || !validIssueId(match[2])) continue;
+        const issueId = match[2];
+        const stamp = Date.parse(entry.value?.updatedAt ?? "") || 0;
+        const current = bestDocuments.get(issueId);
+        if (!current || stamp >= current.stamp) bestDocuments.set(issueId, { document: entry.value, stamp });
+      }
+
+      const docsToSave: Array<[string, any]> = [];
+      for (const [issueId, candidate] of bestDocuments) {
+        const currentDocument = await kv.get(sharedIssueKey(issueId));
+        const currentStamp = Date.parse(currentDocument?.updatedAt ?? "") || 0;
+        if (!currentDocument || candidate.stamp > currentStamp) {
+          docsToSave.push([sharedIssueKey(issueId), candidate.document]);
+        }
+
+        const issue = issueMap.get(issueId);
+        if (!issue) {
+          const timestamp = candidate.document?.updatedAt ?? new Date().toISOString();
+          issueMap.set(issueId, {
+            id: issueId,
+            title: "Recovered newsletter",
+            week: "Recovered from a previous workspace",
+            status: "draft",
+            folderId: null,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          });
+        } else if (candidate.stamp > (Date.parse(issue.updatedAt ?? "") || 0)) {
+          issueMap.set(issueId, { ...issue, updatedAt: candidate.document?.updatedAt ?? issue.updatedAt });
+        }
+      }
+
+      if (docsToSave.length) await kv.mset(docsToSave.map(([key]) => key), docsToSave.map(([, document]) => document));
+      const upgraded = {
+        ...existing,
+        ownerId: "shared",
+        migrationVersion: 2,
+        issues: [...issueMap.values()].sort((a, b) => (Date.parse(b.updatedAt ?? "") || 0) - (Date.parse(a.updatedAt ?? "") || 0)),
+      };
+      await kv.set(SHARED_WORKSPACE_KEY, upgraded);
+      return upgraded;
+    }
+
+    const rows = await kv.getByPrefix("user:");
+    const workspaces = rows.filter((value: any) => value && Array.isArray(value.issues) && Array.isArray(value.folders) && typeof value.ownerId === "string");
+    const folders = new Map<string, any>();
+    const issueCandidates = new Map<string, { issue: any; stamp: number }>();
+    const documents = new Map<string, { document: any; stamp: number }>();
+
+    for (const workspace of workspaces) {
+      for (const folder of workspace.folders) {
+        if (folder?.id && !folders.has(folder.id)) folders.set(folder.id, folder);
+      }
+      for (const issue of workspace.issues) {
+        if (!issue?.id || !validIssueId(issue.id)) continue;
+        const document = await kv.get(issueKey(workspace.ownerId, issue.id));
+        const issueStamp = Date.parse(issue.updatedAt ?? issue.createdAt ?? "") || 0;
+        const documentStamp = Date.parse(document?.updatedAt ?? "") || 0;
+        const stamp = Math.max(issueStamp, documentStamp);
+        const current = issueCandidates.get(issue.id);
+        if (!current || stamp >= current.stamp) {
+          issueCandidates.set(issue.id, { issue, stamp });
+        }
+        const currentDocument = documents.get(issue.id);
+        if (document && (!currentDocument || documentStamp >= currentDocument.stamp)) {
+          documents.set(issue.id, { document, stamp: documentStamp });
+        }
+      }
+    }
+
+    const issues = [...issueCandidates.entries()]
+      .map(([issueId, { issue }]) => {
+        const document = documents.get(issueId)?.document;
+        return document?.updatedAt && Date.parse(document.updatedAt) > (Date.parse(issue.updatedAt ?? "") || 0)
+          ? { ...issue, updatedAt: document.updatedAt }
+          : issue;
+      })
+      .sort((a, b) => (Date.parse(b.updatedAt ?? "") || 0) - (Date.parse(a.updatedAt ?? "") || 0));
+
+    // Copy each issue's newest saved document before publishing the shared index.
+    for (const [issueId, candidate] of documents) await kv.set(sharedIssueKey(issueId), candidate.document);
+
+    const shared = { folders: [...folders.values()], issues, ownerId: "shared", migrationVersion: 1 };
+    await kv.set(SHARED_WORKSPACE_KEY, shared);
+    return shared;
+  })().finally(() => { sharedWorkspaceMigration = null; });
+
+  return await sharedWorkspaceMigration;
+}
+
+async function ensureSharedPublishing() {
+  const existing = await kv.get(SHARED_PUBLISHING_KEY);
+  if (existing && Array.isArray(existing.releases) && Array.isArray(existing.campaigns)) return existing;
+  if (sharedPublishingMigration) return await sharedPublishingMigration;
+
+  sharedPublishingMigration = (async () => {
+    const rows = await kv.getByPrefix("user:");
+    const candidates = rows.filter((value: any) => value && Array.isArray(value.releases) && Array.isArray(value.campaigns));
+    candidates.sort((a: any, b: any) =>
+      (b.releases.length + b.campaigns.length + (b.deliveryLog?.length ?? 0)) -
+      (a.releases.length + a.campaigns.length + (a.deliveryLog?.length ?? 0)));
+    const primary = candidates[0];
+    if (!primary) return null;
+
+    const releases = new Map<string, any>();
+    const campaigns = new Map<string, any>();
+    const deliveryLog = new Map<string, any>();
+    for (const candidate of candidates) {
+      for (const release of candidate.releases ?? []) if (release?.id && !releases.has(release.id)) releases.set(release.id, release);
+      for (const campaign of candidate.campaigns ?? []) if (campaign?.id && !campaigns.has(campaign.id)) campaigns.set(campaign.id, campaign);
+      for (const entry of candidate.deliveryLog ?? []) if (entry?.id && !deliveryLog.has(entry.id)) deliveryLog.set(entry.id, entry);
+    }
+
+    const shared = {
+      ...primary,
+      releases: [...releases.values()],
+      campaigns: [...campaigns.values()],
+      deliveryLog: [...deliveryLog.values()],
+    };
+    await kv.set(SHARED_PUBLISHING_KEY, shared);
+    return shared;
+  })().finally(() => { sharedPublishingMigration = null; });
+
+  return await sharedPublishingMigration;
+}
+
 function validIssueId(value: string) {
   return /^[a-zA-Z0-9_-]{1,160}$/.test(value);
 }
@@ -109,12 +256,12 @@ registerRoute("GET", "/health", (c) => {
   return c.json({ status: "ok" });
 });
 
-// Authenticated, per-user issue index. The local client cache is kept separately.
+// Every signed-in newsroom member uses the same issue index and documents.
 registerRoute("GET", "/workspace", async (c) => {
   const user = await authenticatedUser(c);
   if (!user) return c.json({ error: "Authentication required." }, 401);
   try {
-    return c.json(await kv.get(`user:${user.id}:workspace`) ?? null);
+    return c.json(await ensureSharedWorkspace());
   } catch (error: any) {
     return c.json({ error: error.message ?? "Could not load workspace." }, 500);
   }
@@ -127,7 +274,11 @@ registerRoute("PUT", "/workspace", async (c) => {
   try {
     const value = await c.req.json();
     if (!value || !Array.isArray(value.issues) || !Array.isArray(value.folders)) return c.json({ error: "Invalid workspace data." }, 400);
-    await kv.set(`user:${user.id}:workspace`, { ...value, ownerId: user.id });
+    const current = await ensureSharedWorkspace();
+    if (current.issues.length > 0 && value.issues.length === 0) {
+      return c.json({ error: "Refusing to replace the shared newsroom with an empty workspace." }, 409);
+    }
+    await kv.set(SHARED_WORKSPACE_KEY, { ...value, ownerId: "shared" });
     return c.json({ ok: true });
   } catch (error: any) {
     return c.json({ error: error.message ?? "Could not save workspace." }, 500);
@@ -138,7 +289,7 @@ registerRoute("GET", "/publishing", async (c) => {
   const user = await authenticatedUser(c);
   if (!user) return c.json({ error: "Authentication required." }, 401);
   try {
-    return c.json(await kv.get(`user:${user.id}:publishing`) ?? null);
+    return c.json(await ensureSharedPublishing());
   } catch (error: any) {
     return c.json({ error: error.message ?? "Could not load publishing data." }, 500);
   }
@@ -153,21 +304,22 @@ registerRoute("PUT", "/publishing", async (c) => {
     if (!value || !Array.isArray(value.releases) || !Array.isArray(value.campaigns) || !Array.isArray(value.deliveryLog)) {
       return c.json({ error: "Invalid publishing data." }, 400);
     }
-    await kv.set(`user:${user.id}:publishing`, value);
+    await kv.set(SHARED_PUBLISHING_KEY, value);
     return c.json({ ok: true });
   } catch (error: any) {
     return c.json({ error: error.message ?? "Could not save publishing data." }, 500);
   }
 });
 
-// Issue documents and their images are scoped by the authenticated owner.
+// Legacy per-user issue documents are migrated above. New saves use shared keys.
 registerRoute("GET", "/issues/:issueId", async (c) => {
   const user = await authenticatedUser(c);
   if (!user) return c.json({ error: "Authentication required." }, 401);
   const issueId = c.req.param("issueId");
   if (!validIssueId(issueId)) return c.json({ error: "Invalid issue id." }, 400);
   try {
-    const value = await kv.get(issueKey(user.id, issueId));
+    await ensureSharedWorkspace();
+    const value = await kv.get(sharedIssueKey(issueId)) ?? await kv.get(issueKey(user.id, issueId));
     if (!value) return c.json(null);
     return c.json({ ...value, media: await signedMedia(value.media) });
   } catch (error: any) {
@@ -186,7 +338,8 @@ registerRoute("PUT", "/issues/:issueId", async (c) => {
     if (!value || !Array.isArray(value.pages) || !Array.isArray(value.content) || typeof value.paletteId !== "string" || typeof value.fontId !== "string") {
       return c.json({ error: "Invalid issue document." }, 400);
     }
-    const key = issueKey(user.id, issueId);
+    await ensureSharedWorkspace();
+    const key = sharedIssueKey(issueId);
     const previous = await kv.get(key);
     const media = await saveMedia(user.id, issueId, Array.isArray(value.media) ? value.media : [], previous?.media ?? []);
     const updatedAt = new Date().toISOString();
@@ -213,7 +366,8 @@ registerRoute("DELETE", "/issues/:issueId", async (c) => {
   const issueId = c.req.param("issueId");
   if (!validIssueId(issueId)) return c.json({ error: "Invalid issue id." }, 400);
   try {
-    const key = issueKey(user.id, issueId);
+    const key = sharedIssueKey(issueId);
+    await ensureSharedWorkspace();
     const previous = await kv.get(key);
     if (previous?.media?.length) {
       await admin().storage.from(ISSUE_MEDIA_BUCKET).remove(previous.media.map((entry: any) => entry.path));
@@ -228,10 +382,8 @@ registerRoute("DELETE", "/issues/:issueId", async (c) => {
 // Published issues have a read-only public path for the archive and reader.
 registerRoute("GET", "/public/archive", async (c) => {
   try {
-    const workspaces = await kv.getByPrefix("user:");
-    const issues = workspaces.flatMap((workspace: any) => Array.isArray(workspace?.issues)
-      ? workspace.issues.filter((issue: any) => issue.status === "published")
-      : []);
+    const workspace = await ensureSharedWorkspace();
+    const issues = workspace.issues.filter((issue: any) => issue.status === "published");
     return c.json(issues);
   } catch (error: any) {
     return c.json({ error: error.message ?? "Could not load archive." }, 500);
@@ -242,12 +394,10 @@ registerRoute("GET", "/public/issues/:issueId", async (c) => {
   const issueId = c.req.param("issueId");
   if (!validIssueId(issueId)) return c.json({ error: "Invalid issue id." }, 400);
   try {
-    const workspaces = await kv.getByPrefix("user:");
-    const workspace = workspaces.find((entry: any) => entry?.issues?.some((issue: any) => issue.id === issueId && issue.status === "published"));
-    const owner = workspace?.ownerId;
-    const issue = workspace?.issues?.find((entry: any) => entry.id === issueId && entry.status === "published");
-    if (!owner || !issue) return c.json({ error: "Published issue not found." }, 404);
-    const document = await kv.get(issueKey(owner, issueId));
+    const workspace = await ensureSharedWorkspace();
+    const issue = workspace.issues.find((entry: any) => entry.id === issueId && entry.status === "published");
+    if (!issue) return c.json({ error: "Published issue not found." }, 404);
+    const document = await kv.get(sharedIssueKey(issueId));
     if (!document) return c.json({ error: "Published issue content not found." }, 404);
     return c.json({ issue, document: { ...document, media: await signedMedia(document.media) } });
   } catch (error: any) {

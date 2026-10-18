@@ -43,16 +43,8 @@ const endpoint = `https://${projectId}.supabase.co/functions/v1/make-server-c290
 let activeWorkspaceOwnerId: string | null = null;
 
 export function activateWorkspaceOwner(ownerId: string | null) {
-  if (ownerId) {
-    const previousOwner = localStorage.getItem(WORKSPACE_OWNER_KEY);
-    if (previousOwner && previousOwner !== ownerId) {
-      const prefixes = ["iow-layout-", "iow-content-", "iow-palette-", "iow-font-", "iow-media-", "iow-comments-", "iow-chat-"];
-      for (let index = localStorage.length - 1; index >= 0; index -= 1) {
-        const key = localStorage.key(index);
-        if (key && prefixes.some((prefix) => key.startsWith(prefix))) localStorage.removeItem(key);
-      }
-    }
-  }
+  // Issue records are shared by the newsroom. Switching auth users must not
+  // erase the browser's local copy before the shared cloud workspace hydrates.
   activeWorkspaceOwnerId = ownerId;
 }
 
@@ -64,41 +56,7 @@ const now = () => new Date().toISOString();
 export const makeId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-const seedWorkspace = (): Workspace => ({
-  folders: [
-    { id: "folder-2025", name: "2025 Editions", color: "#ef5a35", createdAt: now() },
-    { id: "folder-special", name: "Special Editions", color: "#3e6a59", createdAt: now() },
-  ],
-  issues: [
-    {
-      id: "issue-current",
-      title: "Back to where ideas begin",
-      week: "September 22–28, 2025",
-      status: "draft",
-      folderId: "folder-2025",
-      createdAt: now(),
-      updatedAt: now(),
-    },
-    {
-      id: "issue-welcome",
-      title: "The Welcome Week Edition",
-      week: "September 15–21, 2025",
-      status: "review",
-      folderId: "folder-2025",
-      createdAt: now(),
-      updatedAt: now(),
-    },
-    {
-      id: "issue-summer",
-      title: "Notes from a Quiet Campus",
-      week: "June 16–22, 2025",
-      status: "published",
-      folderId: "folder-2025",
-      createdAt: now(),
-      updatedAt: now(),
-    },
-  ],
-});
+const emptyWorkspace = (): Workspace => ({ folders: [], issues: [] });
 
 export function loadWorkspace(ownerId = activeWorkspaceOwnerId): Workspace {
   try {
@@ -107,7 +65,7 @@ export function loadWorkspace(ownerId = activeWorkspaceOwnerId): Workspace {
   } catch {
     // A fresh workspace is safer than blocking the editor on malformed local data.
   }
-  let initial = seedWorkspace();
+  let initial = emptyWorkspace();
   if (ownerId) {
     const previousOwner = localStorage.getItem(WORKSPACE_OWNER_KEY);
     if (!previousOwner || previousOwner === ownerId) {
@@ -150,7 +108,7 @@ export async function hydrateWorkspace(ownerId: string): Promise<Workspace> {
     localStorage.setItem(WORKSPACE_OWNER_KEY, ownerId);
     return remote;
   }
-  let local = seedWorkspace();
+  let local = emptyWorkspace();
   if (localStorage.getItem(workspaceKey(ownerId))) {
     local = loadWorkspace(ownerId);
   } else {
