@@ -481,37 +481,39 @@ function PageHeader({
   if (newspaper) return (
     <div className="mx-6 border-b-4 border-double border-black px-1 pb-3 pt-6 sm:mx-10 md:mx-14">
       <div className="flex items-center justify-between border-b border-black/40 pb-2 text-[8px] font-bold uppercase tracking-[0.16em]"><span>Independent student press</span><span>Vol. 01 · No. {String(page).padStart(2, "0")}</span><span>University edition</span></div>
-      {page === 1 && onUpdateMasthead && (
-        <div className="editor-only flex flex-wrap items-center justify-center gap-2 border-b border-black/15 py-2 text-[8px]">
-          <label className="font-bold uppercase tracking-[0.1em] text-black/50" htmlFor="masthead-style">Masthead</label>
-          <select className="rounded border border-black/15 bg-white px-2 py-1" id="masthead-style" onChange={(event) => onUpdateMasthead({ mastheadStyle: event.target.value as NewspaperMastheadSettings["mastheadStyle"] })} value={masthead?.mastheadStyle ?? "text"}>
-            <option value="brand">Use publication logo</option>
-            <option value="custom-logo">Upload a different logo</option>
-            <option value="text">Use title text</option>
-          </select>
-          {(masthead?.mastheadStyle ?? "text") === "text" && (
-            <input aria-label="Masthead title" className="w-48 rounded border border-black/15 bg-white px-2 py-1" defaultValue={masthead?.mastheadTitle ?? "The Campus Gazette"} key={masthead?.mastheadTitle ?? "The Campus Gazette"} onBlur={(event) => onUpdateMasthead({ mastheadTitle: event.currentTarget.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} placeholder="Publication title" />
-          )}
-          {(masthead?.mastheadStyle ?? "text") === "custom-logo" && (
-            <label className="cursor-pointer rounded border border-black/15 bg-white px-2 py-1 font-semibold hover:border-[#a14b32]">
-              {masthead?.mastheadLogo ? "Replace logo" : "Choose image"}
-              <input accept="image/*" className="sr-only" onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                if (!file) return;
-                if (!file.type.startsWith("image/") || file.size > 2_000_000) {
-                  toast.show("Choose an image smaller than 2 MB.", "error", "Logo not uploaded");
-                  event.currentTarget.value = "";
-                  return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => onUpdateMasthead({ mastheadLogo: String(reader.result ?? "") });
-                reader.readAsDataURL(file);
-              }} type="file" />
-            </label>
-          )}
-        </div>
-      )}
-      <NewspaperMasthead className="my-1" settings={masthead} />
+      <div className="group/masthead relative">
+        <NewspaperMasthead className="my-1" settings={masthead} />
+        {page === 1 && onUpdateMasthead && (
+          <div className="editor-only absolute right-0 top-1 z-20 flex max-w-[min(90vw,30rem)] flex-wrap items-center justify-end gap-2 border border-black/15 bg-[#fbfaf7]/95 p-2 text-[8px] opacity-0 shadow-lg backdrop-blur transition-opacity group-hover/masthead:opacity-100 group-focus-within/masthead:opacity-100">
+            <label className="font-bold uppercase tracking-[0.1em] text-black/50" htmlFor="masthead-style">Masthead</label>
+            <select className="rounded border border-black/15 bg-white px-2 py-1.5" id="masthead-style" onChange={(event) => onUpdateMasthead({ mastheadStyle: event.target.value as NewspaperMastheadSettings["mastheadStyle"] })} value={masthead?.mastheadStyle ?? "text"}>
+              <option value="brand">Use publication logo</option>
+              <option value="custom-logo">Upload a different logo</option>
+              <option value="text">Use title text</option>
+            </select>
+            {(masthead?.mastheadStyle ?? "text") === "text" && (
+              <input aria-label="Masthead title" className="w-48 rounded border border-black/15 bg-white px-2 py-1.5" defaultValue={masthead?.mastheadTitle ?? "The Campus Gazette"} key={masthead?.mastheadTitle ?? "The Campus Gazette"} onBlur={(event) => onUpdateMasthead({ mastheadTitle: event.currentTarget.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} placeholder="Publication title" />
+            )}
+            {(masthead?.mastheadStyle ?? "text") === "custom-logo" && (
+              <label className="cursor-pointer rounded border border-black/15 bg-white px-2 py-1.5 font-semibold hover:border-[#a14b32]">
+                {masthead?.mastheadLogo ? "Replace logo" : "Choose image"}
+                <input accept="image/*" className="sr-only" onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (!file) return;
+                  if (!file.type.startsWith("image/") || file.size > 2_000_000) {
+                    toast.show("Choose an image smaller than 2 MB.", "error", "Logo not uploaded");
+                    event.currentTarget.value = "";
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => onUpdateMasthead({ mastheadLogo: String(reader.result ?? "") });
+                  reader.readAsDataURL(file);
+                }} type="file" />
+              </label>
+            )}
+          </div>
+        )}
+      </div>
       <p className="mb-1 text-center font-serif text-[9px] uppercase tracking-[0.2em]">News · Opinion · Arts · Campus life</p>
       <div className="flex justify-between border-t border-black/40 pt-2 font-serif text-[9px] uppercase tracking-[0.1em]"><span>Reporting from campus</span><span>Edition {String(page).padStart(2, "0")} of {String(total).padStart(2, "0")}</span></div>
     </div>
